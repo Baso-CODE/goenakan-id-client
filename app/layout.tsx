@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { Gilda_Display } from "next/font/google";
+import Footer from "./components/navigation/Footer";
 import Navbar from "./components/navigation/Navbar";
 import "./globals.css";
 
 // Menginisialisasi font Gilda Display
 const gilda = Gilda_Display({
-  weight: "400", // Gilda Display membutuhkan spesifikasi weight
+  weight: "400",
   subsets: ["latin"],
-  variable: "--font-gilda", // Variabel CSS untuk Tailwind
+  variable: "--font-gilda",
 });
 
 export const metadata: Metadata = {
@@ -22,9 +23,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${gilda.variable} ${gilda.className} antialiased`}>
+      <body
+        className={`${gilda.variable} ${gilda.className} antialiased scroll-smooth`}>
         <Navbar />
         {children}
+        <Footer />
       </body>
     </html>
   );

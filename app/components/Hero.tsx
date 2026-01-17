@@ -19,6 +19,18 @@ export default function Hero() {
       title: "Where Ideas Become Custom Products.",
       cta: "Custom Now",
     },
+    {
+      id: 2,
+      image: "/images/hero/hero-1.png",
+      title: "Where Ideas Become Custom Products.",
+      cta: "Custom Now",
+    },
+    {
+      id: 3,
+      image: "/images/hero/hero-1.png",
+      title: "Where Ideas Become Custom Products.",
+      cta: "Custom Now",
+    },
   ];
 
   const plugin = React.useRef(
@@ -48,21 +60,14 @@ export default function Hero() {
 
               {/* Konten Teks */}
               <div className="relative z-10 container mx-auto h-full px-4 md:px-8 flex items-center justify-between">
-                {/* BAGIAN KIRI (JUDUL)
-                   -mt-24 md:-mt-40 : Margin Top Negatif berfungsi menarik elemen ke ATAS menjauhi titik tengah.
-                */}
-                <div className="max-w-xl -mt-24 md:-mt-40">
-                  {/* Saya tambahkan kembali font-serif agar sesuai Gilda Display */}
-                  <h1 className="text-4xl md:text-5xl text-gray-800  leading-tight">
+                <div className="max-w-xl -mt-24 md:-mt-40 animate-in fade-in slide-in-from-top-16 duration-1000 ease-out fill-mode-forwards">
+                  <h1 className="text-4xl md:text-5xl text-gray-800 leading-tight">
                     {slide.title}
                   </h1>
                 </div>
 
-                {/* BAGIAN KANAN (CTA)
-                   mt-32 md:mt-64 : Margin Top Positif berfungsi mendorong elemen ke BAWAH menjauhi titik tengah.
-                */}
-                <div className="hidden md:block mt-32 md:mt-64">
-                  <p className="text-3xl md:text-5xl  italic text-gray-800">
+                <div className="hidden md:block mt-32 md:mt-64 animate-in fade-in slide-in-from-bottom-16 duration-1000 ease-out delay-300 fill-mode-forwards">
+                  <p className="text-3xl md:text-5xl italic text-gray-800">
                     {slide.cta}
                   </p>
                 </div>
@@ -72,8 +77,8 @@ export default function Hero() {
         </CarouselContent>
 
         {/* Tombol Navigasi */}
-        <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/50 border-none hover:bg-white" />
-        <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/50 border-none hover:bg-white" />
+        <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/50 border-none hover:bg-white transition-all hover:scale-110" />
+        <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/50 border-none hover:bg-white transition-all hover:scale-110" />
       </Carousel>
 
       {/* Indikator Slide */}
