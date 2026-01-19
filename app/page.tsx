@@ -1,6 +1,8 @@
 import Articles from "./components/Articles";
 import BestSeller from "./components/BestSeller";
+import Faq from "./components/Faq";
 import Hero from "./components/Hero";
+import HowItWorks from "./components/HowItWorks";
 import Newsletter from "./components/Newsletter";
 import Portfolio from "./components/Portfolio";
 import PortfolioEventsAndClients from "./components/PortfolioEventsAndClients";
@@ -18,10 +20,12 @@ export default function Home() {
       <Portfolio />
       <PortfolioEventsAndClients />
       <ServiceFeatures />
+      <HowItWorks />
       <Newsletter />
       <BestSeller />
       <Testimonials />
       <Articles />
+      <Faq />
     </>
   );
 }
