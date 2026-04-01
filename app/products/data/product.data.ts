@@ -7,7 +7,7 @@ export const MOCK_PRODUCTS: Product[] = Array.from({ length: 6 }, (_, i) => ({
   bulkPrice: 17900,
   minOrder: 100,
   sold: 1000,
-  image: "/tumbler.png", // replace with actual image path
+  image: "/images/products/demo-products.png", // replace with actual image path
   category: "STAINLESS STEEL",
   color: "brown",
   size: "medium",

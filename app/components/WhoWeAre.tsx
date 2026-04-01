@@ -12,7 +12,7 @@ export default function WhoWeAre() {
           */}
           <div className="md:col-span-4 relative">
             {/* Placeholder Gambar (Ganti dengan <Image /> nanti) */}
-            <div className="bg-gray-200 w-full h-[400px] md:h-[600px] flex items-center justify-center">
+            <div className="bg-gray-200 w-full h-100 md:h-150 flex items-center justify-center">
               <span className="text-gray-500 font-bold tracking-widest">
                 FOTO
               </span>
@@ -79,7 +79,7 @@ export default function WhoWeAre() {
           */}
           <div className="md:col-span-3 md:mt-40 relative">
             {/* Placeholder Gambar Kanan */}
-            <div className="bg-gray-200 w-full h-[300px] md:h-[400px] flex items-center justify-center">
+            <div className="bg-gray-200 w-full h-75 md:h-100 flex items-center justify-center">
               <span className="text-gray-500 font-bold tracking-widest">
                 FOTO
               </span>

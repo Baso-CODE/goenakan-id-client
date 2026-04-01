@@ -32,7 +32,7 @@ const articles = Array.from({ length: 6 }).map((_, i) => ({
 export default function Articles() {
   // Plugin untuk Autoplay Slider Banner
   const plugin = React.useRef(
-    Autoplay({ delay: 4000, stopOnInteraction: true })
+    Autoplay({ delay: 4000, stopOnInteraction: true }),
   );
 
   return (
@@ -40,7 +40,7 @@ export default function Articles() {
       {/* =========================================
           BAGIAN 1: TOP SLIDER BANNER
          ========================================= */}
-      <div className="w-full h-[400px] md:h-[500px] relative mb-16 bg-gray-100">
+      <div className="w-full h-100 md:h-[500px] relative mb-16 bg-gray-100">
         <Carousel
           plugins={[plugin.current]}
           className="w-full h-full"
@@ -51,7 +51,7 @@ export default function Articles() {
             {bannerSlides.map((slide) => (
               <CarouselItem
                 key={slide.id}
-                className="relative w-full h-[400px] md:h-[500px]">
+                className="relative w-full h-100 md:h-[500px]">
                 <div className="relative w-full h-full">
                   {/* Placeholder Background jika gambar belum ada */}
                   {/* <div className="w-full h-full bg-gray-300 flex items-center justify-center text-gray-500 font-bold tracking-widest text-2xl">

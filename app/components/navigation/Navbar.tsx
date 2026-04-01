@@ -118,7 +118,7 @@ export default function Navbar() {
                 {/* CONTENT MENU */}
                 <SheetContent
                   side="left"
-                  className="w-[85vw] sm:w-[350px] flex flex-col h-full p-0">
+                  className="w-[85vw] sm:w-87.5 flex flex-col h-full p-0">
                   {/* HEADER MENU */}
                   <SheetHeader className="p-6 border-b border-gray-100">
                     <SheetTitle className="text-left flex items-center gap-3">

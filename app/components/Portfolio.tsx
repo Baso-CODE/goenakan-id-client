@@ -48,7 +48,7 @@ export default function Portfolio() {
   return (
     <section className="w-full bg-white pb-20">
       {/* --- BAGIAN ATAS: Banner Image & Text --- */}
-      <div className="relative w-full h-[400px] md:h-[500px] mb-16">
+      <div className="relative w-full h-100 md:h-125 mb-16">
         {/* Gambar Background */}
         <div className="absolute inset-0">
           {/* Ganti src ini dengan gambar header portofolio yang sudah kamu punya */}
@@ -90,7 +90,7 @@ export default function Portfolio() {
                   <Card className="border-none shadow-none bg-transparent">
                     <CardContent className="p-0">
                       {/* Container Gambar Produk (Rasio 4:5 agar kotak agak tinggi) */}
-                      <div className="relative aspect-[4/5] w-full bg-gray-200 overflow-hidden mb-4 group cursor-pointer">
+                      <div className="relative aspect-4/5 w-full bg-gray-200 overflow-hidden mb-4 group cursor-pointer">
                         {/* Placeholder Image */}
                         {/* <Image 
                               src={item.image} 

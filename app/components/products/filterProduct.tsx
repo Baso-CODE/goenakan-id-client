@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { PageHeader } from "./PageHeader";
-import { FilterBar } from "./FilterBar";
-import { ProductGrid } from "./ProductGrid";
-import { LoadMoreButton } from "./LoadMoreButton";
-import { FilterState, Product } from "@/types/product";
-import { MOCK_PRODUCTS } from "@/data/products";
+import { MOCK_PRODUCTS } from "@/app/products/data/product.data";
+import { FilterState, Product } from "@/app/products/types/product.type";
+import { useMemo, useState } from "react";
+import { FilterBar } from "./Filterbar";
+import { LoadMoreButton } from "./Loadmorebutton";
+import { PageHeader } from "./Pageheader";
+import { ProductGrid } from "./Productgrid";
 
 const PAGE_SIZE = 6;
 
@@ -23,7 +23,7 @@ interface ProductPageProps {
   initialProducts?: Product[];
 }
 
-export function ProductPage({
+export default function FilterProduct({
   initialProducts = MOCK_PRODUCTS,
 }: ProductPageProps) {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -101,7 +101,7 @@ export function ProductPage({
     <div className="min-h-screen bg-stone-50 font-sans">
       <PageHeader title="Our Product" brand="Bamboo" />
 
-      <main className="max-w-6xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Filter Bar */}
         <div className="mb-7">
           <FilterBar filters={filters} onFilterChange={handleFilterChange} />

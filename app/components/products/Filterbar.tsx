@@ -1,5 +1,6 @@
 "use client";
 
+import { FilterOption, FilterState } from "@/app/products/types/product.type";
 import {
   Select,
   SelectContent,
@@ -7,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FilterState, FilterOption } from "@/types/product";
 
 interface FilterBarProps {
   filters: FilterState;

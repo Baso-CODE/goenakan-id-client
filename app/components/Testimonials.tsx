@@ -70,7 +70,7 @@ export default function Testimonials() {
           </Card>
 
           {/* 3. Stat Card Horizontal (300+ Brands) */}
-          <Card className="border-none shadow-sm bg-white overflow-hidden flex flex-row h-full min-h-[160px]">
+          <Card className="border-none shadow-sm bg-white overflow-hidden flex flex-row h-full min-h-40">
             <div className="relative w-1/2 bg-gray-200">
               <Image
                 src="/images/testimonials/contoh.png"
@@ -100,7 +100,7 @@ export default function Testimonials() {
           {/* 4. Stat Card Vertical (500+ Customers) */}
           <Card className="border-none shadow-sm bg-white overflow-hidden flex flex-col h-full">
             {/* Bagian Foto Atas (Tinggi flex-grow agar mengisi ruang) */}
-            <div className="grow bg-gray-200 min-h-[150px] flex items-center justify-center text-gray-400 text-sm font-medium">
+            <div className="grow bg-gray-200 min-h-37.5 flex items-center justify-center text-gray-400 text-sm font-medium">
               Foto
               {/* <Image src="..." fill className="object-cover" /> */}
             </div>
