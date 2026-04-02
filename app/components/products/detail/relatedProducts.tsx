@@ -1,6 +1,6 @@
 "use client";
 
-import { Product } from "@/app/products/types/product.type";
+import { Product } from "@/app/types/product.type";
 import {
   Carousel,
   CarouselContent,

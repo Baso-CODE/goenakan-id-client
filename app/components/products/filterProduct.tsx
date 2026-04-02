@@ -1,7 +1,7 @@
 "use client";
 
-import { MOCK_PRODUCTS } from "@/app/products/data/product.data";
-import { FilterState, Product } from "@/app/products/types/product.type";
+import { MOCK_PRODUCTS } from "@/app/data/product.data";
+import { FilterState, Product } from "@/app/types/product.type";
 import { useMemo, useState } from "react";
 import { FilterBar } from "./Filterbar";
 import { LoadMoreButton } from "./Loadmorebutton";

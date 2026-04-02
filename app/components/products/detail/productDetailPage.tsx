@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductDetail } from "@/app/products/types/productDetail.type";
+import { ProductDetail } from "@/app/types/productDetail.type";
 import { useState } from "react";
 import { PriceTierSelector } from "./priceTierSelector";
 import { ProductDescription } from "./productDescription";

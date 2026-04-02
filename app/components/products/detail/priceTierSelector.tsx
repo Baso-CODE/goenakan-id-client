@@ -1,6 +1,6 @@
 "use client";
 
-import { PriceTier } from "@/app/products/types/productDetail.type";
+import { PriceTier } from "@/app/types/productDetail.type";
 
 interface PriceTierSelectorProps {
   tiers: PriceTier[];

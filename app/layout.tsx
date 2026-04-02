@@ -12,7 +12,7 @@ const gilda = Gilda_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Goenakan Indonesia", // Saya sesuaikan judulnya dengan project kamu
+  title: "Goenakan Indonesia",
   description: "Platform Goenakan Indonesia",
 };
 

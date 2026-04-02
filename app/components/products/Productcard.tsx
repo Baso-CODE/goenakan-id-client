@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 
-import { Product } from "@/app/products/types/product.type";
+import { Product } from "@/app/types/product.type";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 

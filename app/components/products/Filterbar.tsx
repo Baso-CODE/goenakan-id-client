@@ -1,6 +1,6 @@
 "use client";
 
-import { FilterOption, FilterState } from "@/app/products/types/product.type";
+import { FilterOption, FilterState } from "@/app/types/product.type";
 import {
   Select,
   SelectContent,

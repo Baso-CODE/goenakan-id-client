@@ -1,8 +1,8 @@
 import { CustomCTA } from "@/app/components/products/customCTA";
 import { ProductDetailPage } from "@/app/components/products/detail/productDetailPage";
 import { RelatedProducts } from "@/app/components/products/detail/relatedProducts";
-import { MOCK_PRODUCTS } from "../data/product.data";
-import { MOCK_PRODUCT_DETAILS } from "../data/productDetail.data";
+import { MOCK_PRODUCTS } from "@/app/data/product.data";
+import { MOCK_PRODUCT_DETAILS } from "@/app/data/productDetail.data";
 
 interface ProductPageProps {
   params: Promise<{ id: string }>;
