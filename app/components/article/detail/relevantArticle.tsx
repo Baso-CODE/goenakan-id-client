@@ -63,7 +63,7 @@ function RelevantArticleCard({ article }: { article: Article }) {
   return (
     <Link href={article.href} className="group flex flex-col gap-2.5">
       {/* Image */}
-      <div className="relative w-full aspect-[4/3] bg-stone-200 rounded-sm overflow-hidden">
+      <div className="relative w-full aspect-4/3 bg-stone-200 rounded-sm overflow-hidden">
         <Image
           src={article.image}
           alt={article.title}

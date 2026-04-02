@@ -9,11 +9,17 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Globe, Menu, Search, User } from "lucide-react"; // Tambah Icon Globe & Chevron
+import {
+  ChevronRight,
+  Globe,
+  Menu,
+  Search,
+  ShoppingBag,
+  User,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
-import CartDrawer from "../CartDrawer";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
@@ -103,8 +109,11 @@ export default function Navbar() {
             <Button variant="ghost" size="icon" className="rounded-full">
               <Search className="h-5 w-5 text-gray-800" />
             </Button>
-
-            <CartDrawer />
+            <Link href="/cart">
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <ShoppingBag className="h-5 w-5 text-gray-800" />
+              </Button>
+            </Link>
 
             {/* --- BURGER MENU (MOBILE) --- */}
             <div className="md:hidden ml-1">
