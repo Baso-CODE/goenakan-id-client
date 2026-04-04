@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Minus, Plus } from "lucide-react";
@@ -91,11 +90,11 @@ export default function CartPage() {
               Order Tracking
             </TabsTrigger>
 
-            <TabsTrigger
+            {/* <TabsTrigger
               value="login"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-stone-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none pb-3 text-sm text-stone-400 data-[state=active]:text-stone-900 data-[state=active]:font-semibold px-0">
               Login
-            </TabsTrigger>
+            </TabsTrigger> */}
           </TabsList>
 
           {/* ── Cart Tab ── */}
@@ -223,7 +222,7 @@ export default function CartPage() {
           </TabsContent>
 
           {/* ── Login Tab ── */}
-          <TabsContent value="login" className="mt-0">
+          {/* <TabsContent value="login" className="mt-0">
             <div className="flex flex-col items-center justify-center py-12 gap-4 max-w-sm mx-auto w-full">
               <h2 className="text-lg font-semibold text-stone-800 self-start">
                 Login
@@ -242,7 +241,7 @@ export default function CartPage() {
                 Login
               </Button>
             </div>
-          </TabsContent>
+          </TabsContent> */}
         </Tabs>
       </div>
     </div>

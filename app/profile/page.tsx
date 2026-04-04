@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, MapPin, Package, User } from "lucide-react";
+import { AddressManager } from "../components/profile/addressManager";
 
 export default function ProfilePage() {
   // --- DUMMY DATA USER ---
@@ -226,45 +227,7 @@ export default function ProfilePage() {
                 <TabsContent
                   value="address"
                   className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <Card className="rounded-none border-none shadow-sm">
-                    <CardHeader>
-                      <CardTitle className=" text-xl uppercase tracking-widest">
-                        Saved Addresses
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="border border-[#C4A48E]/30 bg-[#C4A48E]/5 p-6 flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-0.5 bg-[#C4A48E] text-white text-[9px] font-bold uppercase tracking-widest">
-                              Default
-                            </span>
-                            <p className="font-bold uppercase text-[10px] tracking-widest">
-                              Home Address
-                            </p>
-                          </div>
-                          <p className="text-sm text-gray-600 leading-relaxed">
-                            Jl. Raya Malioboro No. 123 <br />
-                            Gedong Tengen, Kota Yogyakarta <br />
-                            Daerah Istimewa Yogyakarta, 55271 <br />
-                            Indonesia
-                          </p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-[#C4A48E] hover:text-[#C4A48E] hover:bg-white text-xs font-bold">
-                          EDIT
-                        </Button>
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        className="w-full border-2 border-dashed border-gray-100 mt-4 py-10 rounded-none text-gray-400 hover:bg-gray-50 transition-all">
-                        + ADD NEW ADDRESS
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  <AddressManager />
                 </TabsContent>
               </div>
             </div>
