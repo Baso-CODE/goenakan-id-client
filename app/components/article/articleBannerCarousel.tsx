@@ -18,6 +18,9 @@ export interface ArticleBanner {
   href: string;
   image: string;
   imageAlt?: string;
+  // 🟢 Tambahkan field custom dari database
+  backgroundColor?: string;
+  buttonText?: string;
 }
 
 interface ArticleBannerCarouselProps {
@@ -25,47 +28,8 @@ interface ArticleBannerCarouselProps {
   interval?: number;
 }
 
-const DEFAULT_ARTICLES: ArticleBanner[] = [
-  {
-    id: "1",
-    tag: "THE BLOG",
-    title:
-      "15 Ide Hampers Premium Korporat: Eksklusif dan Tepat untuk Klien VIP",
-    date: "February 2, 2026",
-    href: "/article/hampers-premium-korporat",
-    image: "/images/articles/article-1.jpg",
-    imageAlt: "Hampers Premium Korporat",
-  },
-  {
-    id: "2",
-    tag: "THE BLOG",
-    title: "Tips Memilih Souvenir Custom yang Berkesan untuk Acara Perusahaan",
-    date: "January 15, 2026",
-    href: "/article/souvenir-custom-perusahaan",
-    image: "/images/articles/article-2.jpg",
-    imageAlt: "Souvenir Custom Perusahaan",
-  },
-  {
-    id: "3",
-    tag: "THE BLOG",
-    title: "Mengapa Produk Bambu Menjadi Pilihan Utama Merchandise Modern",
-    date: "December 20, 2025",
-    href: "/article/produk-bambu-merchandise",
-    image: "/images/articles/article-3.jpg",
-    imageAlt: "Produk Bambu Merchandise",
-  },
-];
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 export function ArticleBannerCarousel({
-  articles = DEFAULT_ARTICLES,
+  articles = [],
   interval = 5000,
 }: ArticleBannerCarouselProps) {
   const apiRef = useRef<CarouselApi | null>(null);
@@ -103,6 +67,9 @@ export function ArticleBannerCarousel({
     });
   }, []);
 
+  // Jika tidak ada banner, jangan render carousel
+  if (!articles || articles.length === 0) return null;
+
   return (
     <section
       className="w-full"
@@ -124,33 +91,20 @@ export function ArticleBannerCarousel({
             </CarouselItem>
           ))}
         </CarouselContent>
-
-        {/* Prev / Next arrows */}
-        {/* <CarouselPrevious className="left-4 bg-white/80 hover:bg-white border-0 shadow-sm" />
-        <CarouselNext className="right-4 bg-white/80 hover:bg-white border-0 shadow-sm" /> */}
       </Carousel>
-
-      {/* Dot indicators */}
-      {/* <div className="flex justify-center gap-1.5 mt-3">
-        {articles.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => apiRef.current?.scrollTo(i)}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              current === i ? "w-5 bg-stone-700" : "w-1.5 bg-stone-300"
-            }`}
-          />
-        ))}
-      </div> */}
     </section>
   );
 }
 
 function ArticleBannerSlide({ article }: { article: ArticleBanner }) {
   return (
-    <div className="grid grid-cols-2 w-full pt-24" style={{ minHeight: 620 }}>
+    <div
+      className="grid grid-cols-1 md:grid-cols-2 w-full pt-24"
+      style={{ minHeight: 620 }}>
       {/* Left — Text */}
-      <div className="bg-[#3d342b] flex flex-col justify-center px-10 py-10 gap-4">
+      <div
+        className="flex flex-col justify-center px-10 py-10 gap-4"
+        style={{ backgroundColor: article.backgroundColor || "#3d342b" }}>
         {article.tag && (
           <span className="inline-block border border-white/40 bg-[#e1dad6] text-neutral-900 text-[13px] tracking-widest uppercase px-2.5 py-1 rounded-full w-fit">
             {article.tag}
@@ -161,12 +115,12 @@ function ArticleBannerSlide({ article }: { article: ArticleBanner }) {
           {article.title}
         </h2>
 
-        <p className="text-white text-sm">{formatDate(article.date)}</p>
+        <p className="text-white text-sm">{article.date}</p>
 
         <Link
           href={article.href}
           className="inline-flex items-center gap-1.5 border bg-[#e1dad6] border-white/40 text-slate-900 text-sm px-4 py-2 rounded-sm hover:bg-white/10 hover:text-white transition-colors w-fit mt-1">
-          Read article
+          {article.buttonText || "Read article"}
           <svg
             width="12"
             height="12"
@@ -181,13 +135,13 @@ function ArticleBannerSlide({ article }: { article: ArticleBanner }) {
       </div>
 
       {/* Right — Image */}
-      <div className="relative bg-stone-100 overflow-hidden">
+      <div className="relative bg-stone-100 overflow-hidden min-h-75 md:min-h-full">
         <Image
           src={article.image}
           alt={article.imageAlt ?? article.title}
           fill
           className="object-cover"
-          sizes="50vw"
+          sizes="(max-width: 768px) 100vw, 50vw"
           priority
         />
       </div>

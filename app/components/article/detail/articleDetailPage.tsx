@@ -1,4 +1,4 @@
-import { ArticleDetail } from "@/app/types/articleDetail.type";
+import { ArticleDetail } from "@/app/types/articles/articleDetail.type";
 import Image from "next/image";
 import Link from "next/link";
 import { ArticleContent } from "./articleContent";
@@ -15,7 +15,7 @@ interface ArticleDetailPageProps {
 export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
   return (
     <div className="min-h-screen bg-white pt-28">
-      <div className="max-w-7xl mx-auto px-4  py-8">
+      <div className="container  mx-auto px-4 md:px-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-stone-600 mb-6 flex-wrap">
           <Link
@@ -83,15 +83,15 @@ export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
 
             {/* Prev / Next */}
             <ArticleNavigation
-              prevArticle={article.prevArticle}
-              nextArticle={article.nextArticle}
+              prevArticle={article.prevArticle ?? undefined}
+              nextArticle={article.nextArticle ?? undefined}
             />
             <RelevantArticle currentArticleId={article.id} />
           </article>
 
           {/* ── Right: Sticky Sidebar ── */}
           <div className="hidden lg:block relative self-stretch">
-            <StickyProductSidebar />
+            <StickyProductSidebar products={article.relatedProducts} />
           </div>
         </div>
       </div>

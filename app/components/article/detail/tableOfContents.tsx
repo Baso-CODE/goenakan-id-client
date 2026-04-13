@@ -1,6 +1,6 @@
 "use client";
 
-import { TocItem } from "@/app/types/articleDetail.type";
+import { TocItem } from "@/app/types/articles/articleDetail.type";
 import { useEffect, useState } from "react";
 
 interface TableOfContentsProps {

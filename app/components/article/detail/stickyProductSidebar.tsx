@@ -14,52 +14,16 @@ interface StickyProductSidebarProps {
   ctaLabel?: string;
 }
 
-const DEFAULT_PRODUCTS: SidebarProduct[] = [
-  {
-    id: "1",
-    name: "Custom Stainless Steel",
-    image: "/images/products/demo-products.png",
-    href: "/products/product-1",
-  },
-  {
-    id: "2",
-    name: "Custom Fountain Pen",
-    image: "/images/products/demo-products.png",
-    href: "/products/product-2",
-  },
-  {
-    id: "3",
-    name: "Bamboo Set",
-    image: "/images/products/demo-products.png",
-    href: "/products/product-3",
-  },
-  {
-    id: "4",
-    name: "Custom Notebook",
-    image: "/images/products/demo-products.png",
-    href: "/products/product-4",
-  },
-  {
-    id: "5",
-    name: "Custom Tote Bag",
-    image: "/images/products/demo-products.png",
-    href: "/products/product-5",
-  },
-  {
-    id: "6",
-    name: "Custom Tumbler",
-    image: "/images/products/demo-products.png",
-    href: "/products/product-6",
-  },
-];
-
 export function StickyProductSidebar({
-  products = DEFAULT_PRODUCTS,
+  products = [],
   ctaHref = "/products",
   ctaLabel = "Konsultasi di WhatsApp",
 }: StickyProductSidebarProps) {
+  if (!products || products.length === 0) {
+    return null;
+  }
+
   return (
-    // sticky top-24 = ikut scroll sampai batas bawah article
     <aside className="sticky top-28 flex flex-col gap-3">
       <div className="border border-stone-200 rounded-sm bg-white p-3">
         {/* Title */}

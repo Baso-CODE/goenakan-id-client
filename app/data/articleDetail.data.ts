@@ -1,4 +1,4 @@
-import { ArticleDetail } from "../types/articleDetail.type";
+import { ArticleDetail } from "../types/articles/articleDetail.type";
 
 export const DUMMY_ARTICLE_DETAIL: ArticleDetail = {
   id: "article-1",
