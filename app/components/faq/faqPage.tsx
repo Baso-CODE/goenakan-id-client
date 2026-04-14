@@ -1,7 +1,6 @@
 "use client";
 
-import { DEFAULT_FAQS } from "@/app/data/faq.data";
-import { FaqPageProps } from "@/app/types/faq.type";
+import { FaqItem } from "@/app/types/faqLanding.type";
 import {
   Accordion,
   AccordionContent,
@@ -10,14 +9,17 @@ import {
 } from "@/components/ui/accordion";
 import { useEffect, useRef, useState } from "react";
 
+export interface FaqPageProps {
+  title?: string;
+  faqs: FaqItem[];
+}
+
 export function FaqPage({
-  title = "Lowest Price Guarantee",
-  faqs = DEFAULT_FAQS,
+  title = "Frequently Asked Questions",
+  faqs = [],
 }: FaqPageProps) {
   const [activeId, setActiveId] = useState<string>("");
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
-  // Scrollspy — highlight nav item saat scroll
   useEffect(() => {
     const handleScroll = () => {
       let current = "";
@@ -42,11 +44,19 @@ export function FaqPage({
     }
   };
 
+  // Jika tidak ada data, tampilkan state kosong
+  if (!faqs || faqs.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-50">
+        <p className="text-stone-500">Belum ada FAQ yang tersedia.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-stone-50 pt-24 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-[180px_1fr] gap-10 items-start">
-          {/* ── Left: Quick Nav (sticky) ── */}
           <aside className="hidden lg:block sticky top-28 self-start">
             <p className="text-[12px] font-bold text-stone-700 uppercase tracking-widest mb-3">
               Quick Nav.
@@ -96,7 +106,10 @@ export function FaqPage({
                       {faq.question}
                     </AccordionTrigger>
                     <AccordionContent className="pb-5 text-white">
-                      {faq.answer}
+                      <div
+                        className="[&>ol]:list-decimal [&>ol]:ml-6 [&>ul]:list-disc [&>ul]:ml-6 space-y-2"
+                        dangerouslySetInnerHTML={{ __html: faq.answer }}
+                      />
                     </AccordionContent>
                   </AccordionItem>
                 </div>
