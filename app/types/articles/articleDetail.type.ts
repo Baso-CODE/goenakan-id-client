@@ -1,3 +1,5 @@
+import { Article } from "@/app/components/article/articlelist";
+
 // 🟢 Tambahkan interface untuk struktur produk terkait (Sidebar)
 export interface RelatedProduct {
   id: string;
@@ -18,7 +20,7 @@ export interface ArticleDetail {
   source?: string | null;
   prevArticle?: { title: string; href: string } | null;
   nextArticle?: { title: string; href: string } | null;
-
+  relevantArticles?: Article[];
   relatedProducts?: RelatedProduct[];
 }
 
@@ -26,4 +28,11 @@ export interface TocItem {
   id: string;
   text: string;
   level: number;
+}
+export interface RelevantArticle {
+  id: string;
+  title: string;
+  slug: string;
+  content?: string;
+  coverImage?: string;
 }

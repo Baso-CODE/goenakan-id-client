@@ -1,5 +1,6 @@
 import { getArticleData } from "@/app/api/articles/getArticleBySlug.api";
 import { ArticleDetailPage } from "@/app/components/article/detail/articleDetailPage";
+import { RelevantArticle } from "@/app/types/articles/articleDetail.type";
 import { RelatedProduct } from "@/app/types/articles/relatedProduct.type";
 import { notFound } from "next/navigation";
 
@@ -11,6 +12,8 @@ export default async function ArticleSlugPage({ params }: ArticlePageProps) {
   const { slug } = await params;
 
   const rawArticle = await getArticleData(slug);
+
+  console.log("ini adalah hasil dari console", rawArticle);
 
   if (!rawArticle) {
     notFound();
@@ -30,7 +33,17 @@ export default async function ArticleSlugPage({ params }: ArticlePageProps) {
         href: `/products/${rp.product.slug}`,
       };
     }) || [];
-
+  const mappedRelevantArticles =
+    rawArticle.relevantArticles?.map((rel: RelevantArticle) => ({
+      id: rel.id,
+      title: rel.title,
+      href: `/article/${rel.slug}`,
+      image: rel.coverImage,
+      // Menghapus tag HTML dan membatasi teks untuk excerpt
+      excerpt: rel.content
+        ? rel.content.replace(/<[^>]*>?/gm, "").substring(0, 100) + "..."
+        : "",
+    })) || [];
   // Di dalam file page.tsx Anda
   const article = {
     id: rawArticle.id,
@@ -50,6 +63,7 @@ export default async function ArticleSlugPage({ params }: ArticlePageProps) {
     prevArticle: rawArticle.prevArticle || undefined,
     nextArticle: rawArticle.nextArticle || undefined,
     relatedProducts: mappedRelatedProducts,
+    relevantArticles: mappedRelevantArticles,
   };
   return <ArticleDetailPage article={article} />;
 }

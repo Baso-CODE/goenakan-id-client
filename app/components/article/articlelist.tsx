@@ -1,21 +1,12 @@
 "use client";
 
 import { ArticleApiItem } from "@/app/types/articles/articleApiItem.type";
+import { Article } from "@/app/types/articles/articleList.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-export interface Article {
-  id: string;
-  title: string;
-  excerpt: string;
-  image: string;
-  category: string;
-  date: string;
-  href: string;
-}
 
 interface ArticleListProps {
   categories?: string[];

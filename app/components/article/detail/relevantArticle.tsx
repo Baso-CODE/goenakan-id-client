@@ -1,6 +1,5 @@
 "use client";
 
-import { DUMMY_ARTICLES } from "@/app/data/article.data";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -15,25 +14,28 @@ interface RelevantArticleProps {
 
 export function RelevantArticle({
   currentArticleId,
-  articles = DUMMY_ARTICLES,
+  articles = [],
   title = "Relevant Article",
   pageSize = 6,
 }: RelevantArticleProps) {
   const [visibleCount, setVisibleCount] = useState(pageSize);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Filter out current article
-  const filtered = articles.filter((a) => a.id !== currentArticleId);
+  const filtered = (articles || []).filter((a) => a.id !== currentArticleId);
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
   const handleLoadMore = () => {
     setIsLoading(true);
+    // Simulasi loading sebentar
     setTimeout(() => {
       setVisibleCount((v) => v + pageSize);
       setIsLoading(false);
     }, 400);
   };
+
+  // Jika tidak ada artikel relevan, tidak perlu render section ini
+  if (!articles || articles.length === 0) return null;
 
   return (
     <section className="w-full py-8 border-t border-stone-100 mt-8">
@@ -50,7 +52,7 @@ export function RelevantArticle({
           <button
             onClick={handleLoadMore}
             disabled={isLoading}
-            className="border border-stone-300 text-stone-600 text-sm px-8 py-2 rounded-sm hover:bg-stone-50 transition-colors disabled:opacity-50">
+            className="border border-stone-300 text-stone-600 text-sm px-8 py-2 rounded-sm hover:bg-stone-50 transition-colors disabled:opacity-50 cursor-pointer">
             {isLoading ? "loading..." : "load more"}
           </button>
         </div>
@@ -58,29 +60,30 @@ export function RelevantArticle({
     </section>
   );
 }
-
 function RelevantArticleCard({ article }: { article: Article }) {
   return (
-    <Link href={article.href} className="group flex flex-col gap-2.5">
-      {/* Image */}
-      <div className="relative w-full aspect-4/3 bg-stone-200 rounded-sm overflow-hidden">
+    <Link href={article.href} className="group flex flex-col gap-3">
+      {/* Container Image dengan Rasio Tetap */}
+      <div className="relative w-full aspect-16/10 bg-stone-100 overflow-hidden rounded-md border border-stone-50">
         <Image
-          src={article.image}
+          src={article.image || "/images/placeholder.jpg"} // Fallback image
           alt={article.title}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
       </div>
 
-      {/* Text */}
-      <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold text-stone-800 leading-snug line-clamp-2 group-hover:text-stone-500 transition-colors">
+      {/* Konten Teks */}
+      <div className="flex flex-col gap-1.5 px-1">
+        <h3 className="text-[15px] font-bold text-stone-800 leading-tight group-hover:text-[#C4A48E] transition-colors line-clamp-2">
           {article.title}
         </h3>
-        <p className="text-xs text-stone-400 leading-relaxed line-clamp-2">
-          {article.excerpt}
-        </p>
+        {article.excerpt && (
+          <p className="text-[13px] text-stone-500 leading-relaxed line-clamp-2">
+            {article.excerpt}
+          </p>
+        )}
       </div>
     </Link>
   );

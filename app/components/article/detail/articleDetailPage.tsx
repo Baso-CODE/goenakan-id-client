@@ -13,6 +13,8 @@ interface ArticleDetailPageProps {
 }
 
 export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
+  console.log("ini adalah article", article);
+
   return (
     <div className="min-h-screen bg-white pt-28">
       <div className="container  mx-auto px-4 md:px-8">
@@ -86,7 +88,10 @@ export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
               prevArticle={article.prevArticle ?? undefined}
               nextArticle={article.nextArticle ?? undefined}
             />
-            <RelevantArticle currentArticleId={article.id} />
+            <RelevantArticle
+              currentArticleId={article.id}
+              articles={article.relevantArticles}
+            />
           </article>
 
           {/* ── Right: Sticky Sidebar ── */}
