@@ -1,4 +1,4 @@
-import { Article } from "@/app/components/article/articlelist";
+import { Article } from "../types/articles/articleList.type";
 
 export const DUMMY_ARTICLES: Article[] = [
   {

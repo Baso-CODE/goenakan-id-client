@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Gilda_Display } from "next/font/google";
+import { Toaster } from "sonner";
 import Footer from "./components/navigation/Footer";
 import Navbar from "./components/navigation/Navbar";
 import "./globals.css";
@@ -27,6 +28,7 @@ export default function RootLayout({
         className={`${gilda.variable} ${gilda.className} antialiased scroll-smooth`}>
         <Navbar />
         {children}
+        <Toaster />
         <Footer />
       </body>
     </html>

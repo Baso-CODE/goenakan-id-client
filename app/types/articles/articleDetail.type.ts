@@ -1,6 +1,5 @@
-import { Article } from "@/app/components/article/articlelist";
+import { Article } from "./articleList.type";
 
-// 🟢 Tambahkan interface untuk struktur produk terkait (Sidebar)
 export interface RelatedProduct {
   id: string;
   name: string;

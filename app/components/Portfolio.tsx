@@ -21,7 +21,6 @@ export default async function Portfolio() {
       <div className="relative w-full h-100 md:h-125 mb-16">
         {/* Gambar Background */}
         <div className="absolute inset-0">
-          {/* Pastikan gambar background statis ini ada di folder public Anda */}
           <Image
             src="/images/portfolio.png"
             alt="Our Portfolio Background"

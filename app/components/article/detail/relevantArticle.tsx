@@ -1,9 +1,9 @@
 "use client";
 
+import { Article } from "@/app/types/articles/articleList.type";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Article } from "../articlelist";
 
 interface RelevantArticleProps {
   currentArticleId?: string;
