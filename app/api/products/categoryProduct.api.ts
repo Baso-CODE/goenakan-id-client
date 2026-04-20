@@ -1,11 +1,16 @@
 import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
-// 2. Fungsi untuk Fetch data dari API Public
-export async function getPublicCategories(): Promise<CategoryPublic[]> {
+// ✨ 1. Tambahkan parameter lang
+export async function getPublicCategories(
+  lang: string = "id",
+): Promise<CategoryPublic[]> {
   try {
     const res = await fetch(`${apiUrl}/product-categories/public`, {
       next: { revalidate: 3600 },
+      headers: {
+        "x-language": lang,
+      },
     });
 
     if (!res.ok) return [];

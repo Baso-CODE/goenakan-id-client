@@ -1,84 +1,79 @@
 import { Button } from "@/components/ui/button";
 // import Image from "next/image"; // Aktifkan jika sudah ada gambar asli
 
+// ✨ 1. Import useTranslations dari next-intl
+import { useTranslations } from "next-intl";
+import Image from "next/image";
+
 export default function WhoWeAre() {
+  // ✨ 2. Inisialisasi translation dengan mengarahkan ke object "WhoWeAre" di JSON
+  const t = useTranslations("WhoWeAre");
+
   return (
     <section className="w-full py-20 bg-white text-gray-900">
       <div className="container mx-auto px-4 md:px-8">
         {/* Grid Container: 12 Kolom untuk Desktop */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
-          {/* --- KOLOM KIRI (Gambar Tinggi) --- 
-              md:col-span-4 artinya mengambil 4 bagian dari 12 kolom
-          */}
+          {/* --- KOLOM KIRI (Gambar Tinggi) --- */}
           <div className="md:col-span-4 relative">
-            {/* Placeholder Gambar (Ganti dengan <Image /> nanti) */}
-            <div className="bg-gray-200 w-full h-100 md:h-150 flex items-center justify-center">
-              <span className="text-gray-500 font-bold tracking-widest">
-                FOTO
-              </span>
-            </div>
-            {/* Contoh jika pakai Image Next.js:
-            <div className="relative w-full h-[600px]">
-               <Image src="/images/about-1.jpg" alt="About Us" fill className="object-cover" />
-            </div>
-            */}
+            <Image
+              src={"/images/who-we-are-image.png"}
+              alt="who we are product"
+              width={500}
+              height={800}
+            />
           </div>
 
-          {/* --- KOLOM TENGAH (Konten Teks) --- 
-              md:col-span-5 artinya mengambil 5 bagian. 
-              Kita beri padding top (pt) agar tidak terlalu nempel ke atas.
-          */}
+          {/* --- KOLOM TENGAH (Konten Teks) --- */}
           <div className="md:col-span-5 flex flex-col justify-center py-10">
-            {/* Label Kecil */}
+            {/* 🔄 Subtitle */}
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-4">
-              Who we are
+              {t("subtitle")}
             </span>
 
-            {/* Judul Utama (Font Gilda Display) */}
-            <h2 className="text-4xl md:text-5xl  mb-6 leading-tight">
-              Where Ideas Become <br />
-              Custom Products.
+            {/* 🔄 Judul Utama */}
+            <h2 className="text-3xl md:text-4xl mb-4 leading-tight max-w-lg">
+              {t("title")}
             </h2>
 
-            {/* Deskripsi */}
-            <p className="text-gray-600 leading-relaxed mb-10 text-justify">
-              Goenakan Indonesia is a custom product vendor dedicated to turning
-              ideas into tangible products. We work closely with our clients to
-              deliver tailored solutions—crafted to meet specific needs, styles,
-              and purposes. From concept to production, we make customization
-              seamless and reliable.
-            </p>
+            {/* 🔄 Deskripsi (Saya bagi jadi dua paragraf menggunakan div pembungkus berjarak space-y-4) */}
+            <div className="text-gray-600 leading-relaxed mb-10 text-justify space-y-4">
+              <p>{t("description1")}</p>
+              <p>{t("description2")}</p>
+            </div>
 
-            {/* Statistik */}
+            {/* 🔄 Statistik */}
             <div className="grid grid-cols-3 gap-4 mb-10 border-t border-gray-100 pt-8">
               <div>
-                <h4 className="text-2xl font-bold ">300+</h4>
-                <p className="text-xs text-gray-500 mt-1">Happy Customers</p>
+                <h4 className="text-2xl font-bold">{t("stat1Value")}</h4>
+                <p className="text-xs text-gray-500 mt-1 capitalize">
+                  {t("stat1Label")}
+                </p>
               </div>
               <div>
-                <h4 className="text-2xl font-bold ">10,000+</h4>
-                <p className="text-xs text-gray-500 mt-1">Products Created</p>
+                <h4 className="text-2xl font-bold">{t("stat2Value")}</h4>
+                <p className="text-xs text-gray-500 mt-1 capitalize">
+                  {t("stat2Label")}
+                </p>
               </div>
               <div>
-                <h4 className="text-2xl font-bold ">500+</h4>
-                <p className="text-xs text-gray-500 mt-1">Orders Completed</p>
+                <h4 className="text-2xl font-bold">{t("stat3Value")}</h4>
+                <p className="text-xs text-gray-500 mt-1 capitalize">
+                  {t("stat3Label")}
+                </p>
               </div>
             </div>
 
-            {/* Tombol CTA */}
+            {/* 🔄 Tombol CTA */}
             <div>
               <Button className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-8 py-6 text-lg font-medium transition-all">
-                Custom Yours Now
+                {t("button")}
               </Button>
             </div>
           </div>
 
-          {/* --- KOLOM KANAN (Gambar Pendek / Turun) --- 
-              md:col-span-3 mengambil sisa ruang.
-              mt-0 md:mt-32 kuncinya: di desktop dia akan turun jauh ke bawah (offset).
-          */}
+          {/* --- KOLOM KANAN (Gambar Pendek / Turun) --- */}
           <div className="md:col-span-3 md:mt-40 relative">
-            {/* Placeholder Gambar Kanan */}
             <div className="bg-gray-200 w-full h-75 md:h-100 flex items-center justify-center">
               <span className="text-gray-500 font-bold tracking-widest">
                 FOTO

@@ -1,7 +1,23 @@
+"use client";
+import { getCategoryList } from "@/app/api/products/getCategoryProductList.api";
+import { CategoryPublic } from "@/app/types/categoryProduct.type";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Footer() {
+  const [categories, setCategories] = useState<CategoryPublic[]>([]);
+  const t = useTranslations("Footer");
+  useEffect(() => {
+    // 🔄 Gunakan fungsi service agar lebih rapi
+    const loadCategories = async () => {
+      const data = await getCategoryList();
+      setCategories(data);
+    };
+
+    loadCategories();
+  }, []);
   return (
     <footer className="w-full bg-[#1c1c1c] text-white pt-16 pb-8 border-t border-gray-800">
       <div className="container mx-auto px-4 md:px-8">
@@ -11,22 +27,20 @@ export default function Footer() {
           <div className="lg:col-span-4 flex flex-col space-y-6">
             {/* Logo GD */}
             <div className="mb-2">
-              <h2 className="text-3xl  text-white tracking-widest">
-                GD <br />
-                <span className="text-sm font-sans tracking-widest block mt-1 text-gray-400">
-                  GOENAKAN INDONESIA
-                </span>
-              </h2>
+              <Image
+                src={"/images/footer/geonakan-logo-footer.png"}
+                alt="logo-goenakan-id-footer"
+                width={200}
+                height={200}
+              />
             </div>
 
-            {/* About Us Text */}
             <div className="space-y-4">
-              <h3 className="text-lg font-bold text-white">About us</h3>
+              <h3 className="text-lg font-bold text-white">
+                {t("aboutUsTitle")}
+              </h3>
               <p className="text-sm text-gray-400 leading-relaxed max-w-sm text-justify">
-                Goenakan Indonesia is a brand dedicated to creating a positive
-                impact on the environment through sustainable and eco-friendly
-                products—where sustainability meets style in every recyclable
-                and reusable piece.
+                {t("aboutUsDesc")}
               </p>
             </div>
           </div>
@@ -72,41 +86,16 @@ export default function Footer() {
                     All Products
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    href="/products/stainless"
-                    className="hover:text-white transition-colors">
-                    Stainless Steel Products
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/products/bamboo"
-                    className="hover:text-white transition-colors">
-                    Bamboo Products
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/products/wooden"
-                    className="hover:text-white transition-colors">
-                    Wooden Products
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/products/glass"
-                    className="hover:text-white transition-colors">
-                    Glass Products
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/products/mix"
-                    className="hover:text-white transition-colors">
-                    Mix Products
-                  </Link>
-                </li>
+                {/* 🔄 Mapping data kategori yang sudah rapi */}
+                {categories.map((cat) => (
+                  <li key={cat.id}>
+                    <Link
+                      href={`/products?category=${cat.id}`}
+                      className="hover:text-white transition-colors capitalize">
+                      {cat.name}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

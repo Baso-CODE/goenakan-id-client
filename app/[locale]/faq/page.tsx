@@ -1,5 +1,5 @@
-import { getMainFaqs } from "../api/faq/getFaqPage.api";
-import { FaqPage } from "../components/faq/faqPage";
+import { getMainFaqs } from "@/app/api/faq/getFaqPage.api";
+import { FaqPage } from "@/app/components/faq/faqPage";
 
 export const dynamic = "force-dynamic";
 

@@ -1,0 +1,104 @@
+{
+  "WhoWeAre": {
+    "subtitle": "Who We Are",
+    "title": "Every product starts with a great idea. Let's build yours!",
+    "description1": "Goenakan Indonesia is a custom product specialist that works closely with brands to turn ideas into something tangible.",
+    "description2": "Whether you come with a full brief or just a rough idea, we work through every detail until the product feels right, not just visually, but in the hands of whoever receives it.",
+    "stat1Value": "300+",
+    "stat1Label": "Happy customers",
+    "stat2Value": "10,000+",
+    "stat2Label": "Products created",
+    "stat3Value": "500+",
+    "stat3Label": "Completed orders",
+    "button": "Start a Custom Project"
+  },
+
+  "Footer": {
+    "aboutUsTitle": "About us",
+    "aboutUsDesc": "Goenakan Indonesia puts sustainability at the core of everything we make, built for brands that understand true quality means doing right by the world, not just delivering a product."
+  },
+
+  
+  "Navbar": {
+    "home": "Home",
+    "products": "Products",
+    "about": "About",
+    "contact": "Contact",
+    "article": "Article",
+    "profile": "My Profile",
+    "language": "Language"
+  },
+
+  "PlanningLargerOrder": {
+    "heading": "Planning a larger order?",
+    "paragraph1": "For larger quantities or specific product requirements, a quotation can be requested.",
+    "paragraph2": "Goenakan Indonesia will help prepare pricing, options, and production details based on the request.",
+    "ctaLabel": "Request a Quote"
+  },
+  
+  "Newsletter": {
+    "headline": "Exclusive deals, specially curated for you!",
+    "subheadline": "Stay updated on our latest promos, exciting news, and special surprises.",
+    "placeholder": "EMAIL",
+    "terms": "I have read and understood the Privacy and Cookie Policy and agree to receive personalized commercial communications from Goenakan Indonesia via email.",
+    "button": "Sign Up"
+  },
+  "HowItWorks": {
+    "headline": "HOW CUSTOM WORKS",
+    "subheadline": "A process that feels clear from the start.",
+    "step1Title": "Share the idea",
+    "step1Desc": "It can start with a brief, a reference, or even just an idea.",
+    "step2Title": "Develop the concept",
+    "step2Desc": "Design and sample are prepared to shape the product.",
+    "step3Title": "Production begins",
+    "step3Desc": "Once everything is aligned, production moves forward.",
+    "step4Title": "Delivery",
+    "step4Desc": "Products are shipped to the required destination."
+  },
+  "ServiceFeatures": {
+    "headline": "Custom doesn’t have to feel complicated.",
+    "subheadline": "From finding the right materials to refining the details, the process can get overwhelming. At Goenakan Indonesia, everything is made simpler, so you can move from idea to finished product with ease.",
+    "f1Title": "Flexible Quantities",
+    "f1Desc": "Not every project needs to start big. Selected products can be produced in smaller quantities, making it easier to begin.",
+    "f2Title": "Designed Around Your Needs",
+    "f2Desc": "Every detail is thoughtfully adjusted, from materials to finishing, to match the purpose of the product.",
+    "f3Title": "Samples Before Production",
+    "f3Desc": "Samples can be prepared before full production, so you can see and refine the result with clarity.",
+    "f4Title": "Regional & International Delivery",
+    "f4Desc": "Products can be delivered across Indonesia and to international destinations, depending on your needs.",
+    "f5Title": "Eco-Friendly Options",
+    "f5Desc": "A selection of more sustainable materials and product options is available, allowing you to make more conscious choices.",
+    "f6Title": "Free Shipping Across Indonesia",
+    "f6Desc": "Free shipping is available for orders that meet a certain value, making the process even more convenient."
+  },
+  "ProductCategory": {
+    "title": "Product Category"
+  },  
+  "BestSeller": {
+    "title": "Best Seller Products",
+    "min": "min.",
+    "pcs": "pcs",
+    "sold": "Sold",
+    "emptyState": "No products available yet.",
+    "viewAll": "View All"
+  },
+  "Occasions": {
+    "title": "Custom products made for different occasions.",
+    "description": "Each project has its own purpose, and each product we make reflects that. Goenakan Indonesia crafts custom products designed to meet your specific needs, whether personal or business.",
+    "orderedTimes": "ordered {count} times"
+  },
+  
+"PortfolioSection": {
+    "portfolioLabel": "Portfolio Categorized <br></br> by Event",
+    "portfolioHeadline": "Custom products made for different occasions",
+    "seeMore": "See more",
+    "clientsLabel": "Our Clients",
+    "andManyMore": "and many more",
+    "orderedTimes": "ordered {count} times"
+  }
+
+}
+
+
+
+

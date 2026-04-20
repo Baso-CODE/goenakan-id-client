@@ -1,5 +1,6 @@
 "use client";
 
+import { AddressManager } from "@/app/components/profile/addressManager";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +22,6 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LogOut, MapPin, Package, User } from "lucide-react";
-import { AddressManager } from "../components/profile/addressManager";
 
 export default function ProfilePage() {
   // --- DUMMY DATA USER ---

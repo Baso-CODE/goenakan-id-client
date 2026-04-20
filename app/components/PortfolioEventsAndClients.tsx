@@ -7,44 +7,52 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Link } from "@/i18n/routing";
 import { ArrowUpRight } from "lucide-react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 // --- DATA DUMMY ---
+// Ubah struktur data agar count menggunakan angka (number) untuk ditranslasi
 const eventCategories = [
   {
     id: 1,
     title: "Wedding Souvenir",
-    count: "ordered 47 times",
+    orderCount: 47,
+    slug: "wedding-celebrations", // Tambahkan slug agar bisa diklik ke detail jika perlu
     image: "/images/events/wedding.jpg",
   },
   {
     id: 2,
     title: "Hotel Amenities",
-    count: "ordered 75 times",
+    orderCount: 75,
+    slug: "hospitality-amenities",
     image: "/images/events/hotel.jpg",
   },
   {
     id: 3,
     title: "Corporate Events",
-    count: "ordered 120 times",
+    orderCount: 120,
+    slug: "corporate-mice-community",
     image: "/images/events/corporate.jpg",
   },
   {
     id: 4,
     title: "Birthday Party",
-    count: "ordered 30 times",
+    orderCount: 30,
+    slug: "wedding-celebrations",
     image: "/images/events/birthday.jpg",
   },
 ];
 
-// Buat array kosong isi 14 item untuk simulasi logo client
 const clients = Array.from({ length: 14 }).map((_, i) => ({ id: i }));
 
 export default function PortfolioEventsAndClients() {
+  // ✨ Panggil translasi
+  const t = useTranslations("PortfolioSection");
+
   return (
     <section className="w-full py-20 bg-white border-t border-gray-100">
-      <div className="container mx-auto">
+      <div className="container mx-auto px-4 md:px-8">
         {/* =========================================
             BAGIAN 1: PORTFOLIO BY EVENT
            ========================================= */}
@@ -52,7 +60,10 @@ export default function PortfolioEventsAndClients() {
           {/* --- KOLOM KIRI (LABEL) --- */}
           <div className="lg:col-span-3">
             <h3 className="text-[#C4A48E] font-bold text-sm md:text-base uppercase tracking-wider border-b-2 border-[#C4A48E] inline-block pb-2 mb-4">
-              Portfolio Categorized <br /> by Event
+              {/* 🔄 Gunakan t.rich agar <br> di JSON berubah menjadi tag HTML asli */}
+              {t.rich("portfolioLabel", {
+                br: () => <br />,
+              })}
             </h3>
           </div>
 
@@ -60,16 +71,18 @@ export default function PortfolioEventsAndClients() {
           <div className="lg:col-span-9">
             {/* Headline */}
             <div className="mb-8">
-              <h2 className="text-3xl md:text-4xl  text-gray-900 leading-tight mb-4">
-                A curated selection of our custom{" "}
-                <br className="hidden md:block" />
-                products, organized by event type.
+              <h2 className="text-3xl md:text-4xl text-gray-900 leading-tight mb-4">
+                {/* 🔄 Sama seperti di atas, kita render <br> khusus untuk layar medium ke atas */}
+                {t.rich("portfolioHeadline", {
+                  br: () => <br className="hidden md:block" />,
+                })}
               </h2>
 
+              {/* ✨ Ubah href menjadi /occasions sesuai halaman baru kita */}
               <Link
-                href="/portfolio"
+                href="/occasions"
                 className="inline-flex items-center text-[#C4A48E] hover:text-[#a88b75] font-medium transition-colors">
-                See more <ArrowUpRight className="ml-1 w-4 h-4" />
+                {t("seeMore")} <ArrowUpRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
 
@@ -80,11 +93,10 @@ export default function PortfolioEventsAndClients() {
                   <CarouselItem
                     key={item.id}
                     className="pl-4 md:basis-1/2 lg:basis-1/3">
+                    {/* Kamu bisa membungkus ini dengan Link menuju /occasions/${item.slug} */}
                     <div className="group cursor-pointer">
-                      {/* Kotak Gambar Abu-abu */}
+                      {/* Kotak Gambar */}
                       <div className="w-full aspect-square bg-gray-200 mb-4 overflow-hidden relative">
-                        {/* Placeholder Image - Ganti dengan <Image /> nanti */}
-                        {/* <Image src={item.image} fill className="object-cover transition-transform duration-500 group-hover:scale-110" /> */}
                         <div className="w-full h-full flex items-center justify-center text-gray-400 group-hover:scale-105 transition-transform duration-500">
                           FOTO
                         </div>
@@ -95,7 +107,8 @@ export default function PortfolioEventsAndClients() {
                         {item.title}
                       </h4>
                       <p className="text-sm text-gray-500 italic">
-                        {item.count}
+                        {/* 🔄 Render angka dinamis menggunakan JSON terjemahan */}
+                        {t("orderedTimes", { count: item.orderCount })}
                       </p>
                     </div>
                   </CarouselItem>
@@ -115,7 +128,7 @@ export default function PortfolioEventsAndClients() {
           {/* --- KOLOM KIRI (LABEL) --- */}
           <div className="lg:col-span-3">
             <h3 className="text-[#C4A48E] font-bold text-sm md:text-base uppercase tracking-wider border-b-2 border-[#C4A48E] inline-block pb-2 mb-4">
-              Our Clients
+              {t("clientsLabel")}
             </h3>
           </div>
 
@@ -137,7 +150,7 @@ export default function PortfolioEventsAndClients() {
               <Link
                 href="/clients"
                 className="inline-flex items-center text-[#C4A48E] hover:text-[#a88b75] font-medium text-sm transition-colors">
-                and many more <ArrowUpRight className="ml-1 w-4 h-4" />
+                {t("andManyMore")} <ArrowUpRight className="ml-1 w-4 h-4" />
               </Link>
             </div>
           </div>

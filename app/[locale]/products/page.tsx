@@ -1,6 +1,6 @@
-import { BannerProduct } from "../components/products/bannerProduct";
-import { CustomCTA } from "../components/products/customCTA";
-import FilterProduct from "../components/products/filterProduct";
+import { BannerProduct } from "@/app/components/products/bannerProduct";
+import { CustomCTA } from "@/app/components/products/customCTA";
+import FilterProduct from "@/app/components/products/filterProduct";
 
 export default function ProductsPage() {
   const mySlides = [

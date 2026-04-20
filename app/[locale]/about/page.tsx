@@ -1,7 +1,7 @@
-import { AboutUsTimeline } from "../components/about/aboutusTimeline";
-import { BelovedClients } from "../components/about/belovedClients";
-import { CoreValues } from "../components/about/coreValues";
-import { ShortStorySection } from "../components/about/shortStorySection";
+import { AboutUsTimeline } from "../../components/about/aboutusTimeline";
+import { BelovedClients } from "../../components/about/belovedClients";
+import { CoreValues } from "../../components/about/coreValues";
+import { ShortStorySection } from "../../components/about/shortStorySection";
 
 export default function AboutPage() {
   return (

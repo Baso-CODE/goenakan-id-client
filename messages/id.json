@@ -1,0 +1,104 @@
+{
+  "WhoWeAre": {
+    "subtitle": "Kenal Lebih Dekat",
+    "title": "Ide hebat bukan hanya untuk disimpan. Tapi layak untuk diwujudkan.",
+    "description1": "Goenakan Indonesia merupakan spesialis produk kustom yang bekerja sama dengan brand untuk mewujudkan ide, bukan sekadar secara visual, tapi sampai ke detail yang bisa dirasakan langsung oleh siapa pun yang menerimanya.",
+    "description2": "Punya ide tapi belum tahu bentuknya? Atau sudah punya gambaran lengkap dan tinggal dieksekusi? Apapun bentuk idenya, Goenakan Indonesia akan mewujudkan ide-ide hebat yang kamu punya.",
+    "stat1Value": "300+",
+    "stat1Label": "Pelanggan",
+    "stat2Value": "10,000+",
+    "stat2Label": "Produk telah dibuat",
+    "stat3Value": "500+",
+    "stat3Label": "Pesanan selesai",
+    "button": "Mulai Wujudkan Idemu"
+  },
+
+  "Footer": {
+    "aboutUsTitle": "Tentang Kami",
+    "aboutUsDesc": "Goenakan Indonesia menempatkan keberlanjutan sebagai inti dari setiap produk yang kami hadirkan. Untuk brand yang memahami bahwa kualitas sejati berarti bertanggung jawab terhadap lingkungan, bukan sekadar menghasilkan produk."
+  },
+  
+  "Navbar": {
+    "home": "Beranda",
+    "products": "Produk",
+    "about": "Tentang",
+    "contact": "Kontak",
+    "article": "Artikel",
+    "profile": "Profil Saya",
+    "language": "Bahasa"
+  },
+
+  "PlanningLargerOrder": {
+    "heading": "Pesanan besar butuh persiapan yang lebih matang. Kami siap bantu apapun kebutuhan dan acaramu.",
+    "paragraph1": "Untuk kebutuhan yang lebih besar atau spesifik, kamu bisa ajukan permintaan penawaran.",
+    "paragraph2": "Kami bantu siapkan harga, pilihan produk, dan detail produksi sesuai kebutuhanmu.",
+    "ctaLabel": "Minta Penawaran"
+  },
+  
+  "Newsletter": {
+    "headline": "Penawaran Eksklusif, Khusus Buat Kamu!",
+    "subheadline": "Ikuti terus promo terbaru, berita menarik, dan kejutan spesial dari kami.",
+    "placeholder": "EMAIL",
+    "terms": "Saya telah membaca dan memahami Kebijakan Privasi dan Cookie serta setuju untuk menerima komunikasi komersial yang dipersonalisasi dari Goenakan Indonesia melalui email.",
+    "button": "Daftar"
+  },
+  "HowItWorks": {
+    "headline": "BAGAIMANA CARA PEMESANANNYA?",
+    "subheadline": "Proses yang Jelas dari Langkah Pertama",
+    "step1Title": "Ceritakan Idemu",
+    "step1Desc": "Mulai dari brief, referensi gambar, atau sekadar gambaran awal. Semuanya bisa kami terima.",
+    "step2Title": "Konsep mulai dibentuk",
+    "step2Desc": "Kami bekerja bersama untuk mengembangkan desain dan menyiapkan sampel hingga produknya terasa benar-benar tepat.",
+    "step3Title": "Produksi berjalan",
+    "step3Desc": "Setelah semua disepakati dan dikonfirmasi, proses produksi dimulai.",
+    "step4Title": "Sampai di tanganmu",
+    "step4Desc": "Produk dikirim ke tujuan yang kamu inginkan, baik di dalam maupun luar negeri."
+  },
+  "ServiceFeatures": {
+    "headline": "Kustom Souvenir Tanpa Ribet.",
+    "subheadline": "Mulai dari mencari material sampai proses produksi, sering kali proses kustom terasa cukup rumit. Di Goenakan Indonesia, semuanya dibuat lebih sederhana, jadi kamu bisa fokus dengan ide dan kami yang akan memastikan prosesnya mudah dan hasilnya berkualitas.",
+    "f1Title": "Jumlah Lebih Fleksibel",
+    "f1Desc": "Nggak semua kebutuhan harus dimulai dari jumlah besar. Beberapa produk bisa dibuat dalam kuantitas kecil, jadi lebih fleksibel untuk berbagai kebutuhan.",
+    "f2Title": "Dibuat Sesuai Kebutuhan",
+    "f2Desc": "Setiap detail disesuaikan sesuai kebutuhan. Mulai dari material, warna, sampai finishing agar benar-benar relevan dengan tujuan produk.",
+    "f3Title": "Bisa Lihat Sample Dulu",
+    "f3Desc": "Sebelum masuk produksi penuh, sampel bisa dibuat dulu supaya hasil akhirnya lebih kebayang dan sesuai ekspektasi.",
+    "f4Title": "Pengiriman Lokal & Internasional",
+    "f4Desc": "Pengiriman tersedia ke seluruh Indonesia dan juga ke luar negeri, sesuai kebutuhan.",
+    "f5Title": "Pilihan Lebih Ramah Lingkungan",
+    "f5Desc": "Tersedia opsi material dan produk yang lebih eco-friendly, buat kamu yang ingin tetap mindful tanpa mengorbankan kualitas.",
+    "f6Title": "Gratis Ongkir ke Seluruh Indonesia",
+    "f6Desc": "Untuk pembelian dengan nominal tertentu, tersedia pengiriman gratis ke seluruh Indonesia."
+  },
+  "ProductCategory": {
+    "title": "Kategori Produk"
+  },
+  "BestSeller": {
+    "title": "Produk Terlaris",
+    "min": "min.",
+    "pcs": "pcs",
+    "sold": "Terjual",
+    "emptyState": "Belum ada produk yang tersedia.",
+    "viewAll": "Lihat Semua"
+  },
+  
+  "Occasions": {
+    "title": "Produk yang dibuat sesuai kebutuhan acara.",
+    "description": "Setiap acara punya tujuannya sendiri, dan setiap produk yang kami buat mencerminkan hal itu. Goenakan Indonesia menghadirkan produk kustom yang dirancang sesuai kebutuhanmu baik untuk acara personal maupun bisnis.",
+    "orderedTimes": "dipesan {count} kali"
+  },
+
+ "PortfolioSection": {
+    "portfolioLabel": "Portofolio Berdasarkan <br></br> Acara",
+    "portfolioHeadline": "Produk yang dibuat sesuai kebutuhan <br></br> acara",
+    "seeMore": "Lihat selengkapnya",
+    "clientsLabel": "Klien Kami",
+    "andManyMore": "dan banyak lagi",
+    "orderedTimes": "dipesan {count} kali"
+  }
+}
+
+
+
+
+

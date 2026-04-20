@@ -1,17 +1,15 @@
 "use client";
 
-import { MOCK_PRODUCTS } from "@/app/data/product.data";
+import { getFilteredProductsAPI } from "@/app/api/products/getFilteredProduct.api";
 import { FilterState, Product } from "@/app/types/product.type";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { FilterBar } from "./Filterbar";
 import { LoadMoreButton } from "./Loadmorebutton";
 import { PageHeader } from "./Pageheader";
 import { ProductGrid } from "./Productgrid";
 
-const PAGE_SIZE = 6;
-
 const DEFAULT_FILTERS: FilterState = {
-  category: "STAINLESS STEEL",
+  category: "all",
   color: "all",
   size: "all",
   price: "all",
@@ -19,82 +17,41 @@ const DEFAULT_FILTERS: FilterState = {
   sort: "best_selling",
 };
 
-interface ProductPageProps {
-  initialProducts?: Product[];
-}
-
-export default function FilterProduct({
-  initialProducts = MOCK_PRODUCTS,
-}: ProductPageProps) {
+export default function FilterProduct() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Fetch data whenever filters change
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setIsLoading(true);
+      const result = await getFilteredProductsAPI(filters, 1);
+      setProducts(result.data);
+      setHasMore(result.meta.hasNext);
+      setPage(1); // Reset page on filter change
+      setIsLoading(false);
+    };
+
+    fetchInitialData();
+  }, [filters]); // Dependency array triggers fetch when filters change
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setVisibleCount(PAGE_SIZE); // reset pagination on filter change
   };
 
-  const filteredProducts = useMemo(() => {
-    let result = [...initialProducts];
-
-    if (filters.color !== "all") {
-      result = result.filter((p) => p.color === filters.color);
-    }
-
-    if (filters.size !== "all") {
-      result = result.filter((p) => p.size === filters.size);
-    }
-
-    if (filters.availability !== "all") {
-      result = result.filter((p) => p.availability === filters.availability);
-    }
-
-    if (filters.price !== "all") {
-      result = result.filter((p) => {
-        switch (filters.price) {
-          case "under_20000":
-            return p.bulkPrice < 20000;
-          case "20000_50000":
-            return p.bulkPrice >= 20000 && p.bulkPrice <= 50000;
-          case "above_50000":
-            return p.bulkPrice > 50000;
-          default:
-            return true;
-        }
-      });
-    }
-
-    switch (filters.sort) {
-      case "newest":
-        // sort by id desc as proxy
-        result.sort((a, b) => b.id.localeCompare(a.id));
-        break;
-      case "price_asc":
-        result.sort((a, b) => a.bulkPrice - b.bulkPrice);
-        break;
-      case "price_desc":
-        result.sort((a, b) => b.bulkPrice - a.bulkPrice);
-        break;
-      case "best_selling":
-      default:
-        result.sort((a, b) => b.sold - a.sold);
-        break;
-    }
-
-    return result;
-  }, [initialProducts, filters]);
-
-  const visibleProducts = filteredProducts.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredProducts.length;
-
-  const handleLoadMore = () => {
+  const handleLoadMore = async () => {
     setIsLoadingMore(true);
-    // Simulate async loading
-    setTimeout(() => {
-      setVisibleCount((prev) => prev + PAGE_SIZE);
-      setIsLoadingMore(false);
-    }, 600);
+    const nextPage = page + 1;
+    const result = await getFilteredProductsAPI(filters, nextPage);
+
+    setProducts((prev) => [...prev, ...result.data]);
+    setHasMore(result.meta.hasNext);
+    setPage(nextPage);
+    setIsLoadingMore(false);
   };
 
   return (
@@ -102,20 +59,19 @@ export default function FilterProduct({
       <PageHeader title="Our Product" brand="Bamboo" />
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Filter Bar */}
         <div className="mb-7">
           <FilterBar filters={filters} onFilterChange={handleFilterChange} />
         </div>
 
-        {/* Product Grid */}
-        <ProductGrid products={visibleProducts} />
+        <ProductGrid products={products} isLoading={isLoading} />
 
-        {/* Load More */}
-        <LoadMoreButton
-          onClick={handleLoadMore}
-          isLoading={isLoadingMore}
-          hasMore={hasMore}
-        />
+        {!isLoading && (
+          <LoadMoreButton
+            onClick={handleLoadMore}
+            isLoading={isLoadingMore}
+            hasMore={hasMore}
+          />
+        )}
       </main>
     </div>
   );
