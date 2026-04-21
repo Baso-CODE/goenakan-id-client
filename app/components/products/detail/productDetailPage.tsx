@@ -1,7 +1,7 @@
 "use client";
 
-import { ProductDetail } from "@/app/types/productDetail.type";
-import { useState } from "react";
+import { MediaItem, ProductDetail } from "@/app/types/productDetail.type";
+import { useMemo, useState } from "react";
 import { PriceTierSelector } from "./priceTierSelector";
 import { ProductDescription } from "./productDescription";
 import { ProductImageGallery } from "./productImageGallery";
@@ -17,7 +17,27 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const [selectedTierIndex, setSelectedTierIndex] = useState(0);
   const [quantity, setQuantity] = useState(product.priceTiers[0].minQty);
 
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
+    product.variants && product.variants.length > 0
+      ? product.variants[0].id
+      : null,
+  );
+
   const selectedTier = product.priceTiers[selectedTierIndex];
+
+  const activeGalleryMedia = useMemo(() => {
+    let currentMedia: MediaItem[] = [];
+
+    if (selectedVariantId && product.variants) {
+      const variant = product.variants.find((v) => v.id === selectedVariantId);
+      if (variant && variant.images) {
+        currentMedia = [...variant.images];
+      }
+    }
+    currentMedia = [...currentMedia, ...(product.media || [])];
+
+    return currentMedia;
+  }, [selectedVariantId, product]);
 
   const handleTierSelect = (index: number) => {
     setSelectedTierIndex(index);
@@ -25,17 +45,27 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   };
 
   const handleAddToCart = () => {
+    const selectedVariantName =
+      product.variants?.find((v) => v.id === selectedVariantId)?.name ||
+      "Default";
     console.log("Add to cart:", {
       product: product.id,
+      variant: selectedVariantName,
       quantity,
       tier: selectedTier,
     });
-    // integrate with your cart logic
   };
 
   const handleOrderNow = () => {
+    // Sisipkan nama varian ke dalam pesan WhatsApp
+    const selectedVariantName =
+      product.variants?.find((v) => v.id === selectedVariantId)?.name || "";
+    const variantText = selectedVariantName
+      ? `\nVarian: ${selectedVariantName}`
+      : "";
+
     const message = encodeURIComponent(
-      `Halo, saya ingin memesan:\n\nProduk: ${product.name}\nJumlah: ${quantity} pcs\nTier: ${selectedTier.label}\nHarga: IDR ${selectedTier.pricePerPcs.toLocaleString("id-ID")}/pcs\n\nMohon konfirmasinya, terima kasih!`,
+      `Halo, saya ingin memesan:\n\nProduk: ${product.name}${variantText}\nJumlah: ${quantity} pcs\nTier: ${selectedTier.label}\nHarga: IDR ${selectedTier.pricePerPcs.toLocaleString("id-ID")}/pcs\n\nMohon konfirmasinya, terima kasih!`,
     );
     window.open(
       `https://wa.me/${product.whatsappNumber}?text=${message}`,
@@ -49,7 +79,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         {/* ── Left: Image Gallery ── */}
         <div className="flex flex-col gap-4">
           <ProductImageGallery
-            images={product.images}
+            media={activeGalleryMedia} // 🔄 Kirim media gabungan ke sini
             productName={product.name}
           />
           <ShareBar productName={product.name} />
@@ -69,6 +99,29 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               {product.sold.toLocaleString("id-ID")} Sold
             </p>
           </div>
+
+          {/* ✨ VARIANT SELECTOR UI (Hanya muncul jika produk punya varian) */}
+          {product.variants && product.variants.length > 0 && (
+            <div className="mt-1">
+              <p className="text-sm font-medium text-stone-900 mb-2">
+                Pilih Varian:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.variants.map((v) => (
+                  <button
+                    key={v.id}
+                    onClick={() => setSelectedVariantId(v.id)}
+                    className={`px-4 py-2 border rounded-sm text-sm transition-colors ${
+                      selectedVariantId === v.id
+                        ? "border-stone-900 bg-stone-900 text-white"
+                        : "border-stone-200 text-stone-600 hover:border-stone-400"
+                    }`}>
+                    {v.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Price Tier Selector */}
           <div className="mt-1">
@@ -90,7 +143,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           <div className="flex gap-3">
             <button
               onClick={handleAddToCart}
-              className="flex items-center gap-2 border border-stone-800 text-stone-800 text-sm font-medium px-5 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-colors">
+              className="flex items-center gap-2 border border-stone-800 text-stone-800 text-sm font-medium px-5 py-2.5 rounded-sm hover:bg-stone-800 hover:text-white transition-colors cursor-pointer">
               <svg
                 width="14"
                 height="14"
@@ -106,7 +159,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             </button>
             <button
               onClick={handleOrderNow}
-              className="flex-1 bg-stone-900 text-white text-sm font-semibold px-5 py-2.5 rounded-sm hover:bg-stone-800 transition-colors tracking-wide">
+              className="flex-1 bg-stone-900 text-white text-sm font-semibold px-5 py-2.5 rounded-sm hover:bg-stone-800 transition-colors tracking-wide cursor-pointer">
               ORDER NOW
             </button>
           </div>

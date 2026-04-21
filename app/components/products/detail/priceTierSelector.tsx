@@ -23,7 +23,7 @@ export function PriceTierSelector({
   selectedIndex,
   onSelect,
 }: PriceTierSelectorProps) {
-  const BADGE_H = "h-7"; // tinggi badge — samakan dengan pt di card bawahnya
+  const BADGE_H = "h-7";
 
   return (
     // items-end → semua card rata bawah

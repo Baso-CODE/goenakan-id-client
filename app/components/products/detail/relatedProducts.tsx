@@ -7,8 +7,8 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel";
+import { Link } from "@/i18n/routing";
 import Image from "next/image";
-import Link from "next/link";
 import { useCallback, useEffect, useRef } from "react";
 
 interface RelatedProductsProps {
@@ -93,7 +93,7 @@ export function RelatedProducts({
 
 function RelatedProductCard({ product }: { product: Product }) {
   return (
-    <Link href={`/products/${product.id}`} className="group block">
+    <Link href={`/products/${product.slug}`} className="group block">
       <div className="flex flex-col gap-2">
         {/* Image */}
         <div className="relative aspect-square w-full bg-stone-50 overflow-hidden rounded-sm">

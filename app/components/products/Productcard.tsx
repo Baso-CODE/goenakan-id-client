@@ -4,7 +4,7 @@ import Image from "next/image";
 
 import { Product } from "@/app/types/product.type";
 import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 
 interface ProductCardProps {
   product: Product;
@@ -24,7 +24,7 @@ function formatRupiah(amount: number): string {
 
 export function ProductCard({ product }: ProductCardProps) {
   return (
-    <Link href={`/products/${product.id}`} className="group block">
+    <Link href={`/products/${product.slug}`} className="group block">
       <div className="relative flex flex-col bg-white border border-stone-100 rounded-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
         {/* Image */}
         <div className="relative aspect-4/5 bg-stone-50 overflow-hidden">

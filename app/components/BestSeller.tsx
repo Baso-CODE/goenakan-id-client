@@ -2,8 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Link } from "@/i18n/routing";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getBestSellerProductsAPI } from "../api/products/getBestSellerProduct.api";
 import { BestSellerProduct } from "../types/bestSellerProduct.type";

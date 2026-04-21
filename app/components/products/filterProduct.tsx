@@ -20,6 +20,8 @@ const DEFAULT_FILTERS: FilterState = {
 export default function FilterProduct() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [products, setProducts] = useState<Product[]>([]);
+  console.log("ini adalah data products", products);
+
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,12 +34,12 @@ export default function FilterProduct() {
       const result = await getFilteredProductsAPI(filters, 1);
       setProducts(result.data);
       setHasMore(result.meta.hasNext);
-      setPage(1); // Reset page on filter change
+      setPage(1);
       setIsLoading(false);
     };
 
     fetchInitialData();
-  }, [filters]); // Dependency array triggers fetch when filters change
+  }, [filters]);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

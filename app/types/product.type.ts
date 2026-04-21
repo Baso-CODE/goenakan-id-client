@@ -5,6 +5,7 @@ export interface Product {
   bulkPrice: number;
   minOrder: number;
   sold: number;
+  slug: string;
   image: string;
   category: string;
   color: string;
