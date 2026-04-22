@@ -1,5 +1,6 @@
 "use client";
 
+import { apiUrl } from "@/app/utils/ApiUrl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,52 +11,91 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+interface ExtendedSession {
+  user: {
+    accessToken: string;
+    // Add other user properties if needed
+  };
+}
 
 interface Address {
   id: string;
   label: string;
-  line1: string;
-  line2: string;
-  city: string;
-  province: string;
-  postalCode: string;
+  recipient: string;
+  phone: string;
   country: string;
+  province: string;
+  city: string;
+  district: string;
+  postalCode: string;
+  fullAddress: string;
   isDefault: boolean;
 }
 
 type DialogMode = "add" | "edit" | null;
 
-const INITIAL_ADDRESSES: Address[] = [
-  {
-    id: "addr-1",
-    label: "Home Address",
-    line1: "Jl. Raya Malioboro No. 123",
-    line2: "",
-    city: "Gedong Tengen, Kota Yogyakarta",
-    province: "Daerah Istimewa Yogyakarta",
-    postalCode: "55271",
-    country: "Indonesia",
-    isDefault: true,
-  },
-];
-
-const EMPTY_FORM: Omit<Address, "id" | "isDefault"> = {
+const EMPTY_FORM = {
   label: "",
-  line1: "",
-  line2: "",
-  city: "",
-  province: "",
-  postalCode: "",
+  recipient: "",
+  phone: "",
   country: "Indonesia",
+  province: "",
+  city: "",
+  district: "",
+  postalCode: "",
+  fullAddress: "",
 };
 
 export function AddressManager() {
-  const [addresses, setAddresses] = useState<Address[]>(INITIAL_ADDRESSES);
+  const { data: session, status } = useSession();
+
+  // Pastikan mengambil token dengan benar
+  const token = (session as ExtendedSession)?.user?.accessToken;
+  console.log("ini adalah token", token);
+
+  const [addresses, setAddresses] = useState<Address[]>([]);
+
+  const [loading, setLoading] = useState(true);
+
   const [dialogMode, setDialogMode] = useState<DialogMode>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [isSaving, setIsSaving] = useState(false);
 
+  // === FETCH API: GET ALL ADDRESSES ===
+  const fetchAddresses = async () => {
+    if (status === "loading") return;
+    if (!token) {
+      console.warn("Token tidak ditemukan, pastikan sudah login.");
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await fetch(`${apiUrl}/addresses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAddresses(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch addresses", error);
+      toast.error("Gagal memuat alamat.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAddresses();
+  }, [token]);
+
+  // === HANDLERS ===
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -71,49 +111,106 @@ export function AddressManager() {
   const openEdit = (address: Address) => {
     setForm({
       label: address.label,
-      line1: address.line1,
-      line2: address.line2,
-      city: address.city,
-      province: address.province,
-      postalCode: address.postalCode,
-      country: address.country,
+      recipient: address.recipient,
+      phone: address.phone,
+      country: address.country || "",
+      province: address.province || "",
+      city: address.city || "",
+      district: address.district || "",
+      postalCode: address.postalCode || "",
+      fullAddress: address.fullAddress,
     });
     setEditingId(address.id);
     setDialogMode("edit");
   };
 
-  const handleSave = () => {
-    if (dialogMode === "add") {
-      const newAddress: Address = {
-        id: `addr-${Date.now()}`,
-        ...form,
-        isDefault: addresses.length === 0,
-      };
-      setAddresses((prev) => [...prev, newAddress]);
-    } else if (dialogMode === "edit" && editingId) {
-      setAddresses((prev) =>
-        prev.map((a) => (a.id === editingId ? { ...a, ...form } : a)),
-      );
-    }
-    setDialogMode(null);
-  };
+  // === FETCH API: CREATE & UPDATE ===
+  const handleSave = async () => {
+    if (!token) return;
+    setIsSaving(true);
+    try {
+      const url =
+        dialogMode === "add"
+          ? `${apiUrl}/addresses`
+          : `${apiUrl}/addresses/${editingId}`;
 
-  const handleSetDefault = (id: string) => {
-    setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
-  };
+      const method = dialogMode === "add" ? "POST" : "PUT";
 
-  const handleDelete = (id: string) => {
-    setAddresses((prev) => {
-      const filtered = prev.filter((a) => a.id !== id);
-      if (filtered.length > 0 && !filtered.some((a) => a.isDefault)) {
-        filtered[0].isDefault = true;
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      const json = await res.json();
+
+      if (json.success) {
+        toast.success(json.message);
+        fetchAddresses(); // Refresh list alamat dari database
+        setDialogMode(null);
+      } else {
+        toast.error(json.message || "Gagal menyimpan alamat");
       }
-      return filtered;
-    });
+    } catch (error) {
+      console.error("Error saving address:", error);
+      toast.error("Terjadi kesalahan sistem.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // === FETCH API: SET DEFAULT ===
+  const handleSetDefault = async (id: string) => {
+    if (!token) return;
+    try {
+      // Optimistic Update (UI langsung berubah biar terasa cepat)
+      setAddresses((prev) =>
+        prev.map((a) => ({ ...a, isDefault: a.id === id })),
+      );
+
+      // Background request
+      await fetch(`${apiUrl}/addresses/${id}/set-default`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (error) {
+      console.error("Error setting default:", error);
+      fetchAddresses(); // Revert ke aslinya jika gagal
+    }
+  };
+
+  // === FETCH API: DELETE ===
+  const handleDelete = async (id: string) => {
+    if (!token) return;
+    const confirmDelete = window.confirm("Yakin ingin menghapus alamat ini?");
+    if (!confirmDelete) return;
+
+    try {
+      // Optimistic Update
+      setAddresses((prev) => prev.filter((a) => a.id !== id));
+
+      await fetch(`${apiUrl}/addresses/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // Ambil ulang dari server barangkali ada default yang berubah
+      fetchAddresses();
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      fetchAddresses(); // Revert
+    }
   };
 
   const inputClass =
     "rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white text-sm";
+
+  if (loading) {
+    return <div className="text-sm text-stone-500">Memuat alamat...</div>;
+  }
 
   return (
     <>
@@ -141,10 +238,17 @@ export function AddressManager() {
                       {address.label}
                     </span>
                   </div>
+
+                  {/* ✨ 3. Tampilan disesuaikan dengan field baru */}
                   <div className="text-sm text-stone-600 leading-relaxed">
-                    <p>{address.line1}</p>
-                    {address.line2 && <p>{address.line2}</p>}
-                    <p>{address.city}</p>
+                    <p className="font-semibold text-stone-800">
+                      {address.recipient} — {address.phone}
+                    </p>
+                    <p>{address.fullAddress}</p>
+                    <p>
+                      {address.district ? `${address.district}, ` : ""}
+                      {address.city}
+                    </p>
                     <p>
                       {address.province}
                       {address.postalCode ? `, ${address.postalCode}` : ""}
@@ -158,7 +262,7 @@ export function AddressManager() {
                   <Button
                     variant="ghost"
                     onClick={() => openEdit(address)}
-                    className="text-xs text-stone-500 hover:text-stone-800 h-auto p-0 font-semibold tracking-wide uppercase">
+                    className="text-xs text-stone-500 hover:text-stone-800 h-auto p-0 font-semibold tracking-wide uppercase cursor-pointer">
                     Edit
                   </Button>
                   {!address.isDefault && (
@@ -166,13 +270,13 @@ export function AddressManager() {
                       <Button
                         variant="ghost"
                         onClick={() => handleSetDefault(address.id)}
-                        className="text-[11px] text-stone-400 hover:text-stone-600 h-auto p-0">
+                        className="text-[11px] text-stone-400 hover:text-stone-600 h-auto p-0 cursor-pointer">
                         Set as default
                       </Button>
                       <Button
                         variant="ghost"
                         onClick={() => handleDelete(address.id)}
-                        className="text-[11px] text-red-400 hover:text-red-600 h-auto p-0">
+                        className="text-[11px] text-red-400 hover:text-red-600 h-auto p-0 cursor-pointer">
                         Remove
                       </Button>
                     </>
@@ -185,7 +289,7 @@ export function AddressManager() {
           {/* Add New Address */}
           <button
             onClick={openAdd}
-            className="border border-stone-200 rounded-sm bg-white px-5 py-5 text-center text-xs font-semibold text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-colors tracking-widest uppercase">
+            className="border border-stone-200 rounded-sm bg-white px-5 py-5 text-center text-xs font-semibold text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-colors tracking-widest uppercase cursor-pointer">
             + Add New Address
           </button>
         </div>
@@ -195,7 +299,7 @@ export function AddressManager() {
       <Dialog
         open={dialogMode !== null}
         onOpenChange={() => setDialogMode(null)}>
-        <DialogContent className="sm:max-w-md rounded-sm">
+        <DialogContent className="sm:max-w-xl rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold text-stone-800">
               {dialogMode === "add" ? "Add New Address" : "Edit Address"}
@@ -208,47 +312,82 @@ export function AddressManager() {
               <Label className="text-xs text-stone-500">Address Label</Label>
               <Input
                 name="label"
-                placeholder="e.g. Home Address, Office"
+                placeholder="e.g. Home, Office"
                 value={form.label}
                 onChange={handleChange}
                 className={inputClass}
               />
             </div>
 
-            {/* Line 1 */}
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-stone-500">Street Address</Label>
-              <Input
-                name="line1"
-                placeholder="Jl. Raya No. 123"
-                value={form.line1}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-
-            {/* Line 2 */}
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-stone-500">
-                Apartment, suite, etc. (optional)
-              </Label>
-              <Input
-                name="line2"
-                placeholder="Apartment, suite, etc."
-                value={form.line2}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-
-            {/* City & Postal */}
+            {/* Recipient & Phone */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-stone-500">City</Label>
+                <Label className="text-xs text-stone-500">Recipient Name</Label>
+                <Input
+                  name="recipient"
+                  placeholder="John Doe"
+                  value={form.recipient}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-stone-500">Phone Number</Label>
+                <Input
+                  name="phone"
+                  placeholder="08123456789"
+                  value={form.phone}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            {/* Full Address */}
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-stone-500">Full Address</Label>
+              <textarea
+                name="fullAddress"
+                rows={3}
+                placeholder="Jl. Sudirman No. 12, RT 01/RW 02..."
+                value={form.fullAddress}
+                onChange={handleChange}
+                className={`p-3 border resize-none ${inputClass}`}
+              />
+            </div>
+
+            {/* Location Details */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-stone-500">
+                  District / Kecamatan
+                </Label>
+                <Input
+                  name="district"
+                  placeholder="Kec. Gondomanan"
+                  value={form.district}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-stone-500">
+                  City / Kabupaten
+                </Label>
                 <Input
                   name="city"
-                  placeholder="Kota Yogyakarta"
+                  placeholder="Yogyakarta"
                   value={form.city}
+                  onChange={handleChange}
+                  className={inputClass}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-stone-500">Province</Label>
+                <Input
+                  name="province"
+                  placeholder="DIY"
+                  value={form.province}
                   onChange={handleChange}
                   className={inputClass}
                 />
@@ -257,36 +396,12 @@ export function AddressManager() {
                 <Label className="text-xs text-stone-500">Postal Code</Label>
                 <Input
                   name="postalCode"
-                  placeholder="55271"
+                  placeholder="55122"
                   value={form.postalCode}
                   onChange={handleChange}
                   className={inputClass}
                 />
               </div>
-            </div>
-
-            {/* Province */}
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-stone-500">Province</Label>
-              <Input
-                name="province"
-                placeholder="Daerah Istimewa Yogyakarta"
-                value={form.province}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-
-            {/* Country */}
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs text-stone-500">Country</Label>
-              <Input
-                name="country"
-                placeholder="Indonesia"
-                value={form.country}
-                onChange={handleChange}
-                className={inputClass}
-              />
             </div>
           </div>
 
@@ -300,9 +415,19 @@ export function AddressManager() {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!form.label || !form.line1 || !form.city}
+              disabled={
+                !form.label ||
+                !form.recipient ||
+                !form.phone ||
+                !form.fullAddress ||
+                isSaving
+              }
               className="flex-1 bg-[#3d342b] hover:bg-[#2a2420] text-white rounded-sm text-sm">
-              {dialogMode === "add" ? "Save Address" : "Update Address"}
+              {isSaving
+                ? "Saving..."
+                : dialogMode === "add"
+                  ? "Save Address"
+                  : "Update Address"}
             </Button>
           </div>
         </DialogContent>

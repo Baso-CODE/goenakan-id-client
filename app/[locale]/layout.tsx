@@ -1,4 +1,5 @@
 import { routing } from "@/i18n/routing";
+import { NextAuthProvider } from "@/providers/NextAuthProvider";
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -39,12 +40,14 @@ export default async function RootLayout({
     <html lang={locale}>
       <body
         className={`${gilda.variable} ${gilda.className} antialiased scroll-smooth`}>
-        <NextIntlClientProvider messages={messages}>
-          <Navbar />
-          {children}
-          <Toaster />
-          <Footer />
-        </NextIntlClientProvider>
+        <NextAuthProvider>
+          <NextIntlClientProvider messages={messages}>
+            <Navbar />
+            {children}
+            <Toaster position="top-center" richColors />
+            <Footer />
+          </NextIntlClientProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

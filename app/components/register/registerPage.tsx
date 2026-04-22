@@ -1,29 +1,39 @@
 "use client";
 
-import { CorporateForm, IndividualForm } from "@/app/types/register.type";
+import { apiUrl } from "@/app/utils/ApiUrl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { User, Users } from "lucide-react";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
 type AccountType = "individual" | "corporate";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [accountType, setAccountType] = useState<AccountType>("individual");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [individual, setIndividual] = useState<IndividualForm>({
+  // ✨ Tambahkan email dan password ke dalam state
+  const [individual, setIndividual] = useState({
     fullName: "",
     phone: "",
+    email: "",
+    password: "",
     address: "",
   });
 
-  const [corporate, setCorporate] = useState<CorporateForm>({
+  const [corporate, setCorporate] = useState({
     picName: "",
     picNumbers: "",
     companyName: "",
     department: "",
+    email: "",
+    password: "",
     address: "",
   });
 
@@ -39,16 +49,66 @@ export default function RegisterPage() {
     setCorporate((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // === 1. HANDLE REGISTRASI MANUAL (KE API EXPRESS) ===
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = accountType === "individual" ? individual : corporate;
-    console.log("Register:", { accountType, ...data });
-    // integrate dengan auth/API
+    setIsLoading(true);
+
+    // Siapkan payload sesuai dengan DTO di backend
+    const payload = {
+      accountType: accountType === "individual" ? "INDIVIDUAL" : "CORPORATE",
+      email: accountType === "individual" ? individual.email : corporate.email,
+      password:
+        accountType === "individual" ? individual.password : corporate.password,
+      address:
+        accountType === "individual" ? individual.address : corporate.address,
+
+      // Jika individual
+      ...(accountType === "individual" && {
+        fullName: individual.fullName,
+        phone: individual.phone,
+      }),
+
+      // Jika corporate
+      ...(accountType === "corporate" && {
+        picName: corporate.picName,
+        picNumbers: corporate.picNumbers,
+        companyName: corporate.companyName,
+        department: corporate.department,
+      }),
+    };
+
+    try {
+      // Tembak API Express kamu
+      const res = await fetch(
+        `${apiUrl}/auth-web-client/register-user-web-client`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      const json = await res.json();
+
+      if (res.ok && json.success) {
+        toast.success("Registrasi berhasil! Silakan login.");
+        router.push("/login"); // Arahkan ke halaman login
+      } else {
+        toast.error(json.message || "Gagal melakukan registrasi");
+      }
+    } catch (error) {
+      console.error("Error registering:", error);
+      toast.error("Terjadi kesalahan pada sistem.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  // === 2. HANDLE LOGIN GOOGLE (VIA NEXTAUTH) ===
   const handleGoogleSignIn = () => {
-    // integrate dengan Google OAuth
-    console.log("Sign in with Google");
+    // Fungsi bawaan NextAuth. Otomatis popup login Google dan redirect ke halaman utama "/"
+    signIn("google", { callbackUrl: "/" });
   };
 
   const inputClass =
@@ -56,13 +116,12 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-16">
-      <div className="w-full max-w-4xl">
-        {/* Title */}
+      <div className="w-full max-w-2xl">
+        {" "}
+        {/* Diperkecil sedikit agar form tidak terlalu melebar */}
         <h1 className="text-4xl font-light text-stone-800 text-center mb-8">
           Create Account
         </h1>
-
-        {/* Account Type Selector */}
         <div className="grid grid-cols-2 gap-0 border border-stone-200 rounded-sm mb-5 overflow-hidden">
           <button
             type="button"
@@ -73,11 +132,7 @@ export default function RegisterPage() {
                 : "bg-white text-stone-400 hover:bg-stone-50"
             }`}>
             <User
-              className={`w-6 h-6 ${
-                accountType === "individual"
-                  ? "text-stone-800"
-                  : "text-stone-400"
-              }`}
+              className={`w-6 h-6 ${accountType === "individual" ? "text-stone-800" : "text-stone-400"}`}
             />
             Individual Needs
           </button>
@@ -91,18 +146,46 @@ export default function RegisterPage() {
                 : "bg-white text-stone-400 hover:bg-stone-50"
             }`}>
             <Users
-              className={`w-6 h-6 ${
-                accountType === "corporate"
-                  ? "text-stone-800"
-                  : "text-stone-400"
-              }`}
+              className={`w-6 h-6 ${accountType === "corporate" ? "text-stone-800" : "text-stone-400"}`}
             />
             Corporate Needs
           </button>
         </div>
-
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          {/* ✨ TAMBAHAN: Field Email & Password diletakkan di atas */}
+          <Input
+            name="email"
+            type="email"
+            placeholder="Email Address"
+            value={
+              accountType === "individual" ? individual.email : corporate.email
+            }
+            onChange={
+              accountType === "individual"
+                ? handleIndividualChange
+                : handleCorporateChange
+            }
+            required
+            className={inputClass}
+          />
+          <Input
+            name="password"
+            type="password"
+            placeholder="Password (Min. 8 characters)"
+            value={
+              accountType === "individual"
+                ? individual.password
+                : corporate.password
+            }
+            onChange={
+              accountType === "individual"
+                ? handleIndividualChange
+                : handleCorporateChange
+            }
+            required
+            className={inputClass}
+          />
+
           {accountType === "individual" ? (
             <>
               <Input
@@ -127,7 +210,8 @@ export default function RegisterPage() {
                 placeholder="Address"
                 value={individual.address}
                 onChange={handleIndividualChange}
-                rows={4}
+                rows={3}
+                required
                 className={`${inputClass} resize-none`}
               />
             </>
@@ -170,7 +254,8 @@ export default function RegisterPage() {
                 placeholder="Address"
                 value={corporate.address}
                 onChange={handleCorporateChange}
-                rows={4}
+                rows={3}
+                required
                 className={`${inputClass} resize-none`}
               />
             </>
@@ -179,8 +264,9 @@ export default function RegisterPage() {
           {/* Sign Up Button */}
           <Button
             type="submit"
+            disabled={isLoading}
             className="w-full bg-[#b5956a] hover:bg-[#a07d55] text-white text-sm font-medium rounded-sm py-6 mt-1 transition-colors">
-            Sign Up
+            {isLoading ? "Memproses..." : "Sign Up"}
           </Button>
 
           {/* Google Sign In */}
@@ -189,7 +275,6 @@ export default function RegisterPage() {
             variant="outline"
             onClick={handleGoogleSignIn}
             className="w-full border border-stone-300 rounded-sm py-6 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-3">
-            {/* Google Icon SVG */}
             <svg width="18" height="18" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -211,7 +296,6 @@ export default function RegisterPage() {
             Sign in with Google Instead
           </Button>
 
-          {/* Legal note */}
           <p className="text-center text-[11px] text-stone-400 mt-1 leading-relaxed">
             By signing up, you agree to receive marketing emails. View our{" "}
             <Link
@@ -228,8 +312,6 @@ export default function RegisterPage() {
             for more info.
           </p>
         </form>
-
-        {/* Login link */}
         <p className="text-center text-sm text-stone-500 mt-6">
           Already have an account?{" "}
           <Link
