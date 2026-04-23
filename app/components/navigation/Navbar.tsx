@@ -22,12 +22,16 @@ import * as React from "react";
 
 import { useLocale, useTranslations } from "next-intl";
 
+import { useCartStore } from "@/app/store/useCartStore";
 import { Link, usePathname, useRouter } from "@/i18n/routing";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
-
-  // ✨ 2. Panggil hooks i18n
+  const cartItems = useCartStore((state) => state.cartItems);
+  const totalItems = cartItems.reduce(
+    (total, item) => total + item.quantity,
+    0,
+  );
   const t = useTranslations("Navbar");
   const locale = useLocale();
   const router = useRouter();
@@ -141,11 +145,22 @@ export default function Navbar() {
               <Search className="h-5 w-5 text-gray-800" />
             </Button>
 
-            <Link href="/cart">
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <ShoppingBag className="h-5 w-5 text-gray-800" />
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link href="/cart">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full relative group">
+                  <ShoppingBag className="h-5 w-5 text-gray-800" />
+
+                  {totalItems > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#463b34] text-[10px] font-bold text-white transition-transform group-hover:scale-110">
+                      {totalItems > 99 ? "99+" : totalItems}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            </div>
 
             {/* --- BURGER MENU (MOBILE) --- */}
             <div className="md:hidden ml-1">

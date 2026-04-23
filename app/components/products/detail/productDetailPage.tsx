@@ -1,6 +1,9 @@
 "use client";
 
+import { useCartStore } from "@/app/store/useCartStore";
+import { AddToCartPayload } from "@/app/types/itemCart/addToCartPayload.type";
 import { MediaItem, ProductDetail } from "@/app/types/productDetail.type";
+import { useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
 import { PriceTierSelector } from "./priceTierSelector";
 import { ProductDescription } from "./productDescription";
@@ -14,6 +17,9 @@ interface ProductDetailPageProps {
 }
 
 export function ProductDetailPage({ product }: ProductDetailPageProps) {
+  const { data: session } = useSession();
+  const token = session?.user?.accessToken;
+  const addToCart = useCartStore((state) => state.addToCart);
   const [selectedTierIndex, setSelectedTierIndex] = useState(0);
   const [quantity, setQuantity] = useState(product.priceTiers[0].minQty);
 
@@ -44,20 +50,26 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     setQuantity(product.priceTiers[index].minQty);
   };
 
-  const handleAddToCart = () => {
-    const selectedVariantName =
-      product.variants?.find((v) => v.id === selectedVariantId)?.name ||
-      "Default";
-    console.log("Add to cart:", {
-      product: product.id,
-      variant: selectedVariantName,
-      quantity,
-      tier: selectedTier,
-    });
+  const handleAddToCart = async () => {
+    const selectedVariant = product.variants?.find(
+      (v) => v.id === selectedVariantId,
+    );
+
+    const payload: AddToCartPayload = {
+      id: product.id,
+      name: product.name,
+      price: selectedTier.pricePerPcs,
+      image:
+        selectedVariant?.images?.[0]?.url ||
+        product.media?.[0]?.url ||
+        "/images/products/demo-products.png",
+      variantId: selectedVariantId,
+    };
+
+    await addToCart(payload, quantity, token);
   };
 
   const handleOrderNow = () => {
-    // Sisipkan nama varian ke dalam pesan WhatsApp
     const selectedVariantName =
       product.variants?.find((v) => v.id === selectedVariantId)?.name || "";
     const variantText = selectedVariantName
@@ -79,7 +91,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         {/* ── Left: Image Gallery ── */}
         <div className="flex flex-col gap-4">
           <ProductImageGallery
-            media={activeGalleryMedia} // 🔄 Kirim media gabungan ke sini
+            media={activeGalleryMedia}
             productName={product.name}
           />
           <ShareBar productName={product.name} />

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { apiUrl } from "@/app/utils/ApiUrl";
@@ -56,7 +57,6 @@ export function AddressManager() {
 
   // Pastikan mengambil token dengan benar
   const token = (session as ExtendedSession)?.user?.accessToken;
-  console.log("ini adalah token", token);
 
   const [addresses, setAddresses] = useState<Address[]>([]);
 
@@ -149,7 +149,7 @@ export function AddressManager() {
 
       if (json.success) {
         toast.success(json.message);
-        fetchAddresses(); // Refresh list alamat dari database
+        fetchAddresses();
         setDialogMode(null);
       } else {
         toast.error(json.message || "Gagal menyimpan alamat");

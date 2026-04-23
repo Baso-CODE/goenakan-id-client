@@ -1,52 +1,55 @@
 "use client";
 
+import { useCartStore } from "@/app/store/useCartStore";
+import { apiUrl } from "@/app/utils/ApiUrl";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { Search } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-interface OrderItem {
-  id: number;
-  name: string;
-  image: string;
-  dimensions: string;
-  weight: string;
-  color: string;
-  material: string;
-  quantity: number;
-  price: number;
-}
+// interface OrderItem {
+//   id: number;
+//   name: string;
+//   image: string;
+//   dimensions: string;
+//   weight: string;
+//   color: string;
+//   material: string;
+//   quantity: number;
+//   price: number;
+// }
 
-const ORDER_ITEMS: OrderItem[] = [
-  {
-    id: 1,
-    name: "Bamboo Pen",
-    image: "/images/products/demo-products.png",
-    dimensions: "7.5 × 12 cm",
-    weight: "5 kg",
-    color: "Coklat",
-    material: "Bamboo",
-    quantity: 2,
-    price: 10000,
-  },
-  {
-    id: 2,
-    name: "Stainless Pen",
-    image: "/images/products/demo-products.png",
-    dimensions: "7.5 × 12 cm",
-    weight: "5 kg",
-    color: "Coklat",
-    material: "Bamboo",
-    quantity: 2,
-    price: 10000,
-  },
-];
+// const ORDER_ITEMS: OrderItem[] = [
+//   {
+//     id: 1,
+//     name: "Bamboo Pen",
+//     image: "/images/products/demo-products.png",
+//     dimensions: "7.5 × 12 cm",
+//     weight: "5 kg",
+//     color: "Coklat",
+//     material: "Bamboo",
+//     quantity: 2,
+//     price: 10000,
+//   },
+//   {
+//     id: 2,
+//     name: "Stainless Pen",
+//     image: "/images/products/demo-products.png",
+//     dimensions: "7.5 × 12 cm",
+//     weight: "5 kg",
+//     color: "Coklat",
+//     material: "Bamboo",
+//     quantity: 2,
+//     price: 10000,
+//   },
+// ];
 
 const SHIPPING_COST = 10000;
 
@@ -55,29 +58,97 @@ function formatRupiah(amount: number) {
 }
 
 export default function CheckoutPage() {
+  const { data: session } = useSession();
+  const token = session?.user?.accessToken;
+
+  // ✨ 1. Ambil data keranjang dari Zustand
+  const { cartItems, fetchCart } = useCartStore();
+
   const [addNote, setAddNote] = useState(false);
   const [note, setNote] = useState("");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  // ✨ 2. State Form dengan default value dari session (jika ada)
   const [form, setForm] = useState({
-    email: "",
-    fullName: "",
+    email: session?.user?.email || "",
+    fullName: session?.user?.name || "",
     phone: "",
     country: "Indonesia",
     city: "",
     address: "",
   });
 
-  const subtotal = ORDER_ITEMS.reduce(
+  // ✨ 3. Kalkulasi total dari Cart Items yang asli
+  const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
   const total = subtotal + SHIPPING_COST;
-  const totalQty = ORDER_ITEMS.reduce((sum, item) => sum + item.quantity, 0);
+  const totalQty = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  // ✨ 4. Ambil Profile dan Alamat Default jika Login
+  useEffect(() => {
+    const loadProfileAddress = async () => {
+      if (!token) return;
+
+      setIsLoadingProfile(true);
+      try {
+        const res = await fetch(`${apiUrl}/customer-profile/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          const profile = json.data;
+          const defaultAddress =
+            profile.addresses?.find((a: any) => a.isDefault) ||
+            profile.addresses?.[0];
+
+          setForm((prev) => ({
+            ...prev,
+            email: profile.user?.email || prev.email,
+            fullName:
+              defaultAddress?.recipient || profile.user?.name || prev.fullName,
+            phone: defaultAddress?.phone || profile.phone || prev.phone,
+            country: defaultAddress?.country || "Indonesia",
+            city: defaultAddress?.city || "",
+            address: defaultAddress?.fullAddress || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Gagal memuat alamat", error);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadProfileAddress();
+
+    // Pastikan cart dimuat (jaga-jaga user langsung buka URL /checkout)
+    if (cartItems.length === 0) {
+      fetchCart(token);
+    }
+  }, [token, fetchCart]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
+
+  // Tampilan jika keranjang kosong
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-stone-50 gap-4">
+        <p className="text-stone-500 uppercase tracking-widest text-sm">
+          Keranjang Anda kosong
+        </p>
+        <Button asChild className="bg-[#463b34] rounded-none">
+          <Link href="/products">Kembali Belanja</Link>
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-stone-50 pt-24 pb-16">
@@ -86,16 +157,25 @@ export default function CheckoutPage() {
           {/* ── Left: Form ── */}
           <div className="flex flex-col gap-8">
             {/* Address Detail */}
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 relative">
+              {isLoadingProfile && (
+                <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-md">
+                  <Loader2 className="w-6 h-6 animate-spin text-stone-500" />
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-semibold text-stone-800">
                   Address Detail
                 </h2>
-                <Button
-                  variant="link"
-                  className="text-xs text-blue-500 p-0 h-auto">
-                  Change Address
-                </Button>
+                {token && (
+                  <Button
+                    variant="link"
+                    asChild
+                    className="text-xs text-blue-500 p-0 h-auto">
+                    <Link href="/profile?tab=address">Manage Addresses</Link>
+                  </Button>
+                )}
               </div>
 
               {/* Email */}
@@ -116,7 +196,7 @@ export default function CheckoutPage() {
               {/* Full Name */}
               <Input
                 name="fullName"
-                placeholder="Full Name"
+                placeholder="Full Name / Penerima"
                 value={form.fullName}
                 onChange={handleChange}
                 className="rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white"
@@ -161,7 +241,7 @@ export default function CheckoutPage() {
               <div className="relative">
                 <Textarea
                   name="address"
-                  placeholder="Detail Address"
+                  placeholder="Detail Address (Nama Jalan, No Rumah, RT/RW)"
                   value={form.address}
                   onChange={handleChange}
                   rows={4}
@@ -229,8 +309,9 @@ export default function CheckoutPage() {
           <div className="sticky top-24 flex flex-col gap-4">
             <div className="border border-stone-200 rounded-sm bg-white overflow-hidden">
               {/* Order Items */}
-              <div className="flex flex-col divide-y divide-stone-100">
-                {ORDER_ITEMS.map((item) => (
+              {/* ✨ Mapping Data dari Zustand */}
+              <div className="flex flex-col divide-y divide-stone-100 max-h-100 overflow-y-auto">
+                {cartItems.map((item) => (
                   <div key={item.id} className="flex gap-3 p-3">
                     {/* Image with qty badge */}
                     <div className="relative w-14 h-14 shrink-0 bg-stone-100 rounded-sm overflow-hidden">
@@ -251,21 +332,27 @@ export default function CheckoutPage() {
                       <p className="text-xs font-semibold text-stone-800 leading-tight">
                         {item.name}
                       </p>
-                      <p className="text-[11px] text-stone-600">
-                        Dimensi: {item.dimensions}
-                      </p>
-                      <p className="text-[11px] text-stone-600">
-                        Berat: {item.weight}
-                      </p>
-                      <p className="text-[11px] text-stone-600">
-                        Warna: {item.color}
-                      </p>
-                      <p className="text-[11px] text-stone-600">
-                        Bahan: {item.material}
-                      </p>
-                      <p className="text-[11px] text-stone-600">
-                        Jumlah: {item.quantity}
-                      </p>
+                      {/* Render jika data ini ada dari database */}
+                      {item.dimensions && (
+                        <p className="text-[11px] text-stone-600">
+                          Dimensi: {item.dimensions}
+                        </p>
+                      )}
+                      {item.weight && (
+                        <p className="text-[11px] text-stone-600">
+                          Berat: {item.weight}
+                        </p>
+                      )}
+                      {item.color && (
+                        <p className="text-[11px] text-stone-600">
+                          Warna: {item.color}
+                        </p>
+                      )}
+                      {item.material && (
+                        <p className="text-[11px] text-stone-600">
+                          Bahan: {item.material}
+                        </p>
+                      )}
                     </div>
 
                     {/* Price */}
@@ -275,7 +362,6 @@ export default function CheckoutPage() {
                   </div>
                 ))}
               </div>
-
               <Separator className="bg-stone-100" />
 
               {/* Add Note */}

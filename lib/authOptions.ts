@@ -89,8 +89,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
-      // Karena sudah di-declare di module augmentation,
-      // TypeScript tahu session.user punya properti ini
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
@@ -100,7 +98,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
   session: {
-    strategy: "jwt", // Wajib pakai JWT kalau pakai Credentials
+    strategy: "jwt",
   },
   pages: {
     signIn: "/login",

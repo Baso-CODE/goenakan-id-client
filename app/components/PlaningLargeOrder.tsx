@@ -1,7 +1,7 @@
-"use client"; // ✨ Wajib ada karena menggunakan useTranslations
+"use client";
 
-import { Link } from "@/i18n/routing"; // 🔄 Ganti next/link dengan i18n routing kamu
-import { useTranslations } from "next-intl"; // ✨ Import next-intl
+import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 interface PlanningLargerOrderProps {
