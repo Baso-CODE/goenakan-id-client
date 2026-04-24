@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Link, useRouter } from "@/i18n/routing";
 import { signIn } from "next-auth/react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
 
@@ -30,20 +30,18 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      // Panggil fungsi signIn dari NextAuth dengan provider "credentials"
       const res = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
-        redirect: false, // Penting: Jangan redirect otomatis agar kita bisa tangkap error
+        redirect: false,
       });
 
       if (res?.error) {
-        // Tampilkan pesan error dari file authOptions.ts (misal: "Password salah")
         toast.error(res.error);
       } else if (res?.ok) {
         toast.success("Login berhasil! Selamat datang kembali.");
         router.push(callbackUrl);
-        router.refresh(); // Segarkan sesi UI
+        router.refresh();
       }
     } catch (error) {
       toast.error(
@@ -58,8 +56,10 @@ function LoginForm() {
 
   // === 2. HANDLE LOGIN GOOGLE ===
   const handleGoogleSignIn = () => {
-    // Panggil fungsi signIn dengan provider "google"
-    signIn("google", { callbackUrl });
+    signIn("google", {
+      callbackUrl: "/",
+      prompt: "select_account",
+    });
   };
 
   const inputClass =
@@ -67,8 +67,6 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-100">
-      {" "}
-      {/* Lebar disesuaikan agar pas untuk form login */}
       <h1 className="text-4xl font-light text-stone-800 text-center mb-2">
         Welcome Back
       </h1>

@@ -7,27 +7,23 @@ import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./prisma";
 
 export const authOptions: NextAuthOptions = {
-  // ✨ 1. Daftarkan Prisma Adapter di sini
   adapter: PrismaAdapter(prisma),
 
   providers: [
-    // ✨ 2. Tambahkan Google Provider
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       profile(profile) {
-        // Mapping role default untuk user yang daftar via Google
         return {
           id: profile.sub,
           name: profile.name,
           email: profile.email,
           image: profile.picture,
-          role: "CUSTOMER", // User Google otomatis jadi Customer
+          role: "CUSTOMER",
         };
       },
     }),
 
-    // 3. Credentials Provider (Untuk login Email/Password)
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -69,12 +65,9 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Saat login pertama kali, objek 'user' akan tersedia
       if (user) {
         token.id = user.id;
         token.role = user.role;
-
-        // Buat Access Token untuk API Express
         token.accessToken = sign(
           {
             id: user.id,

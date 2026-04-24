@@ -46,7 +46,7 @@ export default function InformationDetailCustomer() {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (!token) return;
+    if (!token || status !== "authenticated") return;
 
     setLoading(true);
     try {
@@ -59,11 +59,12 @@ export default function InformationDetailCustomer() {
       setOrders(orderList);
     } catch (error) {
       console.error(error);
-      toast.error("Gagal memuat data");
+      if (status === "authenticated") toast.error("Gagal memuat data");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+    // ✨ Tambahkan status di dependency array
+  }, [token, status]);
 
   useEffect(() => {
     fetchData();
@@ -149,7 +150,18 @@ export default function InformationDetailCustomer() {
 
             <Button
               variant="outline"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={async () => {
+                setProfileData(null);
+                setOrders([]);
+
+                localStorage.clear();
+                sessionStorage.clear();
+
+                await signOut({
+                  callbackUrl: "/login",
+                  redirect: true,
+                });
+              }}
               className="rounded-none border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600">
               <LogOut className="w-4 h-4 mr-2" /> Logout
             </Button>

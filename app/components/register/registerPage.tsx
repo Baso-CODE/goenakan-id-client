@@ -107,8 +107,10 @@ export default function RegisterPage() {
 
   // === 2. HANDLE LOGIN GOOGLE (VIA NEXTAUTH) ===
   const handleGoogleSignIn = () => {
-    // Fungsi bawaan NextAuth. Otomatis popup login Google dan redirect ke halaman utama "/"
-    signIn("google", { callbackUrl: "/" });
+    signIn("google", {
+      callbackUrl: "/",
+      prompt: "select_account",
+    });
   };
 
   const inputClass =
