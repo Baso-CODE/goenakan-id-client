@@ -9,9 +9,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Link } from "@/i18n/routing";
 import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
-import Link from "next/link";
 import * as React from "react";
 import { useEffect, useState } from "react";
 import { ArticleApiItem } from "../types/articles/articleApiItem.type";

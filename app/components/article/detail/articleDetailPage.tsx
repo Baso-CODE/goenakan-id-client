@@ -1,6 +1,6 @@
 import { ArticleDetail } from "@/app/types/articles/articleDetail.type";
+import { Link } from "@/i18n/routing";
 import Image from "next/image";
-import Link from "next/link";
 import { ArticleContent } from "./articleContent";
 import { ArticleNavigation } from "./articleNavigation";
 import { RelevantArticle } from "./relevantArticle";

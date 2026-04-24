@@ -1,8 +1,8 @@
 "use client";
 
 import { Article } from "@/app/types/articles/articleList.type";
+import { Link } from "@/i18n/routing";
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
 
 interface RelevantArticleProps {

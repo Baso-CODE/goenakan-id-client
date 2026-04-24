@@ -30,6 +30,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   );
 
   const selectedTier = product.priceTiers[selectedTierIndex];
+  const selectedVariant = useMemo(() => {
+    return product.variants?.find((v) => v.id === selectedVariantId);
+  }, [product.variants, selectedVariantId]);
 
   const activeGalleryMedia = useMemo(() => {
     let currentMedia: MediaItem[] = [];
@@ -50,20 +53,32 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     setQuantity(product.priceTiers[index].minQty);
   };
 
+  // ✨ 2. Payload Keranjang Dinamis
   const handleAddToCart = async () => {
-    const selectedVariant = product.variants?.find(
-      (v) => v.id === selectedVariantId,
-    );
-
     const payload: AddToCartPayload = {
       id: product.id,
       name: product.name,
-      price: selectedTier.pricePerPcs,
+      price: selectedVariant?.price ?? selectedTier.pricePerPcs,
       image:
         selectedVariant?.images?.[0]?.url ||
         product.media?.[0]?.url ||
         "/images/products/demo-products.png",
       variantId: selectedVariantId,
+
+      // Data Teks untuk UI Keranjang
+      dimensions: selectedVariant
+        ? selectedVariant.dimensionsString
+        : product.dimensions,
+      weight: selectedVariant ? selectedVariant.weightString : product.weight,
+
+      // Data Mentah untuk kebutuhan Backend / Kalkulasi Ongkir
+      materialType: product.materialType,
+      rawWeight: selectedVariant
+        ? selectedVariant.rawWeight
+        : product.rawWeight,
+      width: selectedVariant ? selectedVariant.width : product.width,
+      height: selectedVariant ? selectedVariant.height : product.height,
+      length: selectedVariant ? selectedVariant.length : product.length,
     };
 
     await addToCart(payload, quantity, token);
@@ -85,6 +100,12 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     );
   };
 
+  const displayWeight = selectedVariant
+    ? selectedVariant.weightString
+    : product.weight;
+  const displayDimensions = selectedVariant
+    ? selectedVariant.dimensionsString
+    : product.dimensions;
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
@@ -182,11 +203,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             productName={product.name}
           />
 
-          {/* Description & Specs */}
           <ProductDescription
             description={product.description}
-            weight={product.weight}
-            dimensions={product.dimensions}
+            weight={displayWeight}
+            dimensions={displayDimensions}
             accessories={product.accessories}
           />
         </div>

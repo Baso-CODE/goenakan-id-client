@@ -4,8 +4,8 @@ import { ArticleApiItem } from "@/app/types/articles/articleApiItem.type";
 import { Article } from "@/app/types/articles/articleList.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "@/i18n/routing";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface ArticleListProps {

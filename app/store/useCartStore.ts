@@ -10,7 +10,6 @@ interface CartState {
   cartItems: CartItemUI[];
   loading: boolean;
 
-  // Actions
   fetchCart: (token?: string) => Promise<void>;
   addToCart: (
     product: AddToCartPayload,
@@ -30,7 +29,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   cartItems: [],
   loading: false,
 
-  // === 1. FETCH CART (Membaca dari DB atau LocalStorage) ===
+  // === 1. FETCH CART ===
   fetchCart: async (token) => {
     set({ loading: true });
 
@@ -40,7 +39,6 @@ export const useCartStore = create<CartState>((set, get) => ({
       if (localCart) {
         try {
           const parsedCart: CartItemUI[] = JSON.parse(localCart);
-          // Format payload sesuai DTO sync di backend kamu
           const payload = {
             items: parsedCart.map((i) => ({
               productId: i.productId,
@@ -72,19 +70,41 @@ export const useCartStore = create<CartState>((set, get) => ({
 
         if (json.success && json.data?.items) {
           const formattedItems: CartItemUI[] = json.data.items.map(
-            (item: ApiCartItem) => ({
-              id: item.id,
-              productId: item.productId,
-              variantId: item.variantId,
-              name: item.product.name,
-              price: item.variant
-                ? Number(item.variant.price)
-                : Number(item.product.basePrice),
-              quantity: item.quantity,
-              image:
-                item.product.images?.[0]?.url ||
-                "/images/products/demo-products.png",
-            }),
+            (item: ApiCartItem) => {
+              // ✨ BUAT STRING DIMENSI & BERAT UNTUK UI
+              const dimParts = [
+                item.product.length,
+                item.product.width,
+                item.product.height,
+              ].filter((val) => val !== null && val !== undefined);
+              const dimString =
+                dimParts.length > 0 ? `${dimParts.join(" x ")} cm` : undefined;
+
+              return {
+                id: item.id,
+                productId: item.productId,
+                variantId: item.variantId,
+                name: item.product.name,
+                price: item.variant
+                  ? Number(item.variant.price)
+                  : Number(item.product.basePrice),
+                quantity: item.quantity,
+                image:
+                  item.product.images?.[0]?.url ||
+                  "/images/products/demo-products.png",
+
+                // ✨ MAPPING DATA MENTAH & STRING
+                materialType: item.product.materialType,
+                dimensions: dimString,
+                weight: item.product.weight
+                  ? `${item.product.weight} gram`
+                  : undefined,
+                rawWeight: item.product.weight,
+                width: item.product.width,
+                height: item.product.height,
+                length: item.product.length,
+              };
+            },
           );
 
           set({ cartItems: formattedItems });
@@ -98,7 +118,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       if (localCart) {
         set({ cartItems: JSON.parse(localCart) });
       } else {
-        set({ cartItems: [] }); // Pastikan kosong jika tidak ada data
+        set({ cartItems: [] });
       }
     }
     set({ loading: false });
@@ -109,7 +129,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     const { cartItems, fetchCart } = get();
 
     if (token) {
-      // JIKA LOGIN: Tembak API Add To Cart
       try {
         const res = await fetch(`${apiUrl}/cart`, {
           method: "POST",
@@ -125,7 +144,6 @@ export const useCartStore = create<CartState>((set, get) => ({
         });
 
         if (res.ok) {
-          // Refresh data dari DB agar mendapat ID keranjang yang asli
           await fetchCart(token);
           toast.success("Barang ditambahkan ke keranjang!");
         } else {
@@ -136,21 +154,18 @@ export const useCartStore = create<CartState>((set, get) => ({
         toast.error("Terjadi kesalahan jaringan.");
       }
     } else {
-      // JIKA GUEST: Update LocalStorage
       const existingItem = cartItems.find(
         (i) => i.productId === product.id && i.variantId === product.variantId,
       );
 
       let newCart;
       if (existingItem) {
-        // Jika barang sudah ada, tambah quantity saja
         newCart = cartItems.map((i) =>
           i.id === existingItem.id
             ? { ...i, quantity: i.quantity + quantity }
             : i,
         );
       } else {
-        // Jika barang baru, buat data baru dengan ID sementara (Timestamp)
         newCart = [
           ...cartItems,
           {
@@ -161,6 +176,15 @@ export const useCartStore = create<CartState>((set, get) => ({
             price: product.price,
             quantity: quantity,
             image: product.image || "/images/products/demo-products.png",
+
+            // ✨ SIMPAN SEMUA DATA DARI PAYLOAD
+            materialType: product.materialType,
+            dimensions: product.dimensions,
+            weight: product.weight,
+            rawWeight: product.rawWeight,
+            width: product.width,
+            height: product.height,
+            length: product.length,
           },
         ];
       }
@@ -173,13 +197,13 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   // === 3. UPDATE QUANTITY ===
   updateQty: async (id, delta, token) => {
+    // ... (Tidak ada perubahan, kodinganmu sudah benar)
     const { cartItems } = get();
     const item = cartItems.find((i) => i.id === id);
     if (!item) return;
 
     const newQty = Math.max(1, item.quantity + delta);
 
-    // Optimistic UI Update (UI berubah instan)
     set({
       cartItems: cartItems.map((i) =>
         i.id === id ? { ...i, quantity: newQty } : i,
@@ -187,7 +211,6 @@ export const useCartStore = create<CartState>((set, get) => ({
     });
 
     if (token) {
-      // Tembak API Update secara background
       try {
         await fetch(`${apiUrl}/cart/${id}`, {
           method: "PATCH",
@@ -201,7 +224,6 @@ export const useCartStore = create<CartState>((set, get) => ({
         console.error("Failed to update qty to DB", e);
       }
     } else {
-      // Update LocalStorage
       const updatedCart = get().cartItems;
       localStorage.setItem("guest_cart", JSON.stringify(updatedCart));
     }
@@ -209,12 +231,9 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   // === 4. REMOVE ITEM ===
   removeItem: async (id, token) => {
+    // ... (Tidak ada perubahan, kodinganmu sudah benar)
     const { cartItems } = get();
-
-    // Filter item yang akan dihapus
     const newCart = cartItems.filter((i) => i.id !== id);
-
-    // Optimistic UI Update
     set({ cartItems: newCart });
 
     if (token) {
@@ -233,8 +252,9 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  // === 5. CLEAR CART (Bisa dipanggil saat Logout atau pasca-Checkout) ===
+  // === 5. CLEAR CART ===
   clearCart: () => {
+    // ... (Tidak ada perubahan, kodinganmu sudah benar)
     set({ cartItems: [] });
     localStorage.removeItem("guest_cart");
   },

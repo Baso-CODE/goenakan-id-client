@@ -2,7 +2,7 @@ interface ProductDescriptionProps {
   description: string;
   weight: string;
   dimensions: string;
-  accessories: string;
+  accessories: string | string[]; // ✨ Dukung array atau string
 }
 
 export function ProductDescription({
@@ -11,10 +11,15 @@ export function ProductDescription({
   dimensions,
   accessories,
 }: ProductDescriptionProps) {
+  // Gabungkan array menjadi string jika datanya berbentuk array
+  const formattedAccessories = Array.isArray(accessories)
+    ? accessories.join(", ")
+    : accessories || "-";
+
   const specs = [
     { label: "Weight", value: weight },
     { label: "Dimensions", value: dimensions },
-    { label: "Acc", value: accessories },
+    { label: "Acc", value: formattedAccessories },
   ];
 
   return (
@@ -23,7 +28,7 @@ export function ProductDescription({
       <div>
         <p className="text-sm text-stone-700 leading-relaxed">
           <span className="font-semibold text-stone-900">Description – </span>
-          {description}
+          {description || "Tidak ada deskripsi."}
         </p>
       </div>
 

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { useCartStore } from "@/app/store/useCartStore";
@@ -8,11 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Link } from "@/i18n/routing";
 import { Loader2, Search } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+
+interface Address {
+  isDefault: boolean;
+  recipient?: string;
+  phone?: string;
+  country?: string;
+  city?: string;
+  fullAddress?: string;
+}
 
 // interface OrderItem {
 //   id: number;
@@ -101,7 +111,7 @@ export default function CheckoutPage() {
         if (json.success && json.data) {
           const profile = json.data;
           const defaultAddress =
-            profile.addresses?.find((a: any) => a.isDefault) ||
+            profile.addresses?.find((a: Address) => a.isDefault) ||
             profile.addresses?.[0];
 
           setForm((prev) => ({
@@ -124,7 +134,6 @@ export default function CheckoutPage() {
 
     loadProfileAddress();
 
-    // Pastikan cart dimuat (jaga-jaga user langsung buka URL /checkout)
     if (cartItems.length === 0) {
       fetchCart(token);
     }
@@ -309,17 +318,16 @@ export default function CheckoutPage() {
           <div className="sticky top-24 flex flex-col gap-4">
             <div className="border border-stone-200 rounded-sm bg-white overflow-hidden">
               {/* Order Items */}
-              {/* ✨ Mapping Data dari Zustand */}
               <div className="flex flex-col divide-y divide-stone-100 max-h-100 overflow-y-auto">
                 {cartItems.map((item) => (
                   <div key={item.id} className="flex gap-3 p-3">
                     {/* Image with qty badge */}
-                    <div className="relative w-14 h-14 shrink-0 bg-stone-100 rounded-sm overflow-hidden">
+                    <div className="relative w-14 h-14 shrink-0 bg-stone-100 rounded-sm overflow-hidden border border-stone-200">
                       <Image
                         src={item.image}
                         alt={item.name}
                         fill
-                        className="object-contain p-1"
+                        className="object-cover p-1"
                         sizes="56px"
                       />
                       <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-stone-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
@@ -332,27 +340,36 @@ export default function CheckoutPage() {
                       <p className="text-xs font-semibold text-stone-800 leading-tight">
                         {item.name}
                       </p>
-                      {/* Render jika data ini ada dari database */}
-                      {item.dimensions && (
-                        <p className="text-[11px] text-stone-600">
-                          Dimensi: {item.dimensions}
-                        </p>
-                      )}
-                      {item.weight && (
-                        <p className="text-[11px] text-stone-600">
-                          Berat: {item.weight}
-                        </p>
-                      )}
-                      {item.color && (
-                        <p className="text-[11px] text-stone-600">
-                          Warna: {item.color}
-                        </p>
-                      )}
-                      {item.material && (
-                        <p className="text-[11px] text-stone-600">
-                          Bahan: {item.material}
-                        </p>
-                      )}
+
+                      {/* Render Spesifikasi Dinamis */}
+                      <div className="mt-0.5 flex flex-col gap-0.5 text-[10px] text-stone-500">
+                        {item.materialType && (
+                          <p>
+                            <span className="font-medium text-stone-600">
+                              Bahan:
+                            </span>{" "}
+                            {item.materialType}
+                          </p>
+                        )}
+                        {item.dimensions && (
+                          <p>
+                            <span className="font-medium text-stone-600">
+                              Dimensi:
+                            </span>{" "}
+                            {item.dimensions}
+                          </p>
+                        )}
+                        {item.weight && (
+                          <p>
+                            <span className="font-medium text-stone-600">
+                              Berat:
+                            </span>{" "}
+                            {item.weight}
+                          </p>
+                        )}
+                        {/* Opsional: Render warna/atribut lainnya jika ada dari varian */}
+                        {/* {item.color && <p><span className="font-medium text-stone-600">Warna:</span> {item.color}</p>} */}
+                      </div>
                     </div>
 
                     {/* Price */}
@@ -363,7 +380,6 @@ export default function CheckoutPage() {
                 ))}
               </div>
               <Separator className="bg-stone-100" />
-
               {/* Add Note */}
               <div className="px-3 py-3 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
@@ -389,9 +405,7 @@ export default function CheckoutPage() {
                   />
                 )}
               </div>
-
               <Separator className="bg-stone-100" />
-
               {/* Pricing */}
               <div className="px-3 py-3 flex flex-col gap-2">
                 <div className="flex justify-between items-center">
@@ -409,9 +423,7 @@ export default function CheckoutPage() {
                   </p>
                 </div>
               </div>
-
               <Separator className="bg-stone-100" />
-
               <div className="px-3 py-3 flex justify-between items-center">
                 <p className="text-sm font-semibold text-stone-800">
                   Total Payment
@@ -420,7 +432,6 @@ export default function CheckoutPage() {
                   {formatRupiah(total)}
                 </p>
               </div>
-
               {/* Place Order */}
               <div className="px-3 pb-4 flex flex-col gap-2">
                 <Button className="w-full bg-[#463b34] hover:bg-stone-700 text-white text-xs font-bold tracking-widest uppercase rounded-none py-5">

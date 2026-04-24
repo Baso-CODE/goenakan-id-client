@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 
 interface ArticleNavigationProps {
   prevArticle?: { title: string; href: string };
