@@ -177,7 +177,6 @@ export const useCartStore = create<CartState>((set, get) => ({
             quantity: quantity,
             image: product.image || "/images/products/demo-products.png",
 
-            // ✨ SIMPAN SEMUA DATA DARI PAYLOAD
             materialType: product.materialType,
             dimensions: product.dimensions,
             weight: product.weight,
@@ -197,7 +196,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   // === 3. UPDATE QUANTITY ===
   updateQty: async (id, delta, token) => {
-    // ... (Tidak ada perubahan, kodinganmu sudah benar)
     const { cartItems } = get();
     const item = cartItems.find((i) => i.id === id);
     if (!item) return;
@@ -231,7 +229,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   // === 4. REMOVE ITEM ===
   removeItem: async (id, token) => {
-    // ... (Tidak ada perubahan, kodinganmu sudah benar)
     const { cartItems } = get();
     const newCart = cartItems.filter((i) => i.id !== id);
     set({ cartItems: newCart });
@@ -254,7 +251,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   // === 5. CLEAR CART ===
   clearCart: () => {
-    // ... (Tidak ada perubahan, kodinganmu sudah benar)
     set({ cartItems: [] });
     localStorage.removeItem("guest_cart");
   },

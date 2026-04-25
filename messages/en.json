@@ -95,6 +95,31 @@
     "clientsLabel": "Our Clients",
     "andManyMore": "and many more",
     "orderedTimes": "ordered {count} times"
+  },
+
+  "Cart": {
+    "tabs": {
+      "myCart": "My Cart",
+      "orderTracking": "Order Tracking"
+    },
+    "status": {
+      "loading": "Updating your cart...",
+      "empty": "Your cart is empty.",
+      "continueShopping": "Continue shopping"
+    },
+    "table": {
+      "product": "Product",
+      "material": "Material",
+      "dimensions": "Dimensions",
+      "weight": "Weight",
+      "qty": "Qty",
+      "remove": "Remove"
+    },
+    "summary": {
+      "subtotal": "Subtotal ({count} items)",
+      "taxNote": "Taxes and shipping calculated at checkout",
+      "checkout": "Proceed to Checkout"
+    }
   }
 
 }

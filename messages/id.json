@@ -95,7 +95,33 @@
     "clientsLabel": "Klien Kami",
     "andManyMore": "dan banyak lagi",
     "orderedTimes": "dipesan {count} kali"
+  },
+
+  "Cart": {
+    "tabs": {
+      "myCart": "Keranjang Saya",
+      "orderTracking": "Lacak Pesanan"
+    },
+    "status": {
+      "loading": "Memperbarui keranjang...",
+      "empty": "Keranjang Anda kosong.",
+      "continueShopping": "Lanjutkan belanja"
+    },
+    "table": {
+      "product": "Produk",
+      "material": "Bahan",
+      "dimensions": "Dimensi",
+      "weight": "Berat",
+      "qty": "Jumlah",
+      "remove": "Hapus"
+    },
+    "summary": {
+      "subtotal": "Subtotal ({count} barang)",
+      "taxNote": "Pajak dan biaya pengiriman dihitung saat checkout",
+      "checkout": "Lanjutkan ke Pembayaran"
+    }
   }
+
 }
 
 

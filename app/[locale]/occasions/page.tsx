@@ -7,7 +7,7 @@ const portfolioCategories = [
     title: "Corporate, MICE, & Community.",
     orderCount: 47,
     slug: "corporate-mice-community",
-    image: "/images/placeholder.jpg", // Ganti dengan path gambarmu nanti
+    image: "/images/placeholder.jpg",
   },
   {
     id: "2",

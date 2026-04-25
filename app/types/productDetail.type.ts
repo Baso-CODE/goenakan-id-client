@@ -13,14 +13,13 @@ export interface AttributeDisplay {
   value: string;
 }
 
-// ✨ UPDATE: Varian sekarang punya data lengkap turunan/kustom
 export interface ProductVariantDisplay {
   id: string;
   name: string;
   sku: string;
-  price: number | null; // Jika null, berarti dia ikut harga Price Tiers induk
+  price: number | null;
   images: MediaItem[];
-  attributes: AttributeDisplay[]; // Untuk memunculkan "Warna: Merah", dll
+  attributes: AttributeDisplay[];
 
   // Angka mentah untuk Payload Cart
   rawWeight: number | null;
@@ -42,7 +41,6 @@ export interface PriceTier {
   badge?: string;
 }
 
-// ✨ UPDATE: Induk produk sekarang menyimpan SKU dan data mentah
 export interface ProductDetail {
   id: string;
   sku: string; // Tambahan SKU Induk

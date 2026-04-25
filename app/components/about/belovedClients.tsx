@@ -1,40 +1,33 @@
 "use client";
 
+import { BrandClient } from "@/app/types/brandClient.type";
 import { Link } from "@/i18n/routing";
 import Image from "next/image";
 import Marquee from "react-fast-marquee";
-
-interface Client {
-  id: string;
-  name: string;
-  logo: string;
-}
 
 interface BelovedClientsProps {
   heading?: string;
   storiesHref?: string;
   storiesLabel?: string;
-  clients?: Client[];
+  clients?: BrandClient[];
   speed?: number;
 }
-
-const DEFAULT_CLIENTS: Client[] = Array.from({ length: 7 }, (_, i) => ({
-  id: `client-${i + 1}`,
-  name: `Client ${i + 1}`,
-  logo: "/images/clients/placeholder.png",
-}));
 
 export function BelovedClients({
   heading = "The\nbeloved clients",
   storiesHref = "/portfolio",
   storiesLabel = "See their stories ↗",
-  clients = DEFAULT_CLIENTS,
+  clients = [],
   speed = 40,
 }: BelovedClientsProps) {
+  if (!clients || clients.length === 0) {
+    return null;
+  }
+
   return (
-    <section className=" py-12 overflow-hidden">
+    <section className="py-12 overflow-hidden">
       {/* Heading */}
-      <div className="mx-auto mb-6 max-w-6xl ">
+      <div className="mx-auto mb-6 max-w-6xl px-4 md:px-8">
         <h2 className="text-4xl md:text-5xl font-light text-stone-900 leading-tight whitespace-pre-line">
           {heading}
         </h2>
@@ -45,7 +38,7 @@ export function BelovedClients({
         </Link>
       </div>
 
-      {/* Marquee — kanan ke kiri (direction default "left") */}
+      {/* Marquee — kanan ke kiri */}
       <Marquee speed={speed} gradient={false} pauseOnHover>
         {clients.map((client) => (
           <div key={client.id} className="mx-2">
@@ -57,10 +50,10 @@ export function BelovedClients({
   );
 }
 
-function ClientCard({ client }: { client: Client }) {
-  return (
+function ClientCard({ client }: { client: BrandClient }) {
+  const imageContent = (
     <div
-      className="relative bg-stone-200 rounded-sm overflow-hidden"
+      className="relative bg-stone-100 border border-stone-200 rounded-sm overflow-hidden hover:shadow-sm transition-shadow grayscale hover:grayscale-0 duration-300"
       style={{ width: 140, height: 120 }}>
       <Image
         src={client.logo}
@@ -71,4 +64,15 @@ function ClientCard({ client }: { client: Client }) {
       />
     </div>
   );
+
+  // Jika punya websiteUrl, buat agar bisa diklik
+  if (client.websiteUrl) {
+    return (
+      <a href={client.websiteUrl} target="_blank" rel="noopener noreferrer">
+        {imageContent}
+      </a>
+    );
+  }
+
+  return imageContent;
 }

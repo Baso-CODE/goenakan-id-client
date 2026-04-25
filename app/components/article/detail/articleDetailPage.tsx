@@ -13,8 +13,6 @@ interface ArticleDetailPageProps {
 }
 
 export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
-  console.log("ini adalah article", article);
-
   return (
     <div className="min-h-screen bg-white pt-28">
       <div className="container  mx-auto px-4 md:px-8">

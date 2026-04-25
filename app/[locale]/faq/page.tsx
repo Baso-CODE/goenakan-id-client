@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 
 export default async function FaqRoutePage() {
   const faqs = await getMainFaqs();
-  console.log("in adalah data faqs", faqs);
 
   return (
     <main>

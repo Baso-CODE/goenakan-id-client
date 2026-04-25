@@ -54,6 +54,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   };
 
   // ✨ 2. Payload Keranjang Dinamis
+  // ✨ 2. Payload Keranjang Dinamis
   const handleAddToCart = async () => {
     const payload: AddToCartPayload = {
       id: product.id,
@@ -65,20 +66,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         "/images/products/demo-products.png",
       variantId: selectedVariantId,
 
-      // Data Teks untuk UI Keranjang
-      dimensions: selectedVariant
-        ? selectedVariant.dimensionsString
-        : product.dimensions,
-      weight: selectedVariant ? selectedVariant.weightString : product.weight,
+      // ✨ PERBAIKAN: Gunakan || agar jika varian tidak punya dimensi/berat, dia otomatis pakai punya Induk
+      dimensions: selectedVariant?.dimensionsString || product.dimensions,
+      weight: selectedVariant?.weightString || product.weight,
 
-      // Data Mentah untuk kebutuhan Backend / Kalkulasi Ongkir
-      materialType: product.materialType,
-      rawWeight: selectedVariant
-        ? selectedVariant.rawWeight
-        : product.rawWeight,
-      width: selectedVariant ? selectedVariant.width : product.width,
-      height: selectedVariant ? selectedVariant.height : product.height,
-      length: selectedVariant ? selectedVariant.length : product.length,
+      materialType: product.materialType, // Material biasanya ikut induk
+      rawWeight: selectedVariant?.rawWeight || product.rawWeight,
+      width: selectedVariant?.width || product.width,
+      height: selectedVariant?.height || product.height,
+      length: selectedVariant?.length || product.length,
     };
 
     await addToCart(payload, quantity, token);

@@ -151,16 +151,10 @@ export default function InformationDetailCustomer() {
             <Button
               variant="outline"
               onClick={async () => {
-                setProfileData(null);
-                setOrders([]);
+                await signOut({ redirect: false });
 
-                localStorage.clear();
-                sessionStorage.clear();
-
-                await signOut({
-                  callbackUrl: "/login",
-                  redirect: true,
-                });
+                router.replace("/login");
+                router.refresh();
               }}
               className="rounded-none border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600">
               <LogOut className="w-4 h-4 mr-2" /> Logout

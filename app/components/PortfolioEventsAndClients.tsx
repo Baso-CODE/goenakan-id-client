@@ -8,47 +8,43 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Link } from "@/i18n/routing";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ImageOff } from "lucide-react";
 import { useTranslations } from "next-intl";
-
-// --- DATA DUMMY ---
-// Ubah struktur data agar count menggunakan angka (number) untuk ditranslasi
-const eventCategories = [
-  {
-    id: 1,
-    title: "Wedding Souvenir",
-    orderCount: 47,
-    slug: "wedding-celebrations", // Tambahkan slug agar bisa diklik ke detail jika perlu
-    image: "/images/events/wedding.jpg",
-  },
-  {
-    id: 2,
-    title: "Hotel Amenities",
-    orderCount: 75,
-    slug: "hospitality-amenities",
-    image: "/images/events/hotel.jpg",
-  },
-  {
-    id: 3,
-    title: "Corporate Events",
-    orderCount: 120,
-    slug: "corporate-mice-community",
-    image: "/images/events/corporate.jpg",
-  },
-  {
-    id: 4,
-    title: "Birthday Party",
-    orderCount: 30,
-    slug: "wedding-celebrations",
-    image: "/images/events/birthday.jpg",
-  },
-];
-
-const clients = Array.from({ length: 14 }).map((_, i) => ({ id: i }));
+import Image from "next/image";
+import { useEffect, useState } from "react";
+import { getClientLogos } from "../api/client-logos/getClientLogo.api";
+import { getPublicEventCategories } from "../api/portfolio/getEventCategory.api";
+import { ClientLogo } from "../types/clientLogo.type";
+import { EventCategory } from "../types/eventCategory.type";
 
 export default function PortfolioEventsAndClients() {
-  // ✨ Panggil translasi
   const t = useTranslations("PortfolioSection");
+
+  const [clients, setClients] = useState<ClientLogo[]>([]);
+  const [isClientsLoading, setIsClientsLoading] = useState(true);
+  const [events, setEvents] = useState<EventCategory[]>([]);
+  const [isEventsLoading, setIsEventsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [clientsData, eventsData] = await Promise.all([
+          getClientLogos(),
+          getPublicEventCategories(),
+        ]);
+
+        setClients(clientsData);
+        setEvents(eventsData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsClientsLoading(false);
+        setIsEventsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <section className="w-full py-20 bg-white border-t border-gray-100">
@@ -60,7 +56,6 @@ export default function PortfolioEventsAndClients() {
           {/* --- KOLOM KIRI (LABEL) --- */}
           <div className="lg:col-span-3">
             <h3 className="text-[#C4A48E] font-bold text-sm md:text-base uppercase tracking-wider border-b-2 border-[#C4A48E] inline-block pb-2 mb-4">
-              {/* 🔄 Gunakan t.rich agar <br> di JSON berubah menjadi tag HTML asli */}
               {t.rich("portfolioLabel", {
                 br: () => <br />,
               })}
@@ -70,54 +65,89 @@ export default function PortfolioEventsAndClients() {
           {/* --- KOLOM KANAN (CONTENT) --- */}
           <div className="lg:col-span-9">
             {/* Headline */}
-            <div className="mb-8">
-              <h2 className="text-3xl md:text-4xl text-gray-900 leading-tight mb-4">
-                {/* 🔄 Sama seperti di atas, kita render <br> khusus untuk layar medium ke atas */}
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+              <h2 className="text-3xl md:text-4xl text-gray-900 leading-tight">
                 {t.rich("portfolioHeadline", {
                   br: () => <br className="hidden md:block" />,
                 })}
               </h2>
 
-              {/* ✨ Ubah href menjadi /occasions sesuai halaman baru kita */}
-              <Link
-                href="/occasions"
-                className="inline-flex items-center text-[#C4A48E] hover:text-[#a88b75] font-medium transition-colors">
-                {t("seeMore")} <ArrowUpRight className="ml-1 w-4 h-4" />
-              </Link>
+              {/* Tampilkan link See More hanya jika ada data */}
+              {!isEventsLoading && events.length > 0 && (
+                <Link
+                  href="/occasions"
+                  className="inline-flex items-center text-[#C4A48E] hover:text-[#a88b75] font-medium transition-colors mb-1">
+                  {t("seeMore")} <ArrowUpRight className="ml-1 w-4 h-4" />
+                </Link>
+              )}
             </div>
 
-            {/* Carousel */}
-            <Carousel opts={{ align: "start", loop: true }} className="w-full">
-              <CarouselContent className="-ml-4">
-                {eventCategories.map((item) => (
-                  <CarouselItem
-                    key={item.id}
-                    className="pl-4 md:basis-1/2 lg:basis-1/3">
-                    {/* Kamu bisa membungkus ini dengan Link menuju /occasions/${item.slug} */}
-                    <div className="group cursor-pointer">
-                      {/* Kotak Gambar */}
-                      <div className="w-full aspect-square bg-gray-200 mb-4 overflow-hidden relative">
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 group-hover:scale-105 transition-transform duration-500">
-                          FOTO
+            {/* Content Area (Carousel or Empty State) */}
+            {isEventsLoading ? (
+              <Carousel
+                opts={{ align: "start", loop: true }}
+                className="w-full">
+                <CarouselContent className="-ml-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <CarouselItem
+                      key={i}
+                      className="pl-4 md:basis-1/2 lg:basis-1/3">
+                      <div className="w-full aspect-square bg-gray-100 animate-pulse mb-4 rounded-sm" />
+                      <div className="h-6 bg-gray-100 animate-pulse w-3/4 mb-2 rounded-sm" />
+                      <div className="h-4 bg-gray-100 animate-pulse w-1/2 rounded-sm" />
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+            ) : events.length > 0 ? (
+              <Carousel
+                opts={{ align: "start", loop: true }}
+                className="w-full">
+                <CarouselContent className="-ml-4">
+                  {events.map((item) => (
+                    <CarouselItem
+                      key={item.id}
+                      className="pl-4 md:basis-1/2 lg:basis-1/3">
+                      <Link
+                        href={`/occasions/${item.slug}`}
+                        className="block group cursor-pointer">
+                        {/* Kotak Gambar */}
+                        <div className="w-full aspect-square bg-gray-100 mb-4 overflow-hidden relative rounded-sm">
+                          <Image
+                            src={item.image}
+                            alt={item.title}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-700"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          />
                         </div>
-                      </div>
 
-                      {/* Teks Bawah */}
-                      <h4 className="text-lg font-bold text-gray-900">
-                        {item.title}
-                      </h4>
-                      <p className="text-sm text-gray-500 italic">
-                        {/* 🔄 Render angka dinamis menggunakan JSON terjemahan */}
-                        {t("orderedTimes", { count: item.orderCount })}
-                      </p>
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              {/* Navigasi (Panah) */}
-              <CarouselPrevious className="hidden md:flex -left-4 bg-white border-gray-300" />
-              <CarouselNext className="hidden md:flex -right-4 bg-white border-gray-300" />
-            </Carousel>
+                        {/* Teks Bawah */}
+                        <h4 className="text-lg font-bold text-gray-900 group-hover:text-[#C4A48E] transition-colors">
+                          {item.title}
+                        </h4>
+                        <p className="text-sm text-gray-500 italic mt-1">
+                          {t("orderedTimes", { count: item.orderCount })}
+                        </p>
+                      </Link>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden md:flex -left-4 bg-white border-gray-300" />
+                <CarouselNext className="hidden md:flex -right-4 bg-white border-gray-300" />
+              </Carousel>
+            ) : (
+              // ✨ EMPTY STATE UNTUK EVENT
+              <div className="w-full h-64 flex flex-col items-center justify-center bg-gray-50 border border-dashed border-gray-200 rounded-sm">
+                <ImageOff className="w-8 h-8 text-gray-300 mb-3" />
+                <p className="text-sm text-gray-500 font-medium">
+                  No events available yet
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Check back later for updates.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -132,27 +162,65 @@ export default function PortfolioEventsAndClients() {
             </h3>
           </div>
 
-          {/* --- KOLOM KANAN (GRID LOGO) --- */}
           <div className="lg:col-span-9">
-            {/* Grid Logo Client */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4 mb-6">
-              {clients.map((client) => (
-                <div
-                  key={client.id}
-                  className="aspect-square bg-gray-200 hover:bg-gray-300 transition-colors w-full">
-                  {/* Tempat Logo Client (Gunakan Image nanti) */}
-                </div>
-              ))}
-            </div>
+            {isClientsLoading ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4 mb-6">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="aspect-square bg-gray-100 animate-pulse rounded-sm w-full"
+                  />
+                ))}
+              </div>
+            ) : clients.length > 0 ? (
+              <>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4 mb-6">
+                  {clients.map((client) => {
+                    const imageContent = (
+                      <div className="relative w-full h-full p-4 flex items-center justify-center bg-white border border-gray-100 hover:shadow-sm rounded-sm cursor-pointer grayscale hover:grayscale-0 transition-all duration-300">
+                        <Image
+                          src={client.imageUrl}
+                          alt={client.altText || client.name}
+                          fill
+                          className="object-contain p-4"
+                          sizes="(max-width: 768px) 33vw, 15vw"
+                        />
+                      </div>
+                    );
 
-            {/* Link di kanan bawah */}
-            <div className="flex justify-end">
-              <Link
-                href="/clients"
-                className="inline-flex items-center text-[#C4A48E] hover:text-[#a88b75] font-medium text-sm transition-colors">
-                {t("andManyMore")} <ArrowUpRight className="ml-1 w-4 h-4" />
-              </Link>
-            </div>
+                    return client.websiteUrl ? (
+                      <a
+                        key={client.id}
+                        href={client.websiteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="aspect-square w-full block">
+                        {imageContent}
+                      </a>
+                    ) : (
+                      <div key={client.id} className="aspect-square w-full">
+                        {imageContent}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-end">
+                  <Link
+                    href="/clients"
+                    className="inline-flex items-center text-[#C4A48E] hover:text-[#a88b75] font-medium text-sm transition-colors">
+                    {t("andManyMore")} <ArrowUpRight className="ml-1 w-4 h-4" />
+                  </Link>
+                </div>
+              </>
+            ) : (
+              // ✨ EMPTY STATE UNTUK CLIENTS
+              <div className="w-full h-32 flex flex-col items-center justify-center bg-gray-50 border border-dashed border-gray-200 rounded-sm">
+                <p className="text-sm text-gray-400">
+                  Client logos will appear here soon.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

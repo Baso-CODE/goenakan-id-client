@@ -20,7 +20,6 @@ const DEFAULT_FILTERS: FilterState = {
 export default function FilterProduct() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [products, setProducts] = useState<Product[]>([]);
-  console.log("ini adalah data products", products);
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);

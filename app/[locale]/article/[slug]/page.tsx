@@ -13,8 +13,6 @@ export default async function ArticleSlugPage({ params }: ArticlePageProps) {
 
   const rawArticle = await getArticleData(slug);
 
-  console.log("ini adalah hasil dari console", rawArticle);
-
   if (!rawArticle) {
     notFound();
   }

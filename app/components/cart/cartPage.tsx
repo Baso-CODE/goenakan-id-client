@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@/i18n/routing";
 import { Loader2, Minus, Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect } from "react";
 import { OrderTracking } from "./orderTracking";
@@ -16,6 +17,7 @@ function formatRupiah(amount: number) {
 }
 
 export default function CartPage() {
+  const t = useTranslations("Cart");
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
 
@@ -30,6 +32,7 @@ export default function CartPage() {
     (acc, item) => acc + item.price * item.quantity,
     0,
   );
+  const totalItems = cartItems.reduce((a, b) => a + b.quantity, 0);
 
   return (
     <div className="min-h-screen bg-stone-50 pt-24">
@@ -39,7 +42,7 @@ export default function CartPage() {
             <TabsTrigger
               value="cart"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-stone-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none pb-3 mr-6 text-sm text-stone-400 data-[state=active]:text-stone-900 data-[state=active]:font-semibold px-0">
-              My Cart
+              {t("tabs.myCart")}
               {cartItems.length > 0 && (
                 <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-stone-800 text-white text-[10px] font-bold">
                   {cartItems.length}
@@ -50,7 +53,7 @@ export default function CartPage() {
             <TabsTrigger
               value="tracking"
               className="rounded-none border-b-2 border-transparent data-[state=active]:border-stone-900 data-[state=active]:bg-transparent data-[state=active]:shadow-none pb-3 mr-6 text-sm text-stone-400 data-[state=active]:text-stone-900 data-[state=active]:font-semibold px-0">
-              Order Tracking
+              {t("tabs.orderTracking")}
             </TabsTrigger>
           </TabsList>
 
@@ -59,27 +62,26 @@ export default function CartPage() {
               <div className="flex flex-col items-center justify-center py-24 gap-2">
                 <Loader2 className="h-6 w-6 animate-spin text-stone-400" />
                 <p className="text-stone-400 text-sm italic tracking-widest">
-                  Updating your cart...
+                  {t("status.loading")}
                 </p>
               </div>
             ) : cartItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center gap-3">
-                <p className="text-stone-400 text-sm">Your cart is empty.</p>
+                <p className="text-stone-400 text-sm">{t("status.empty")}</p>
                 <Button variant="link" asChild className="text-stone-600 p-0">
-                  <Link href="/products">Continue shopping</Link>
+                  <Link href="/products">{t("status.continueShopping")}</Link>
                 </Button>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
                 <p className="text-base font-semibold text-stone-700 uppercase tracking-widest pb-3 border-b border-stone-200">
-                  Product
+                  {t("table.product")}
                 </p>
 
                 <div className="flex flex-col">
                   {cartItems.map((item, i) => (
                     <div key={item.id}>
                       <div className="flex gap-5 py-6">
-                        {/* ── Image ── */}
                         <div className="relative w-28 h-28 shrink-0 bg-stone-100 rounded-sm overflow-hidden border border-stone-200">
                           <Image
                             src={item.image}
@@ -90,19 +92,17 @@ export default function CartPage() {
                           />
                         </div>
 
-                        {/* ── Info & Details ── */}
                         <div className="flex flex-col justify-between flex-1 min-w-0">
                           <div>
                             <p className="text-sm font-semibold text-stone-800">
                               {item.name}
                             </p>
 
-                            {/* ✨ Render Dinamis Spesifikasi Produk ✨ */}
                             <div className="mt-1.5 flex flex-col gap-0.5 text-[11px] text-stone-500">
                               {item.materialType && (
                                 <p>
                                   <span className="font-medium text-stone-600">
-                                    Bahan:
+                                    {t("table.material")}:
                                   </span>{" "}
                                   {item.materialType}
                                 </p>
@@ -110,7 +110,7 @@ export default function CartPage() {
                               {item.dimensions && (
                                 <p>
                                   <span className="font-medium text-stone-600">
-                                    Dimensi:
+                                    {t("table.dimensions")}:
                                   </span>{" "}
                                   {item.dimensions}
                                 </p>
@@ -118,13 +118,11 @@ export default function CartPage() {
                               {item.weight && (
                                 <p>
                                   <span className="font-medium text-stone-600">
-                                    Berat:
+                                    {t("table.weight")}:
                                   </span>{" "}
                                   {item.weight}
                                 </p>
                               )}
-                              {/* Opsional: Tampilkan tipe varian (misal warna) jika ada di struktur data kamu */}
-                              {/* {item.color && <p>Warna: {item.color}</p>} */}
                             </div>
 
                             <p className="text-sm font-bold text-stone-800 mt-3">
@@ -133,11 +131,10 @@ export default function CartPage() {
                           </div>
                         </div>
 
-                        {/* ── Quantity & Actions ── */}
                         <div className="flex flex-col items-end justify-between shrink-0">
                           <div className="flex flex-col items-end gap-2">
                             <p className="text-xs text-stone-500 font-medium uppercase tracking-wider">
-                              Qty
+                              {t("table.qty")}
                             </p>
                             <div className="flex items-center gap-1">
                               <Button
@@ -165,7 +162,7 @@ export default function CartPage() {
                             variant="link"
                             onClick={() => removeItem(item.id, token)}
                             className="text-[11px] text-stone-500 p-0 h-auto hover:text-red-600 uppercase tracking-wider transition-colors">
-                            Remove
+                            {t("table.remove")}
                           </Button>
                         </div>
                       </div>
@@ -177,24 +174,22 @@ export default function CartPage() {
                   ))}
                 </div>
 
-                {/* ── Subtotal & Checkout ── */}
                 <div className="flex flex-col items-end mt-4 gap-4 bg-stone-100/50 p-6 rounded-sm border border-stone-200">
                   <div className="flex justify-between w-full max-w-sm items-center">
                     <p className="text-xs text-stone-500 uppercase tracking-widest">
-                      Subtotal ({cartItems.reduce((a, b) => a + b.quantity, 0)}{" "}
-                      items)
+                      {t("summary.subtotal", { count: totalItems })}
                     </p>
                     <p className="text-xl font-bold text-stone-900">
                       {formatRupiah(totalPrice)}
                     </p>
                   </div>
                   <p className="text-[10px] text-stone-400 w-full max-w-sm text-right">
-                    Taxes and shipping calculated at checkout
+                    {t("summary.taxNote")}
                   </p>
                   <Button
                     asChild
                     className="w-full max-w-sm bg-[#463b34] hover:bg-stone-700 text-white text-xs font-bold tracking-widest uppercase rounded-sm py-6 mt-2">
-                    <Link href="/checkout">Proceed to Checkout</Link>
+                    <Link href="/checkout">{t("summary.checkout")}</Link>
                   </Button>
                 </div>
               </div>
