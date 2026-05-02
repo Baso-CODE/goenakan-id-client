@@ -1,6 +1,6 @@
-import { BannerProduct } from "@/app/components/products/bannerProduct";
-import { CustomCTA } from "@/app/components/products/customCTA";
-import FilterProduct from "@/app/components/products/filterProduct";
+import { BannerProduct } from "@/app/components/navigation/products/bannerProduct";
+import { CustomCTA } from "@/app/components/navigation/products/customCTA";
+import FilterProduct from "@/app/components/navigation/products/filterProduct";
 
 export default async function ProductsPage() {
   return (

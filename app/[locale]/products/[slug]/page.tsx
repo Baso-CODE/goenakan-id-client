@@ -1,8 +1,8 @@
 import { getProductBySlugAPI } from "@/app/api/products/getProductBySlug.api";
 import { getRelatedProductsAPI } from "@/app/api/products/getRelatedProducts.api";
-import { CustomCTA } from "@/app/components/products/customCTA";
-import { ProductDetailPage } from "@/app/components/products/detail/productDetailPage";
-import { RelatedProducts } from "@/app/components/products/detail/relatedProducts";
+import { CustomCTA } from "@/app/components/navigation/products/customCTA";
+import { ProductDetailPage } from "@/app/components/navigation/products/detail/productDetailPage";
+import { RelatedProducts } from "@/app/components/navigation/products/detail/relatedProducts";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;

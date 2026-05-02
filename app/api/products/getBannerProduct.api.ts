@@ -3,7 +3,7 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 
 export async function getPublicBannersProduct(): Promise<BannerProduct[]> {
   try {
-    const res = await fetch(`${apiUrl}/banners/public`, {
+    const res = await fetch(`${apiUrl}/banner-products/public`, {
       method: "GET",
       next: { revalidate: 3600 },
     });

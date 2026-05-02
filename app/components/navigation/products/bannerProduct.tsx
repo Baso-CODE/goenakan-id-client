@@ -1,7 +1,7 @@
 "use client";
 
+import { getPublicBannersProduct } from "@/app/api/products/getBannerProduct.api";
 import { BannerProduct as BannerType } from "@/app/types/bannerProduct.type";
-import { apiUrl } from "@/app/utils/ApiUrl";
 import {
   Carousel,
   CarouselContent,
@@ -26,22 +26,19 @@ export function BannerProduct({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    const fetchBanners = async () => {
+    const loadBanners = async () => {
+      setIsLoading(true);
       try {
-        const res = await fetch(`${apiUrl}/banners/public`);
-        const json = await res.json();
-
-        if (json.success && json.data) {
-          setSlides(json.data);
-        }
+        const data = await getPublicBannersProduct();
+        setSlides(data);
       } catch (error) {
-        console.error("Gagal mengambil data banner:", error);
+        console.error("Gagal memuat banner di komponen:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchBanners();
+    loadBanners();
   }, []);
 
   const startAutoplay = useCallback(() => {
@@ -70,6 +67,7 @@ export function BannerProduct({
     return () => stopAutoplay();
   }, [startAutoplay, stopAutoplay, isLoading, slides.length]);
 
+  // Loading State
   if (isLoading) {
     return (
       <div className="w-full pt-23.25 min-h-75 flex items-center justify-center bg-stone-50">
@@ -80,6 +78,7 @@ export function BannerProduct({
     );
   }
 
+  // Empty State
   if (!slides || slides.length === 0) {
     return (
       <section className="w-full pt-23.25">
@@ -110,6 +109,7 @@ export function BannerProduct({
       </section>
     );
   }
+
   return (
     <section
       className="w-full pt-23.25"
