@@ -1,63 +1,48 @@
 "use client";
 
+import { BannerProduct as BannerType } from "@/app/types/bannerProduct.type";
+import { apiUrl } from "@/app/utils/ApiUrl";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel";
-import { useCallback, useEffect, useRef } from "react";
-
-export interface BannerSlide {
-  id: string;
-  color: string; // Tailwind bg class, e.g. "bg-stone-400"
-  title?: string;
-  subtitle?: string;
-  href?: string;
-}
+import { Link } from "@/i18n/routing";
+import Image from "next/image";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface HeroBannerCarouselProps {
-  slides?: BannerSlide[];
   interval?: number;
 }
 
-const DEFAULT_SLIDES: BannerSlide[] = [
-  {
-    id: "1",
-    color: "bg-stone-500",
-    title: "New Collection",
-    subtitle: "Explore our latest products",
-    href: "/products",
-  },
-  {
-    id: "2",
-    color: "bg-stone-300",
-    title: "Best Sellers",
-    subtitle: "Shop what everyone loves",
-    href: "/products",
-  },
-  {
-    id: "3",
-    color: "bg-stone-200",
-    title: "Special Offer",
-    subtitle: "Min. order 100 pcs",
-    href: "/products",
-  },
-  {
-    id: "4",
-    color: "bg-stone-400",
-    title: "Custom Order",
-    subtitle: "Personalize your product",
-    href: "/products",
-  },
-];
-
 export function BannerProduct({
-  slides = DEFAULT_SLIDES,
   interval = 3500,
-}: HeroBannerCarouselProps) {
+}: HeroBannerCarouselProps = {}) {
+  const [slides, setSlides] = useState<BannerType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const apiRef = useRef<CarouselApi | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/banners/public`);
+        const json = await res.json();
+
+        if (json.success && json.data) {
+          setSlides(json.data);
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data banner:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBanners();
+  }, []);
 
   const startAutoplay = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -79,10 +64,52 @@ export function BannerProduct({
   }, []);
 
   useEffect(() => {
-    startAutoplay();
+    if (!isLoading && slides.length > 0) {
+      startAutoplay();
+    }
     return () => stopAutoplay();
-  }, [startAutoplay, stopAutoplay]);
+  }, [startAutoplay, stopAutoplay, isLoading, slides.length]);
 
+  if (isLoading) {
+    return (
+      <div className="w-full pt-23.25 min-h-75 flex items-center justify-center bg-stone-50">
+        <span className="text-stone-400 text-sm animate-pulse">
+          Memuat banner...
+        </span>
+      </div>
+    );
+  }
+
+  if (!slides || slides.length === 0) {
+    return (
+      <section className="w-full pt-23.25">
+        <div className="w-full aspect-16/7 bg-stone-50 flex flex-col items-center justify-center border-2 border-dashed border-stone-200">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-stone-300 mb-3">
+            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+            <circle cx="9" cy="9" r="2" />
+            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+          </svg>
+
+          <p className="text-stone-600 font-medium text-sm md:text-base">
+            Belum ada banner promosi
+          </p>
+          <p className="text-stone-400 text-xs md:text-sm mt-1">
+            Banner promosi yang aktif akan ditampilkan di area ini.
+          </p>
+        </div>
+      </section>
+    );
+  }
   return (
     <section
       className="w-full pt-23.25"
@@ -108,22 +135,32 @@ export function BannerProduct({
   );
 }
 
-function BannerSlideItem({ slide }: { slide: BannerSlide }) {
+function BannerSlideItem({ slide }: { slide: BannerType }) {
   const content = (
-    <div
-      className={`relative w-full aspect-16/7 overflow-hidden group ${slide.color}`}>
-      {(slide.title || slide.subtitle) && (
-        <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent" />
+    <div className="relative w-full aspect-16/7 overflow-hidden group bg-stone-100">
+      {slide.imageUrl && (
+        <Image
+          src={slide.imageUrl}
+          alt={slide.title || "Promo Banner"}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
       )}
+
+      {(slide.title || slide.subtitle) && (
+        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
+      )}
+
       {(slide.title || slide.subtitle) && (
         <div className="absolute bottom-0 left-0 p-5">
           {slide.title && (
-            <p className="text-white font-semibold text-base leading-tight tracking-wide drop-shadow">
+            <p className="text-white font-semibold text-base leading-tight tracking-wide drop-shadow-md">
               {slide.title}
             </p>
           )}
           {slide.subtitle && (
-            <p className="text-white/80 text-sm mt-0.5 drop-shadow">
+            <p className="text-white/80 text-sm mt-0.5 drop-shadow-md">
               {slide.subtitle}
             </p>
           )}
@@ -132,11 +169,11 @@ function BannerSlideItem({ slide }: { slide: BannerSlide }) {
     </div>
   );
 
-  if (slide.href) {
+  if (slide.linkUrl) {
     return (
-      <a href={slide.href} className="block w-full">
+      <Link href={slide.linkUrl} className="block w-full">
         {content}
-      </a>
+      </Link>
     );
   }
 

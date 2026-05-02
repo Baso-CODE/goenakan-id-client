@@ -9,7 +9,7 @@ interface ArticleContentProps {
 export function ArticleContent({ content }: ArticleContentProps) {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Add IDs to headings for TOC scrollspy
+  // Menambahkan ID ke heading untuk kebutuhan Table of Contents (TOC)
   useEffect(() => {
     if (!ref.current) return;
     const headings = ref.current.querySelectorAll("h1, h2, h3");
@@ -19,19 +19,32 @@ export function ArticleContent({ content }: ArticleContentProps) {
   }, [content]);
 
   return (
-    <div
-      ref={ref}
-      className="prose prose-stone max-w-none
-        prose-headings:font-semibold prose-headings:text-stone-800
-        prose-h2:text-base prose-h2:mt-8 prose-h2:mb-3
-        prose-p:text-sm prose-p:text-stone-600 prose-p:leading-relaxed prose-p:my-3
-        prose-blockquote:border-l-2 prose-blockquote:border-stone-300
-        prose-blockquote:bg-stone-50 prose-blockquote:px-4 prose-blockquote:py-2
-        prose-blockquote:text-sm prose-blockquote:text-stone-500
-        prose-blockquote:not-italic prose-blockquote:rounded-sm
-        prose-img:rounded-sm prose-img:w-full
-        prose-a:text-stone-700 prose-a:underline"
-      dangerouslySetInnerHTML={{ __html: content }}
-    />
+    <div className="w-full flex justify-start bg-white">
+      <div
+        ref={ref}
+        className="
+          prose prose-stone prose-sm md:prose-base 
+          max-w-none w-full 
+          
+          /* Styling Paragraf: Jarak antar baris dan bawahnya */
+          prose-p:leading-relaxed prose-p:mb-6 prose-p:text-stone-600
+          
+          /* Styling Text Tebal (Bawaan Tiptap <strong>) */
+          prose-strong:font-bold prose-strong:text-stone-900
+          
+          /* Styling Daftar/List (Bawaan Tiptap <ul> dan <li>) */
+          prose-ul:list-disc prose-ul:pl-6 prose-ul:my-6
+          prose-li:my-2 prose-li:text-stone-600
+          
+          /* Styling Heading */
+          prose-headings:text-stone-900 prose-headings:font-bold prose-headings:scroll-mt-28
+          prose-h2:text-2xl prose-h2:border-b prose-h2:border-stone-200 prose-h2:pb-3 prose-h2:mt-10
+          
+          /* Styling Gambar */
+          prose-img:rounded-xl prose-img:shadow-md prose-img:my-8 prose-img:w-full prose-img:object-cover
+        "
+        dangerouslySetInnerHTML={{ __html: content }}
+      />
+    </div>
   );
 }
