@@ -4,7 +4,7 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 export async function getClientLogos(): Promise<ClientLogo[]> {
   try {
     // Sesuaikan endpoint ini dengan rute backend kamu
-    const res = await fetch(`${apiUrl}/content/client-logos`, {
+    const res = await fetch(`${apiUrl}/brand-clients/public`, {
       method: "GET",
       // Tambahkan cache: "no-store" jika logo sering diupdate,
       // atau next: { revalidate: 3600 } untuk ISR (cache 1 jam)
