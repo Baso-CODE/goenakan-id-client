@@ -1,7 +1,7 @@
-import { ClientLogo } from "@/app/types/clientLogo.type";
+import { BrandClient } from "@/app/types/brandClient.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
-export async function getClientLogos(): Promise<ClientLogo[]> {
+export async function getClientLogos(): Promise<BrandClient[]> {
   try {
     // Sesuaikan endpoint ini dengan rute backend kamu
     const res = await fetch(`${apiUrl}/brand-clients/public`, {

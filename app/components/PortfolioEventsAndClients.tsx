@@ -14,13 +14,15 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getClientLogos } from "../api/client-logos/getClientLogo.api";
 import { getPublicEventCategories } from "../api/portfolio/getEventCategory.api";
-import { ClientLogo } from "../types/clientLogo.type";
+import { BrandClient } from "../types/brandClient.type";
 import { EventCategory } from "../types/eventCategory.type";
 
 export default function PortfolioEventsAndClients() {
   const t = useTranslations("PortfolioSection");
 
-  const [clients, setClients] = useState<ClientLogo[]>([]);
+  const [clients, setClients] = useState<BrandClient[]>([]);
+  console.log("ini adalah data client", clients);
+
   const [isClientsLoading, setIsClientsLoading] = useState(true);
   const [events, setEvents] = useState<EventCategory[]>([]);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
@@ -179,8 +181,8 @@ export default function PortfolioEventsAndClients() {
                     const imageContent = (
                       <div className="relative w-full h-full p-4 flex items-center justify-center bg-white border border-gray-100 hover:shadow-sm rounded-sm cursor-pointer grayscale hover:grayscale-0 transition-all duration-300">
                         <Image
-                          src={client.imageUrl}
-                          alt={client.altText || client.name}
+                          src={client.logo}
+                          alt={client.name || client.name}
                           fill
                           className="object-contain p-4"
                           sizes="(max-width: 768px) 33vw, 15vw"
