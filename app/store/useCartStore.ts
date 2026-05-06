@@ -94,7 +94,7 @@ export const useCartStore = create<CartState>((set, get) => ({
                   "/images/products/demo-products.png",
 
                 // ✨ MAPPING DATA MENTAH & STRING
-                materialType: item.product.materialType,
+                materialType: item.product.materialType?.name,
                 dimensions: dimString,
                 weight: item.product.weight
                   ? `${item.product.weight} gram`

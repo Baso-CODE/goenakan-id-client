@@ -9,10 +9,13 @@ export interface CartItemUI {
   quantity: number;
   image: string;
 
-  // Sama dengan payload di atas
   weight?: string;
   dimensions?: string;
+
   materialType?: string | null;
+  itemCategoryName?: string | null;
+  itemNameValue?: string | null;
+
   rawWeight?: number | null;
   width?: number | null;
   height?: number | null;

@@ -4,10 +4,10 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Link } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { User, Users } from "lucide-react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const [accountType, setAccountType] = useState<AccountType>("individual");
   const [isLoading, setIsLoading] = useState(false);
 
-  // ✨ Tambahkan email dan password ke dalam state
   const [individual, setIndividual] = useState({
     fullName: "",
     phone: "",
