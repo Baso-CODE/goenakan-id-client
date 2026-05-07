@@ -46,7 +46,6 @@ export default function BestSeller() {
         {/* --- Header Section --- */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl text-gray-900 uppercase tracking-wide">
-            {/* 🔄 3. Ganti teks statis */}
             {t("title")}
           </h2>
         </div>

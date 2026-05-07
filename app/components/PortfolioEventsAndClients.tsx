@@ -21,7 +21,6 @@ export default function PortfolioEventsAndClients() {
   const t = useTranslations("PortfolioSection");
 
   const [clients, setClients] = useState<BrandClient[]>([]);
-  console.log("ini adalah data client", clients);
 
   const [isClientsLoading, setIsClientsLoading] = useState(true);
   const [events, setEvents] = useState<EventCategory[]>([]);

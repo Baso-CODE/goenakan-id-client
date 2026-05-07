@@ -18,7 +18,6 @@ export interface ArticleBanner {
   href: string;
   image: string;
   imageAlt?: string;
-  // 🟢 Tambahkan field custom dari database
   backgroundColor?: string;
   buttonText?: string;
 }

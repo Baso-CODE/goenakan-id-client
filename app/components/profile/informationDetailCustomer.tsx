@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRouter } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { LogOut, MapPin, Package, User } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 import { useCallback, useEffect, useState } from "react";
@@ -215,13 +215,17 @@ export default function InformationDetailCustomer() {
                               <TableHead className="text-right font-bold">
                                 Total
                               </TableHead>
+                              {/* ✨ TAMBAHAN: Kolom Aksi */}
+                              <TableHead className="text-center font-bold">
+                                Aksi
+                              </TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
                             {orders.length === 0 ? (
                               <TableRow>
                                 <TableCell
-                                  colSpan={4}
+                                  colSpan={5} // ✨ PERUBAHAN: Ubah colSpan jadi 5 karena ada tambahan kolom
                                   className="text-center py-10 text-stone-400">
                                   Belum ada riwayat pesanan.
                                 </TableCell>
@@ -235,7 +239,6 @@ export default function InformationDetailCustomer() {
                                     {order.orderNumber}
                                   </TableCell>
                                   <TableCell className="text-gray-500">
-                                    {/* Format tanggal menggunakan built-in JS atau date-fns */}
                                     {new Date(
                                       order.createdAt,
                                     ).toLocaleDateString("id-ID", {
@@ -261,6 +264,18 @@ export default function InformationDetailCustomer() {
                                     {Number(order.totalAmount).toLocaleString(
                                       "id-ID",
                                     )}
+                                  </TableCell>
+                                  {/* ✨ TAMBAHAN: Tombol Detail yang mengarah ke halaman Order Detail */}
+                                  <TableCell className="text-center">
+                                    <Button
+                                      asChild
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-xs">
+                                      <Link href={`/profile/order/${order.id}`}>
+                                        Lihat Detail
+                                      </Link>
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               ))

@@ -121,25 +121,28 @@ export default function CheckoutPage() {
       const snapToken = payData.data.token;
 
       // 4. MUNCULKAN POP-UP MIDTRANS
-      // Tidak perlu lagi menulis 'result: any' karena sudah didefinisikan di interface SnapOptions
       window.snap.pay(snapToken, {
         onSuccess: function (result) {
           toast.success("Pembayaran berhasil!");
-          router.push(`/order-success?id=${newOrderId}`);
+          router.push(`/order-status?id=${newOrderId}&status=success`);
         },
         onPending: function (result) {
           toast.info("Menunggu pembayaran Anda.");
-          router.push(`/order-pending?id=${newOrderId}`);
+          router.push(`/order-status?id=${newOrderId}&status=pending`);
         },
         onError: function (result) {
-          toast.error("Pembayaran gagal.");
+          toast.error("Pembayaran gagal. Silakan coba lagi.");
         },
         onClose: function () {
           toast.warning("Anda belum menyelesaikan pembayaran.");
-          router.push(`/profile?tab=orders`);
+
+          if (token) {
+            router.push(`/profile?tab=orders`);
+          } else {
+            router.push(`/order-status?id=${newOrderId}&status=pending`);
+          }
         },
       });
-
       // Gunakan 'unknown' alih-alih 'any' untuk keamanan tipe
     } catch (error: unknown) {
       console.error(error);

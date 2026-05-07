@@ -1,5 +1,5 @@
+import { Link } from "@/i18n/routing";
 import { getTranslations } from "next-intl/server";
-import Link from "next/link";
 
 const portfolioCategories = [
   {
