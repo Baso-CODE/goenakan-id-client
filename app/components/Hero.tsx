@@ -34,7 +34,7 @@ export default function Hero() {
   ];
 
   const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: true })
+    Autoplay({ delay: 5000, stopOnInteraction: true }),
   );
 
   return (
@@ -59,7 +59,7 @@ export default function Hero() {
               </div>
 
               {/* Konten Teks */}
-              <div className="relative z-10 container mx-auto h-full px-4 md:px-8 flex items-center justify-between">
+              <div className="relative z-10 container mx-auto h-full  flex items-center justify-between">
                 <div className="max-w-xl -mt-24 md:-mt-40 animate-in fade-in slide-in-from-top-16 duration-1000 ease-out fill-mode-forwards">
                   <h1 className="text-4xl md:text-5xl text-gray-800 leading-tight">
                     {slide.title}

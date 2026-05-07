@@ -17,7 +17,7 @@ export default async function Faq() {
 
   return (
     <section className="w-full py-20 bg-white">
-      <div className="container mx-auto px-4 md:px-8 max-w-4xl">
+      <div className="container max-w-4xl">
         {/* Header Section */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl text-gray-900 uppercase tracking-wide mb-4">

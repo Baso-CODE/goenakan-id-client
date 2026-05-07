@@ -36,7 +36,7 @@ export default function CartPage() {
 
   return (
     <div className="min-h-screen bg-stone-50 pt-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="container mx-auto px-4 sm:px-6 py-6">
         <Tabs defaultValue="cart">
           <TabsList className="bg-transparent border-b border-stone-200 rounded-none w-full justify-start h-auto p-0 mb-8 gap-0">
             <TabsTrigger

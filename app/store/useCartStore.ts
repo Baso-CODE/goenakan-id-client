@@ -22,7 +22,7 @@ interface CartState {
     token?: string,
   ) => Promise<void>;
   removeItem: (id: string | number, token?: string) => Promise<void>;
-  clearCart: () => void;
+  clearCart: (token?: string) => Promise<void>;
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
@@ -93,7 +93,6 @@ export const useCartStore = create<CartState>((set, get) => ({
                   item.product.images?.[0]?.url ||
                   "/images/products/demo-products.png",
 
-                // ✨ MAPPING DATA MENTAH & STRING
                 materialType: item.product.materialType?.name,
                 dimensions: dimString,
                 weight: item.product.weight
@@ -113,7 +112,6 @@ export const useCartStore = create<CartState>((set, get) => ({
         console.error("Fetch DB cart error:", e);
       }
     } else {
-      // Logic jika Guest: Ambil dari LocalStorage
       const localCart = localStorage.getItem("guest_cart");
       if (localCart) {
         set({ cartItems: JSON.parse(localCart) });
@@ -249,9 +247,27 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  // === 5. CLEAR CART ===
-  clearCart: () => {
+  // === 5. CLEAR CART (Update agar Support DB) ===
+  clearCart: async (token?: string) => {
     set({ cartItems: [] });
+
     localStorage.removeItem("guest_cart");
+
+    if (token) {
+      try {
+        const res = await fetch(`${apiUrl}/cart/all/clear`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          console.error("Gagal membersihkan keranjang di database");
+        }
+      } catch (e) {
+        console.error("Error saat memanggil API Clear Cart:", e);
+      }
+    }
   },
 }));

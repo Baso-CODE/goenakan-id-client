@@ -118,7 +118,7 @@ export default function Articles() {
       {/* =========================================
           BAGIAN 2: ARTICLE GRID
          ========================================= */}
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl text-gray-900 uppercase tracking-wide">
             Articles

@@ -52,7 +52,7 @@ export default async function OccasionsPage() {
 
   return (
     <main className="w-full min-h-screen bg-white py-16 md:py-24">
-      <div className="container mx-auto px-6 md:px-12 max-w-7xl">
+      <div className="container ">
         {/* === Header Section === */}
         <div className="flex flex-col lg:flex-row justify-between items-start gap-8 lg:gap-16 mb-16">
           {/* Judul (Kiri) */}

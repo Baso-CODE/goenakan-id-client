@@ -4,14 +4,17 @@
 import { useCartStore } from "@/app/store/useCartStore";
 import { SnapOptions } from "@/app/types/midtrans/snapOptions.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox"; // Re-added
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useRouter } from "@/i18n/routing";
-import { Loader2, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Loader2, MapPin, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Script from "next/script";
@@ -25,13 +28,19 @@ declare global {
     };
   }
 }
-interface Address {
+
+interface CustomerAddress {
+  id: string;
+  label: string;
+  recipient: string;
+  phone: string;
+  country: string;
+  province: string;
+  city: string;
+  district: string;
+  postalCode: string;
+  fullAddress: string;
   isDefault: boolean;
-  recipient?: string;
-  phone?: string;
-  country?: string;
-  city?: string;
-  fullAddress?: string;
 }
 
 const SHIPPING_COST = 10000;
@@ -45,20 +54,30 @@ export default function CheckoutPage() {
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
 
-  const { cartItems, fetchCart } = useCartStore();
+  const { cartItems, fetchCart, clearCart } = useCartStore();
 
   const [addNote, setAddNote] = useState(false);
   const [note, setNote] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
+  const [userAddresses, setUserAddresses] = useState<CustomerAddress[]>([]);
+  console.log("ini adalah userAddress", userAddresses);
+
+  const [showAddressModal, setShowAddressModal] = useState(false);
+
   const [form, setForm] = useState({
     email: session?.user?.email || "",
-    fullName: session?.user?.name || "",
+    fullName: "",
     phone: "",
     country: "Indonesia",
+    province: "",
     city: "",
-    address: "",
+    district: "",
+    postalCode: "",
+    address: "", // Mapping to fullAddress
+    label: "",
   });
+
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
@@ -68,18 +87,30 @@ export default function CheckoutPage() {
 
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const applyAddressToForm = (addr: CustomerAddress) => {
+    setForm((prev) => ({
+      ...prev,
+      fullName: addr.recipient,
+      phone: addr.phone,
+      country: addr.country || "Indonesia",
+      province: addr.province || "",
+      city: addr.city || "",
+      district: addr.district || "",
+      postalCode: addr.postalCode || "",
+      address: addr.fullAddress,
+      label: addr.label,
+    }));
+  };
+
   const handlePlaceOrder = async () => {
-    // 1. Validasi Sederhana
     if (!form.fullName || !form.phone || !form.address) {
-      toast.error(
-        "Mohon lengkapi Nama, Nomor Telepon, dan Detail Alamat Anda.",
-      );
+      toast.error("Mohon lengkapi data pengiriman Anda.");
       return;
     }
 
     setIsProcessing(true);
     try {
-      // 2. BUAT PESANAN (ORDER) DI DATABASE
+      // 1. Buat Order
       const createOrderRes = await fetch(`${apiUrl}/web-orders`, {
         method: "POST",
         headers: {
@@ -97,44 +128,43 @@ export default function CheckoutPage() {
       });
 
       const orderData = await createOrderRes.json();
-
-      if (!orderData.success) {
+      if (!orderData.success)
         throw new Error(orderData.message || "Gagal membuat pesanan.");
-      }
 
       const newOrderId = orderData.data.id;
 
-      // 3. MINTA TOKEN MIDTRANS
+      // 2. Minta Token Pembayaran
       const payRes = await fetch(`${apiUrl}/web-orders/${newOrderId}/pay`, {
         method: "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       });
 
       const payData = await payRes.json();
+      if (!payData.success)
+        throw new Error("Gagal mendapatkan token pembayaran.");
 
-      if (!payData.success) {
-        throw new Error("Gagal mendapatkan token pembayaran Midtrans.");
-      }
+      // ✨ PERBAIKAN: Ambil token dari payData
+      const snapTokenFromApi = payData.data.token;
 
-      const snapToken = payData.data.token;
-
-      // 4. MUNCULKAN POP-UP MIDTRANS
-      window.snap.pay(snapToken, {
-        onSuccess: function (result) {
+      // 3. Munculkan Pop-up Midtrans
+      window.snap.pay(snapTokenFromApi, {
+        onSuccess: async function (result) {
           toast.success("Pembayaran berhasil!");
+          await clearCart(token || undefined);
           router.push(`/order-status?id=${newOrderId}&status=success`);
         },
-        onPending: function (result) {
+        onPending: async function (result) {
           toast.info("Menunggu pembayaran Anda.");
+          await clearCart(token || undefined);
           router.push(`/order-status?id=${newOrderId}&status=pending`);
         },
         onError: function (result) {
-          toast.error("Pembayaran gagal. Silakan coba lagi.");
+          toast.error("Pembayaran gagal.");
+          // Jangan clear cart di sini agar user bisa coba lagi
         },
-        onClose: function () {
+        onClose: async function () {
           toast.warning("Anda belum menyelesaikan pembayaran.");
+          await clearCart(token || undefined);
 
           if (token) {
             router.push(`/profile?tab=orders`);
@@ -143,17 +173,10 @@ export default function CheckoutPage() {
           }
         },
       });
-      // Gunakan 'unknown' alih-alih 'any' untuk keamanan tipe
-    } catch (error: unknown) {
-      console.error(error);
-
-      // Periksa apakah error ini adalah bentuk standar dari objek Error
+    } catch (error) {
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Terjadi kesalahan pada sistem.";
-
-      toast.error(errorMessage);
+        error instanceof Error ? error.message : String(error);
+      toast.error(errorMessage || "Terjadi kesalahan.");
     } finally {
       setIsProcessing(false);
     }
@@ -162,7 +185,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     const loadProfileAddress = async () => {
       if (!token) return;
-
       setIsLoadingProfile(true);
       try {
         const res = await fetch(`${apiUrl}/customer-profile/me`, {
@@ -172,34 +194,28 @@ export default function CheckoutPage() {
 
         if (json.success && json.data) {
           const profile = json.data;
-          const defaultAddress =
-            profile.addresses?.find((a: Address) => a.isDefault) ||
-            profile.addresses?.[0];
+          const addresses = profile.addresses || [];
+          setUserAddresses(addresses);
+
+          const defaultAddr =
+            addresses.find((a: CustomerAddress) => a.isDefault) || addresses[0];
+          if (defaultAddr) applyAddressToForm(defaultAddr);
 
           setForm((prev) => ({
             ...prev,
             email: profile.user?.email || prev.email,
-            fullName:
-              defaultAddress?.recipient || profile.user?.name || prev.fullName,
-            phone: defaultAddress?.phone || profile.phone || prev.phone,
-            country: defaultAddress?.country || "Indonesia",
-            city: defaultAddress?.city || "",
-            address: defaultAddress?.fullAddress || "",
           }));
         }
       } catch (error) {
-        console.error("Gagal memuat alamat", error);
+        console.error("Gagal memuat profil", error);
       } finally {
         setIsLoadingProfile(false);
       }
     };
 
     loadProfileAddress();
-
-    if (cartItems.length === 0) {
-      fetchCart(token);
-    }
-  }, [token, fetchCart]);
+    if (cartItems.length === 0) fetchCart(token);
+  }, [token]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -207,7 +223,6 @@ export default function CheckoutPage() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Tampilan jika keranjang kosong
   if (cartItems.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-stone-50 gap-4">
@@ -228,12 +243,12 @@ export default function CheckoutPage() {
         data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
         strategy="lazyOnload"
       />
+
       <div className="min-h-screen bg-stone-50 pt-24 pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8 items-start">
-            {/* ── Left: Form ── */}
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8 items-start">
+            {/* ── Left Side ── */}
             <div className="flex flex-col gap-8">
-              {/* Address Detail */}
               <div className="flex flex-col gap-4 relative">
                 {isLoadingProfile && (
                   <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-md">
@@ -241,302 +256,313 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-semibold text-stone-800">
-                    Address Detail
+                <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-stone-800 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" /> Shipping Address
                   </h2>
-                  {token && (
+                  {token && userAddresses.length > 0 && (
                     <Button
                       variant="link"
-                      asChild
-                      className="text-xs text-blue-500 p-0 h-auto">
-                      <Link href="/profile?tab=address">Manage Addresses</Link>
+                      onClick={() => setShowAddressModal(true)}
+                      className="text-xs text-blue-600 p-0 h-auto font-bold uppercase tracking-tighter">
+                      Change Address
                     </Button>
                   )}
                 </div>
 
-                {/* Email */}
-                <div className="flex flex-col gap-1">
+                {/* Email Section */}
+                <div className="space-y-1">
+                  <Label className="text-[10px] uppercase font-bold text-stone-400 ml-1">
+                    Contact Email
+                  </Label>
                   <Input
                     name="email"
                     type="email"
-                    placeholder="E-mail Address (optional)"
+                    placeholder="Order detail will be sent to this email"
                     value={form.email}
                     onChange={handleChange}
-                    className="rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white"
-                  />
-                  <p className="text-[11px] text-stone-400 px-1">
-                    Order detail will be send to your e-mail
-                  </p>
-                </div>
-
-                {/* Full Name */}
-                <Input
-                  name="fullName"
-                  placeholder="Full Name / Penerima"
-                  value={form.fullName}
-                  onChange={handleChange}
-                  className="rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white"
-                />
-
-                {/* Phone */}
-                <Input
-                  name="phone"
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={form.phone}
-                  onChange={handleChange}
-                  className="rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white"
-                />
-
-                {/* Country */}
-                <div className="relative">
-                  <Label className="absolute top-2 left-3 text-[10px] text-stone-400">
-                    Country
-                  </Label>
-                  <Input
-                    name="country"
-                    value={form.country}
-                    onChange={handleChange}
-                    className="rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white pt-6 pb-2"
+                    className="rounded-none border-stone-300 bg-white"
                   />
                 </div>
 
-                {/* City with search icon */}
-                <div className="relative">
-                  <Input
-                    name="city"
-                    placeholder="Kota dan Kecamatan"
-                    value={form.city}
-                    onChange={handleChange}
-                    className="rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white pr-10"
-                  />
-                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-                </div>
-
-                {/* Detail Address */}
-                <div className="relative">
-                  <Textarea
-                    name="address"
-                    placeholder="Detail Address (Nama Jalan, No Rumah, RT/RW)"
-                    value={form.address}
-                    onChange={handleChange}
-                    rows={4}
-                    maxLength={300}
-                    className="rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white resize-none"
-                  />
-                  <span className="absolute bottom-2 right-3 text-[10px] text-stone-400">
-                    {form.address.length}/300
-                  </span>
-                </div>
-              </div>
-
-              <Separator className="bg-stone-200" />
-
-              {/* Payment */}
-              <div className="flex flex-col gap-3">
-                <div>
-                  <h2 className="text-base font-semibold text-stone-800">
-                    Payment
-                  </h2>
-                  <p className="text-xs text-stone-400 mt-0.5">
-                    All transactions are secure and encrypted.
-                  </p>
-                </div>
-
-                {/* Payment option */}
-                <div className="border border-stone-300 rounded-sm overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-white">
-                    <p className="text-sm text-stone-700">
-                      Xendit – Cards, Bank Transfers, QR, Ewallets
-                    </p>
-                    <Image
-                      src="/images/xendit-logo.png"
-                      alt="Xendit"
-                      width={48}
-                      height={20}
-                      className="object-contain"
+                {/* Address Selection / Manual Form */}
+                {token && userAddresses.length > 0 ? (
+                  <div className="p-4 border border-stone-200 bg-white shadow-sm space-y-2">
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] uppercase rounded-none border-stone-300 text-stone-500 font-bold">
+                      {form.label || "Address"}
+                    </Badge>
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-sm font-bold text-stone-800">
+                        {form.fullName}
+                      </p>
+                      <p className="text-xs text-stone-500">{form.phone}</p>
+                      <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+                        {form.address}
+                      </p>
+                      <p className="text-xs text-stone-400 font-medium uppercase">
+                        {form.district ? `${form.district}, ` : ""}
+                        {form.city}, {form.province} {form.postalCode}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      name="fullName"
+                      placeholder="Recipient Name"
+                      value={form.fullName}
+                      onChange={handleChange}
+                      className="rounded-none border-stone-300 bg-white"
                     />
+                    <Input
+                      name="phone"
+                      placeholder="Phone Number"
+                      value={form.phone}
+                      onChange={handleChange}
+                      className="rounded-none border-stone-300 bg-white"
+                    />
+                    <Input
+                      name="province"
+                      placeholder="Province"
+                      value={form.province}
+                      onChange={handleChange}
+                      className="rounded-none border-stone-300 bg-white"
+                    />
+                    <Input
+                      name="city"
+                      placeholder="City"
+                      value={form.city}
+                      onChange={handleChange}
+                      className="rounded-none border-stone-300 bg-white"
+                    />
+                    <Input
+                      name="district"
+                      placeholder="District (Kecamatan)"
+                      value={form.district}
+                      onChange={handleChange}
+                      className="rounded-none border-stone-300 bg-white"
+                    />
+                    <Input
+                      name="postalCode"
+                      placeholder="Postal Code"
+                      value={form.postalCode}
+                      onChange={handleChange}
+                      className="rounded-none border-stone-300 bg-white"
+                    />
+                    <div className="md:col-span-2">
+                      <Textarea
+                        name="address"
+                        placeholder="Full Address (Street, House No, etc.)"
+                        value={form.address}
+                        onChange={handleChange}
+                        rows={3}
+                        className="rounded-none border-stone-300 bg-white resize-none"
+                      />
+                    </div>
                   </div>
-                  <div className="bg-stone-50 px-4 py-4 text-center border-t border-stone-200">
-                    <p className="text-xs text-stone-500 leading-relaxed">
-                      You&apos;ll be redirected to Xendits – Cards, Bank
-                      Transfers,
-                      <br />
-                      WR, Ewallets to complete your purchase.
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Payment Info */}
+              <div className="flex flex-col gap-3">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-stone-800">
+                  Payment
+                </h2>
+                <div className="border border-stone-300 rounded-none bg-white p-4 flex items-center justify-between">
+                  <div className="flex flex-col gap-0.5">
+                    <p className="text-xs font-bold text-stone-700 uppercase">
+                      Midtrans Secure Payment
+                    </p>
+                    <p className="text-[10px] text-stone-400">
+                      VA, QRIS, E-Wallet, Credit Card
                     </p>
                   </div>
+                  <Image
+                    src="/images/midtrans-logo.png"
+                    alt="Midtrans"
+                    width={80}
+                    height={20}
+                    className="object-contain opacity-70"
+                  />
                 </div>
               </div>
 
-              {/* Return to Cart */}
-              <div>
-                <Button
-                  variant="link"
-                  asChild
-                  className="p-0 h-auto text-sm text-stone-500 hover:text-stone-800">
-                  <Link href="/cart">
-                    <span className="mr-1">←</span> Return to Cart
-                  </Link>
-                </Button>
-              </div>
+              <Button
+                variant="link"
+                asChild
+                className="p-0 h-auto text-xs text-stone-400 hover:text-stone-800 uppercase tracking-widest font-bold">
+                <Link href="/cart">← Return to Cart</Link>
+              </Button>
             </div>
 
-            {/* ── Right: Order Summary ── */}
-            <div className="sticky top-24 flex flex-col gap-4">
-              <div className="border border-stone-200 rounded-sm bg-white overflow-hidden">
-                {/* Order Items */}
-                <div className="flex flex-col divide-y divide-stone-100 max-h-100 overflow-y-auto">
+            {/* ── Right Side: Summary ── */}
+            <div className="sticky top-24">
+              <div className="border border-stone-200 rounded-none bg-white shadow-sm overflow-hidden">
+                <div className="p-4 bg-stone-50 border-b border-stone-200 font-bold uppercase text-xs tracking-widest text-stone-800">
+                  Order Summary
+                </div>
+
+                <div className="flex flex-col divide-y divide-stone-100 max-h-80 overflow-y-auto">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-3 p-3">
-                      {/* Image with qty badge */}
-                      <div className="relative w-14 h-14 shrink-0 bg-stone-100 rounded-sm overflow-hidden border border-stone-200">
+                    <div key={item.id} className="flex gap-3 p-4">
+                      <div className="relative w-16 h-16 shrink-0 bg-stone-100 border border-stone-200">
                         <Image
                           src={item.image}
                           alt={item.name}
                           fill
                           className="object-cover p-1"
-                          sizes="56px"
+                          sizes="64px"
                         />
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-stone-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
+                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#463b34] text-white text-[10px] rounded-full flex items-center justify-center font-bold">
                           {item.quantity}
                         </span>
                       </div>
-
-                      {/* Info */}
-                      <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-                        <p className="text-xs font-semibold text-stone-800 leading-tight">
+                      <div className="flex flex-col flex-1 min-w-0 gap-1">
+                        <p className="text-[11px] font-bold text-stone-800 leading-tight uppercase">
                           {item.name}
                         </p>
-
-                        {/* Render Spesifikasi Dinamis */}
-                        <div className="mt-0.5 flex flex-col gap-0.5 text-[10px] text-stone-500">
-                          {item.materialType && (
-                            <p>
-                              <span className="font-medium text-stone-600">
-                                Bahan:
-                              </span>{" "}
-                              {item.materialType}
-                            </p>
-                          )}
-                          {item.dimensions && (
-                            <p>
-                              <span className="font-medium text-stone-600">
-                                Dimensi:
-                              </span>{" "}
-                              {item.dimensions}
-                            </p>
-                          )}
-                          {item.weight && (
-                            <p>
-                              <span className="font-medium text-stone-600">
-                                Berat:
-                              </span>{" "}
-                              {item.weight}
-                            </p>
-                          )}
-                          {/* Opsional: Render warna/atribut lainnya jika ada dari varian */}
-                          {/* {item.color && <p><span className="font-medium text-stone-600">Warna:</span> {item.color}</p>} */}
-                        </div>
+                        <p className="text-[10px] text-stone-400 italic">
+                          {item.materialType}
+                        </p>
+                        <p className="text-xs font-bold text-stone-800 mt-1">
+                          {formatRupiah(item.price)}
+                        </p>
                       </div>
-
-                      {/* Price */}
-                      <p className="text-xs font-semibold text-stone-800 shrink-0">
-                        {formatRupiah(item.price)}
-                      </p>
                     </div>
                   ))}
                 </div>
-                <Separator className="bg-stone-100" />
-                {/* Add Note */}
-                <div className="px-3 py-3 flex flex-col gap-2">
+
+                {/* ✨ Re-added Note Section */}
+                <div className="px-4 py-3 bg-white border-t border-stone-100 space-y-2">
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="addNote"
                       checked={addNote}
                       onCheckedChange={(v) => setAddNote(!!v)}
-                      className="rounded-sm"
+                      className="rounded-none border-stone-300"
                     />
                     <Label
                       htmlFor="addNote"
-                      className="text-xs text-stone-500 cursor-pointer">
+                      className="text-[11px] text-stone-500 cursor-pointer uppercase font-bold tracking-tighter">
                       Add a note to your order
                     </Label>
                   </div>
                   {addNote && (
                     <Textarea
-                      placeholder="Catatan untuk pesanan..."
+                      placeholder="Contoh: Packing kayu, atau warna cadangan..."
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                       rows={2}
-                      className="rounded-sm border-stone-200 text-xs resize-none focus-visible:ring-stone-400"
+                      className="rounded-none border-stone-200 text-xs resize-none focus-visible:ring-stone-400"
                     />
                   )}
                 </div>
-                <Separator className="bg-stone-100" />
-                {/* Pricing */}
-                <div className="px-3 py-3 flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs text-stone-500">
-                      Subtotal · {totalQty} products
-                    </p>
-                    <p className="text-xs text-stone-700 font-medium">
+
+                <div className="p-4 space-y-3 bg-white border-t border-stone-200">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-stone-500">
+                      Subtotal ({totalQty} items)
+                    </span>
+                    <span className="font-bold text-stone-800">
                       {formatRupiah(subtotal)}
-                    </p>
+                    </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs text-stone-500">
-                      Pengiriman · 100 gr
-                    </p>
-                    <p className="text-xs text-stone-700 font-medium">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-stone-500">Flat Shipping</span>
+                    <span className="font-bold text-stone-800">
                       {formatRupiah(SHIPPING_COST)}
-                    </p>
+                    </span>
                   </div>
-                </div>
-                <Separator className="bg-stone-100" />
-                <div className="px-3 py-3 flex justify-between items-center">
-                  <p className="text-sm font-semibold text-stone-800">
-                    Total Payment
-                  </p>
-                  <p className="text-sm font-bold text-stone-900">
-                    {formatRupiah(total)}
-                  </p>
-                </div>
-                {/* Place Order */}
-                <div className="px-3 pb-4 flex flex-col gap-2">
+                  <Separator />
+                  <div className="flex justify-between items-center py-2 font-bold uppercase tracking-widest text-stone-900">
+                    <span className="text-sm">Total</span>
+                    <span className="text-base">{formatRupiah(total)}</span>
+                  </div>
+
                   <Button
                     onClick={handlePlaceOrder}
                     disabled={isProcessing}
-                    className="w-full bg-[#463b34] hover:bg-stone-700 text-white text-xs font-bold tracking-widest uppercase rounded-none py-5 disabled:opacity-70">
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        MEMPROSES...
-                      </>
-                    ) : (
-                      "PLACE ORDER"
-                    )}
+                    className="w-full bg-[#463b34] hover:bg-stone-800 text-white text-xs font-bold tracking-[0.2em] rounded-none py-6 transition-all">
+                    {isProcessing ? "PROCESSING..." : "CONFIRM ORDER"}
                   </Button>
-                  <p className="text-[10px] text-stone-400 text-center leading-relaxed">
-                    By proceeding with your purchase you agree to our{" "}
-                    <Link
-                      href="/terms"
-                      className="underline hover:text-stone-600">
-                      Terms and Conditions
-                    </Link>{" "}
-                    and{" "}
-                    <Link
-                      href="/privacy"
-                      className="underline hover:text-stone-600">
-                      Privacy Policy
-                    </Link>
-                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ✨ Modal Choice Address */}
+      {showAddressModal && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-lg bg-white rounded-none shadow-2xl overflow-hidden border-none">
+            <div className="p-4 border-b border-stone-100 flex justify-between items-center bg-stone-50">
+              <h3 className="font-bold uppercase text-xs tracking-[0.2em] text-stone-800">
+                My Saved Addresses
+              </h3>
+              <button
+                onClick={() => setShowAddressModal(false)}
+                className="hover:rotate-90 transition-transform">
+                <X className="w-5 h-5 text-stone-400" />
+              </button>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto p-4 space-y-3">
+              {userAddresses.map((addr) => (
+                <div
+                  key={addr.id}
+                  onClick={() => {
+                    applyAddressToForm(addr);
+                    setShowAddressModal(false);
+                  }}
+                  className={cn(
+                    "p-4 border cursor-pointer transition-all group relative",
+                    form.address === addr.fullAddress
+                      ? "border-[#463b34] bg-stone-50/50"
+                      : "border-stone-200 hover:border-stone-400",
+                  )}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] uppercase rounded-none border-stone-300 font-bold px-2">
+                      {addr.label}
+                    </Badge>
+                    {addr.isDefault && (
+                      <Badge className="bg-blue-600 text-[8px] uppercase rounded-none px-2 font-bold border-none text-white">
+                        Default
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm font-bold text-stone-800 mb-0.5">
+                    {addr.recipient}
+                  </p>
+                  <p className="text-xs text-stone-500 mb-2">{addr.phone}</p>
+                  <p className="text-[11px] text-stone-600 leading-relaxed">
+                    {addr.fullAddress}
+                  </p>
+                  <p className="text-[10px] text-stone-400 mt-1 uppercase font-medium">
+                    {addr.district}, {addr.city}, {addr.province},{" "}
+                    {addr.postalCode}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-4 border-t border-stone-100 bg-stone-50 text-center">
+              <Button
+                asChild
+                variant="outline"
+                className="w-full rounded-none border-stone-300 text-[10px] font-bold tracking-widest uppercase py-6">
+                <Link href="/profile?tab=address">+ Add New Address</Link>
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </>
   );
 }

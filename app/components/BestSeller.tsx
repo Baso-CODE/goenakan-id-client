@@ -42,7 +42,7 @@ export default function BestSeller() {
 
   return (
     <section className="w-full py-20 bg-gray-50/50">
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container ">
         {/* --- Header Section --- */}
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl text-gray-900 uppercase tracking-wide">

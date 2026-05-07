@@ -2,46 +2,130 @@
 
 import PayNowButton from "@/app/components/checkout/payNowButton";
 import { apiUrl } from "@/app/utils/ApiUrl";
-import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/routing";
-import { ArrowLeft, Loader2, Package, Receipt, Truck } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  CreditCard,
+  Loader2,
+  MapPin,
+  MessageSquare,
+  Package,
+  Truck,
+  User,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
+// ==========================================
+// 1. DEFINISI TIPE DATA (INTERFACES)
+// ==========================================
+
+interface ShippingAddress {
+  recipient?: string;
+  phone?: string;
+  country?: string;
+  province?: string;
+  city?: string;
+  district?: string;
+  postalCode?: string;
+  fullAddress?: string;
+}
+
+interface ImageType {
+  url: string;
+}
+
+interface Attribute {
+  name: string;
+}
+
+interface AttributeValue {
+  value: string;
+  attribute: Attribute;
+}
+
+interface VariantAttributeValue {
+  id: string;
+  attributeValue: AttributeValue;
+}
+
+interface ProductVariant {
+  variantName?: string | null;
+  sku?: string;
+  images?: ImageType[];
+  attributeValues?: VariantAttributeValue[];
+}
+
+interface Product {
+  sku?: string;
+  images?: ImageType[];
+}
 
 interface OrderItem {
   id: string;
   productName: string;
   quantity: number;
-  price: number;
+  price: number | string;
+  product?: Product;
+  variant?: ProductVariant | null;
 }
 
 interface OrderDetail {
   id: string;
   orderNumber: string;
   status: string;
-  totalAmount: number;
-  shippingCost: number;
-  subtotal: number;
   createdAt: string;
+  customerNote?: string | null;
+  guestName?: string | null;
+  guestPhone?: string | null;
+  shippingAddress: string | ShippingAddress;
+  subtotal: number | string;
+  shippingCost: number | string;
+  totalAmount: number | string;
+  paymentMethod?: string | null;
   items: OrderItem[];
 }
+
+// ==========================================
+// 2. FUNGSI PEMBANTU
+// ==========================================
+
+function formatRupiah(amount: number) {
+  return `Rp ${amount.toLocaleString("id-ID")}`;
+}
+
+function getDisplayImage(item: OrderItem): string {
+  if (item.variant?.images && item.variant.images.length > 0) {
+    return item.variant.images[0].url;
+  }
+  if (item.product?.images && item.product.images.length > 0) {
+    return item.product.images[0].url;
+  }
+  return "/images/placeholder.png";
+}
+
+// ==========================================
+// 3. KOMPONEN UTAMA
+// ==========================================
 
 export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params.id as string;
-
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
+  console.log(" ini adalah order detail", order);
+
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrderDetail = async () => {
       if (!token) return;
-
       try {
         const response = await fetch(`${apiUrl}/web-orders/${orderId}`, {
           method: "GET",
@@ -50,17 +134,16 @@ export default function OrderDetailPage() {
             Authorization: `Bearer ${token}`,
           },
         });
-
         const json = await response.json();
 
-        if (!response.ok || !json.success) {
-          throw new Error(json.message || "Gagal mengambil detail pesanan");
-        }
+        if (!response.ok || !json.success) throw new Error(json.message);
 
         setOrder(json.data);
-      } catch (error: any) {
-        console.error(error);
-        toast.error(error.message);
+      } catch (error: unknown) {
+        // Penanganan error tanpa any
+        const errorMessage =
+          error instanceof Error ? error.message : "Gagal memuat pesanan";
+        toast.error(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -71,159 +154,229 @@ export default function OrderDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-4 bg-stone-50">
+      <div className="min-h-screen flex items-center justify-center bg-stone-50">
         <Loader2 className="w-10 h-10 animate-spin text-[#463b34]" />
-        <p className="text-stone-500 font-medium tracking-widest uppercase text-sm">
-          Memuat Rincian Pesanan...
-        </p>
       </div>
     );
   }
 
-  if (!order) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center space-y-4 text-center bg-stone-50">
-        <Package className="w-20 h-20 text-stone-300" />
-        <h2 className="text-2xl font-bold text-stone-800">
-          Pesanan Tidak Ditemukan
-        </h2>
-        <Button
-          asChild
-          variant="outline"
-          className="mt-4 border-[#463b34] text-[#463b34] hover:bg-stone-100">
-          <Link href="/profile?tab=orders">Kembali ke Riwayat Pesanan</Link>
-        </Button>
-      </div>
-    );
-  }
+  if (!order) return <div className="text-center p-20">Order not found</div>;
 
-  // ✨ PERBAIKAN LOGIKA STATUS: Mendeteksi PENDING atau PENDING_PAYMENT
   const isPending =
     order.status === "PENDING" || order.status === "PENDING_PAYMENT";
 
+  // Parse JSON Alamat secara aman dan casting ke interface ShippingAddress
+  const address: ShippingAddress =
+    typeof order.shippingAddress === "string"
+      ? JSON.parse(order.shippingAddress)
+      : order.shippingAddress;
+
   return (
-    // ✨ PERBAIKAN LAYOUT: Menambahkan pt-32 agar tidak tertutup Navbar atas
-    <div className="min-h-screen bg-stone-50 pt-32 pb-16 px-4 sm:px-6 lg:px-8">
-      <div className=" mx-auto space-y-8">
-        {/* Kartu Utama */}
-        <div className="bg-white border border-stone-200 rounded-2xl shadow-sm overflow-hidden">
-          {/* Header Pesanan */}
-          <div className="bg-[#463b34] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-            <div className="space-y-1">
-              <p className="text-stone-300 text-sm flex items-center gap-2">
-                <Receipt className="w-4 h-4" /> Order ID
-              </p>
-              <h1 className="text-2xl sm:text-3xl font-serif text-white tracking-wide">
-                {order.orderNumber}
-              </h1>
-              <p className="text-stone-400 text-xs sm:text-sm pt-1">
-                Dibuat pada:{" "}
-                {new Date(order.createdAt).toLocaleDateString("id-ID", {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                WIB
-              </p>
-            </div>
+    <div className="min-h-screen bg-stone-50 pt-32 pb-16 ">
+      <div className="container space-y-6">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <Link
+            href="/profile?tab=orders"
+            className="flex items-center text-stone-500 hover:text-stone-900 transition-colors text-sm font-medium">
+            <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Riwayat Pesanan
+          </Link>
+          <div className="flex items-center gap-2 text-stone-400 text-sm">
+            <Calendar className="w-4 h-4" />
+            {new Date(order.createdAt).toLocaleDateString("id-ID", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </div>
+        </div>
 
-            {/* Bagian Kanan: Status dan Aksi Pembayaran */}
-            <div className="flex flex-col items-start sm:items-end gap-4 mt-4 sm:mt-0">
-              {/* Badge Status */}
-              <span
-                className={`px-4 py-1.5 text-[11px] uppercase tracking-widest font-bold rounded-full border shadow-sm ${
-                  order.status === "COMPLETED"
-                    ? "bg-green-500/10 text-green-500 border-green-500/20"
-                    : isPending
-                      ? "bg-orange-500/10 text-orange-500 border-orange-500/20"
-                      : order.status === "CANCELLED"
-                        ? "bg-red-500/10 text-red-500 border-red-500/20"
-                        : "bg-stone-500/10 text-stone-500 border-stone-500/20"
-                }`}>
-                {order.status.replace("_", " ")}
-              </span>
-
-              {/* Area Tombol Pembayaran (Hanya jika Pending) */}
-              {isPending && (
-                <div className="flex flex-col items-start sm:items-end w-full sm:w-auto pt-2">
-                  {/* ✨ PERBAIKAN TYPESCRIPT: apiUrl={apiUrl || ""} */}
-                  <PayNowButton
-                    orderId={order.id}
-                    token={token || ""}
-                    apiUrl={apiUrl || ""}
-                  />
-                  <p className="text-[10px] text-stone-400 mt-2.5 leading-relaxed max-w-50 text-left sm:text-right italic">
-                    *Klik untuk melanjutkan atau mengganti metode pembayaran
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Kolom Kiri: Detail Produk & Pembayaran */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Main Info Card */}
+            <div className="bg-white border border-stone-200 rounded-xl overflow-hidden shadow-sm">
+              <div className="bg-[#463b34] p-6 text-white flex justify-between items-center">
+                <div>
+                  <p className="text-stone-300 text-[10px] uppercase tracking-widest font-bold">
+                    Order Number
                   </p>
+                  <h1 className="text-xl font-serif">{order.orderNumber}</h1>
                 </div>
-              )}
+                <span
+                  className={`px-4 py-1 text-[10px] uppercase font-bold rounded-full border ${
+                    order.status === "PAID"
+                      ? "bg-green-500/20 text-green-300 border-green-500/30"
+                      : "bg-orange-500/20 text-orange-300 border-orange-500/30"
+                  }`}>
+                  {order.status.replace("_", " ")}
+                </span>
+              </div>
+
+              {/* Product Items */}
+              <div className="p-6 divide-y divide-stone-100">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-stone-800 mb-4 flex items-center gap-2">
+                  <Package className="w-4 h-4 text-stone-400" /> Item Details
+                </h2>
+                {order.items?.map((item: OrderItem) => (
+                  <div
+                    key={item.id}
+                    className="flex gap-4 py-4 first:pt-0 last:pb-0">
+                    {/* Gambar Cerdas (Varian / Produk) */}
+                    <div className="relative w-24 h-24 bg-stone-100 rounded-lg overflow-hidden border border-stone-100 shrink-0">
+                      <Image
+                        src={getDisplayImage(item)}
+                        alt={item.productName}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+
+                    {/* Rincian Produk & Varian */}
+                    <div className="flex-1 flex flex-col justify-center">
+                      <h3 className="text-sm font-bold text-stone-800 uppercase tracking-tight">
+                        {item.productName}
+                      </h3>
+
+                      {item.variant && (
+                        <div className="mt-1 space-y-1">
+                          {item.variant.variantName && (
+                            <p className="text-[10px] font-bold text-[#463b34] uppercase tracking-tighter">
+                              Varian: {item.variant.variantName}
+                            </p>
+                          )}
+
+                          {/* Mapping Detail Atribut (contoh: Warna: Merah) */}
+                          <div className="flex flex-wrap gap-x-2">
+                            {item.variant.attributeValues?.map((av) => (
+                              <span
+                                key={av.id}
+                                className="text-[10px] text-stone-500">
+                                <span className="font-medium">
+                                  {av.attributeValue.attribute.name}:
+                                </span>{" "}
+                                {av.attributeValue.value}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <p className="text-[10px] text-stone-400 mt-1">
+                        SKU: {item.variant?.sku || item.product?.sku || "-"}
+                      </p>
+
+                      <p className="text-xs text-stone-500 mt-2">
+                        {item.quantity} x {formatRupiah(Number(item.price))}
+                      </p>
+                    </div>
+
+                    {/* Total Harga Item */}
+                    <div className="flex flex-col justify-center items-end">
+                      <p className="text-sm font-bold text-stone-800">
+                        {formatRupiah(item.quantity * Number(item.price))}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Note & Info Section */}
+            {order.customerNote && (
+              <div className="bg-stone-100/50 border border-stone-200 p-6 rounded-xl">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-600 mb-2 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" /> Catatan Pesanan
+                </h3>
+                <p className="text-sm text-stone-600 italic">
+                  &quot;{order.customerNote}&quot;
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Rincian Produk */}
-          <div className="p-6 sm:p-8">
-            <h2 className="text-lg font-serif font-bold text-stone-800 mb-6 flex items-center gap-2">
-              <Package className="w-5 h-5 text-stone-400" /> Rincian Produk
-            </h2>
+          {/* Kolom Kanan: Summary & Shipping */}
+          <div className="space-y-6">
+            {/* Status Pembayaran */}
+            {isPending && (
+              <div className="bg-orange-50 border border-orange-100 p-6 rounded-xl space-y-4">
+                <p className="text-xs text-orange-700 font-medium">
+                  Pesanan ini menunggu pembayaran. Silakan selesaikan transaksi
+                  Anda.
+                </p>
+                <PayNowButton
+                  orderId={order.id}
+                  token={token || ""}
+                  apiUrl={apiUrl || ""}
+                />
+              </div>
+            )}
 
-            <div className="space-y-4">
-              {order.items?.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex justify-between items-center py-4 border-b border-stone-100 last:border-0">
-                  <div className="flex-1">
-                    <p className="font-bold text-stone-800 text-base">
-                      {item.productName}
+            {/* Alamat Pengiriman */}
+            <div className="bg-white border border-stone-200 p-6 rounded-xl shadow-sm">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-stone-800 mb-4 flex items-center gap-2 border-b pb-2">
+                <MapPin className="w-4 h-4 text-stone-400" /> Shipping Info
+              </h3>
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <User className="w-4 h-4 text-stone-300 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold text-stone-800">
+                      {address?.recipient || order.guestName}
                     </p>
-                    <p className="text-sm text-stone-500 mt-1">
-                      {item.quantity} x Rp{" "}
-                      {Number(item.price).toLocaleString("id-ID")}
+                    <p className="text-xs text-stone-500">
+                      {address?.phone || order.guestPhone}
                     </p>
                   </div>
-                  <p className="font-bold text-stone-800 text-base">
-                    Rp {(item.quantity * item.price).toLocaleString("id-ID")}
-                  </p>
                 </div>
-              ))}
+                <div className="flex gap-3 pt-2">
+                  <Truck className="w-4 h-4 text-stone-300 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs text-stone-600 leading-relaxed">
+                      {address?.fullAddress}
+                      <br />
+                      {address?.district ? `${address.district}, ` : ""}
+                      {address?.city}
+                      <br />
+                      {address?.province} {address?.postalCode}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Rincian Biaya */}
-            <div className="mt-8 pt-6 border-t border-stone-200">
-              <div className="w-full sm:w-1/2 ml-auto space-y-3">
-                <div className="flex justify-between text-sm text-stone-500">
-                  <span>Subtotal Produk</span>
-                  <span>
-                    Rp {Number(order.subtotal).toLocaleString("id-ID")}
+            <div className="bg-white border border-stone-200 p-6 rounded-xl shadow-sm space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-stone-800 mb-2 border-b pb-2">
+                Payment Summary
+              </h3>
+              <div className="flex justify-between text-xs text-stone-500">
+                <span>Subtotal</span>
+                <span>{formatRupiah(Number(order.subtotal))}</span>
+              </div>
+              <div className="flex justify-between text-xs text-stone-500">
+                <span>Shipping Cost</span>
+                <span>{formatRupiah(Number(order.shippingCost))}</span>
+              </div>
+              {order.paymentMethod && (
+                <div className="flex justify-between text-xs text-stone-500 border-t pt-2 mt-2 border-dashed">
+                  <span className="flex items-center gap-1">
+                    <CreditCard className="w-3 h-3" /> Method
+                  </span>
+                  <span className="uppercase font-bold text-stone-700">
+                    {order.paymentMethod.replace("_", " ")}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm text-stone-500">
-                  <span className="flex items-center gap-2">
-                    <Truck className="w-4 h-4" /> Biaya Pengiriman
-                  </span>
-                  <span>
-                    Rp {Number(order.shippingCost).toLocaleString("id-ID")}
-                  </span>
-                </div>
-                <div className="flex justify-between text-lg sm:text-xl font-bold text-[#463b34] pt-4 border-t border-stone-200 mt-4">
-                  <span>Total Pembayaran</span>
-                  <span>
-                    Rp {Number(order.totalAmount).toLocaleString("id-ID")}
-                  </span>
-                </div>
+              )}
+              <div className="flex justify-between text-base font-bold text-[#463b34] pt-4 border-t border-stone-100">
+                <span>Total</span>
+                <span>{formatRupiah(Number(order.totalAmount))}</span>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Navigasi Kembali */}
-        <Link
-          href="/profile?tab=orders"
-          className="inline-flex items-center text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors group">
-          <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-          Kembali ke Riwayat Pesanan
-        </Link>
       </div>
     </div>
   );
