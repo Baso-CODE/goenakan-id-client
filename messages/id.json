@@ -120,6 +120,13 @@
       "taxNote": "Pajak dan biaya pengiriman dihitung saat checkout",
       "checkout": "Lanjutkan ke Pembayaran"
     }
+  },
+
+
+  "UnderConstruction": {
+    "title": "Sedang Dalam Pengembangan",
+    "description": "Maaf, halaman ini sedang diracik oleh tim kami untuk memberikan pengalaman terbaik bagi Anda. Silakan kembali lagi nanti!",
+    "backHome": "Kembali ke Beranda"
   }
 
 }

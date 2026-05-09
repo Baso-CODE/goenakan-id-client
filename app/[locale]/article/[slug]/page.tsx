@@ -37,7 +37,6 @@ export default async function ArticleSlugPage({ params }: ArticlePageProps) {
       title: rel.title,
       href: `/article/${rel.slug}`,
       image: rel.coverImage,
-      // Menghapus tag HTML dan membatasi teks untuk excerpt
       excerpt: rel.content
         ? rel.content.replace(/<[^>]*>?/gm, "").substring(0, 100) + "..."
         : "",

@@ -70,7 +70,7 @@ export function BannerProduct({
   // Loading State
   if (isLoading) {
     return (
-      <div className="w-full pt-23.25 min-h-75 flex items-center justify-center bg-stone-50">
+      <div className="w-full  min-h-75 flex items-center justify-center bg-stone-50">
         <span className="text-stone-400 text-sm animate-pulse">
           Memuat banner...
         </span>
@@ -81,7 +81,7 @@ export function BannerProduct({
   // Empty State
   if (!slides || slides.length === 0) {
     return (
-      <section className="w-full pt-23.25">
+      <section className="w-full ">
         <div className="w-full aspect-16/7 bg-stone-50 flex flex-col items-center justify-center border-2 border-dashed border-stone-200">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -112,7 +112,7 @@ export function BannerProduct({
 
   return (
     <section
-      className="w-full pt-23.25"
+      className="w-full"
       onMouseEnter={stopAutoplay}
       onMouseLeave={startAutoplay}>
       <Carousel

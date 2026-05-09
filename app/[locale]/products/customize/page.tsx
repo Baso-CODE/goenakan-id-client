@@ -1,5 +1,7 @@
-import { ProductMockupGenerator } from "@/app/components/navigation/products/productMockupGenerator";
+import UnderConstruction from "@/app/components/comingSoon";
 
 export default function CustomizePage() {
-  return <ProductMockupGenerator />;
+  // return <ProductMockupGenerator />;
+
+  return <UnderConstruction />;
 }

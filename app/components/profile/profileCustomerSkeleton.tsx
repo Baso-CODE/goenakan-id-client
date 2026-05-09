@@ -5,7 +5,7 @@ export default function ProfileSkeleton() {
     <main className="min-h-screen bg-gray-50/50">
       {/* Header Skeleton */}
       <section className="pt-32 pb-12 bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4 md:px-8">
+        <div className="container ">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex flex-col md:flex-row items-center gap-6">
               <Skeleton className="h-24 w-24 rounded-full" />
@@ -22,7 +22,7 @@ export default function ProfileSkeleton() {
 
       {/* Tabs Skeleton */}
       <section className="py-12">
-        <div className="container mx-auto px-4 md:px-8">
+        <div className="container ">
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar Skeleton */}
             <div className="flex lg:flex-col lg:w-64 gap-2">

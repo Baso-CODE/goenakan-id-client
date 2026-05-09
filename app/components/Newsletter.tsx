@@ -11,7 +11,7 @@ export default function Newsletter() {
 
   return (
     <section className="w-full py-24 bg-white border-t border-gray-100">
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container ">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-24 items-start">
           {/* --- KOLOM KIRI (Teks) --- */}
           <div className="flex flex-col justify-center h-full">

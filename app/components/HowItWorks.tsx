@@ -40,7 +40,7 @@ export default function HowItWorks() {
 
   return (
     <section className="w-full py-20 bg-[#f9f9f9]">
-      <div className="container mx-auto px-2 md:px-4">
+      <div className="container ">
         {/* Header Section */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl text-gray-900 uppercase tracking-wide mb-4">

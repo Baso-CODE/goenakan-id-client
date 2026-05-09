@@ -171,7 +171,7 @@ export default function Articles() {
 
         {/* Tombol Read More */}
         <div className="flex justify-center">
-          <Link href="/articles">
+          <Link href="/article">
             <Button className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-10 py-6 text-base font-medium">
               Read more
             </Button>

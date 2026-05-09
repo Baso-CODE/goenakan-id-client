@@ -63,7 +63,6 @@ export default function InformationDetailCustomer() {
     } finally {
       setLoading(false);
     }
-    // ✨ Tambahkan status di dependency array
   }, [token, status]);
 
   useEffect(() => {
@@ -95,7 +94,6 @@ export default function InformationDetailCustomer() {
     }
   };
 
-  // ✨ PERBAIKAN LOGIKA REDIRECT ✨
   useEffect(() => {
     if (status === "unauthenticated") {
       router.replace("/login");
@@ -106,7 +104,6 @@ export default function InformationDetailCustomer() {
     return <ProfileSkeleton />;
   }
 
-  // Jika profileData gagal dimuat tapi token ada (misal error API)
   if (!profileData) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4">
@@ -119,13 +116,13 @@ export default function InformationDetailCustomer() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50/50">
+    <main className="min-h-screen bg-gray-50/50 pt-10">
       {/* Header Profile Section */}
-      <section className="pt-32 pb-12 bg-white border-b border-gray-100">
-        <div className="container mx-auto px-4 md:px-8">
+      <section className=" pb-12 bg-white border-b border-gray-100">
+        <div className="container ">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex flex-col md:flex-row items-center gap-6">
-              <Avatar className="h-24 w-24 border-2 border-[#C4A48E]">
+              <Avatar className="h-20 w-20 md:h-24 md:w-24 border-2 border-[#C4A48E]">
                 <AvatarImage
                   src={profileData?.user?.image || undefined}
                   alt={profileData?.user?.name}
@@ -136,7 +133,7 @@ export default function InformationDetailCustomer() {
               </Avatar>
 
               <div className="text-center md:text-left">
-                <h1 className="text-3xl text-gray-900 mb-1">
+                <h1 className="text-2xl md:text-3xl text-gray-900 mb-1">
                   {profileData?.user?.name || "Loading..."}
                 </h1>
                 <p className="text-gray-500 text-sm">
@@ -152,11 +149,10 @@ export default function InformationDetailCustomer() {
               variant="outline"
               onClick={async () => {
                 await signOut({ redirect: false });
-
                 router.replace("/login");
                 router.refresh();
               }}
-              className="rounded-none border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600">
+              className="rounded-none w-full md:w-auto border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600">
               <LogOut className="w-4 h-4 mr-2" /> Logout
             </Button>
           </div>
@@ -164,35 +160,38 @@ export default function InformationDetailCustomer() {
       </section>
 
       {/* Main Content: Tabs */}
-      <section className="py-12">
-        <div className="container mx-auto px-4 md:px-8">
+      <section className="py-8 md:py-12">
+        <div className="container ">
           <Tabs defaultValue="orders" className="w-full">
-            <div className="flex flex-col lg:flex-row gap-8">
-              {/* Sidebar Navigation (TabsList) */}
-              <TabsList className="flex lg:flex-col h-auto bg-transparent border-none lg:w-64 gap-1 lg:items-start p-0">
-                <TabsTrigger
-                  value="orders"
-                  className="w-full justify-start gap-3 py-4 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-none border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black transition-all">
-                  <Package className="h-4 w-4" /> My Orders
-                </TabsTrigger>
-                <TabsTrigger
-                  value="details"
-                  className="w-full justify-start gap-3 py-4 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-none border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black transition-all">
-                  <User className="h-4 w-4" /> Personal Details
-                </TabsTrigger>
-                <TabsTrigger
-                  value="address"
-                  className="w-full justify-start gap-3 py-4 px-4 data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-none border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black transition-all">
-                  <MapPin className="h-4 w-4" /> Addresses
-                </TabsTrigger>
-              </TabsList>
+            <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
+              <div className="w-full overflow-x-auto border-b border-gray-200 lg:border-none lg:w-64 shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <TabsList className="flex flex-row lg:flex-col h-auto bg-transparent border-none w-max lg:w-full gap-2 lg:gap-1 lg:items-start p-0">
+                  <TabsTrigger
+                    value="orders"
+                    className="w-auto lg:w-full justify-center lg:justify-start gap-2 lg:gap-3 py-3 lg:py-4 px-4 lg:px-4 rounded-none border-b-2 lg:border-b-0 lg:border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black data-[state=active]:bg-transparent lg:data-[state=active]:bg-white lg:data-[state=active]:shadow-sm transition-all whitespace-nowrap">
+                    <Package className="h-4 w-4" /> My Orders
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="details"
+                    className="w-auto lg:w-full justify-center lg:justify-start gap-2 lg:gap-3 py-3 lg:py-4 px-4 lg:px-4 rounded-none border-b-2 lg:border-b-0 lg:border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black data-[state=active]:bg-transparent lg:data-[state=active]:bg-white lg:data-[state=active]:shadow-sm transition-all whitespace-nowrap">
+                    <User className="h-4 w-4" /> Personal Details
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="address"
+                    className="w-auto lg:w-full justify-center lg:justify-start gap-2 lg:gap-3 py-3 lg:py-4 px-4 lg:px-4 rounded-none border-b-2 lg:border-b-0 lg:border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black data-[state=active]:bg-transparent lg:data-[state=active]:bg-white lg:data-[state=active]:shadow-sm transition-all whitespace-nowrap">
+                    <MapPin className="h-4 w-4" /> Addresses
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               {/* Content Area */}
-              <div className="grow">
+              <div className="grow min-w-0">
                 {/* --- TAB: ORDERS --- */}
-                <TabsContent value="orders">
+                <TabsContent
+                  value="orders"
+                  className="m-0 focus-visible:outline-none">
                   <Card className="rounded-none border-none shadow-sm">
-                    <CardHeader>
+                    <CardHeader className="px-2 sm:px-6">
                       <CardTitle className="text-xl uppercase tracking-widest">
                         Order History
                       </CardTitle>
@@ -200,23 +199,24 @@ export default function InformationDetailCustomer() {
                         View and track your custom product orders.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <div className="rounded-none border border-gray-100 overflow-hidden">
-                        <Table>
+                    <CardContent className="px-2 sm:px-6">
+                      <div className="rounded-none border border-gray-100 overflow-x-auto">
+                        <Table className="min-w-150">
                           <TableHeader className="bg-gray-50">
                             <TableRow>
-                              <TableHead className="font-bold">
+                              <TableHead className="font-bold whitespace-nowrap">
                                 Order ID
                               </TableHead>
-                              <TableHead className="font-bold">Date</TableHead>
-                              <TableHead className="font-bold">
+                              <TableHead className="font-bold whitespace-nowrap">
+                                Date
+                              </TableHead>
+                              <TableHead className="font-bold whitespace-nowrap">
                                 Status
                               </TableHead>
-                              <TableHead className="text-right font-bold">
+                              <TableHead className="text-right font-bold whitespace-nowrap">
                                 Total
                               </TableHead>
-                              {/* ✨ TAMBAHAN: Kolom Aksi */}
-                              <TableHead className="text-center font-bold">
+                              <TableHead className="text-center font-bold whitespace-nowrap">
                                 Aksi
                               </TableHead>
                             </TableRow>
@@ -225,7 +225,7 @@ export default function InformationDetailCustomer() {
                             {orders.length === 0 ? (
                               <TableRow>
                                 <TableCell
-                                  colSpan={5} // ✨ PERUBAHAN: Ubah colSpan jadi 5 karena ada tambahan kolom
+                                  colSpan={5}
                                   className="text-center py-10 text-stone-400">
                                   Belum ada riwayat pesanan.
                                 </TableCell>
@@ -235,10 +235,10 @@ export default function InformationDetailCustomer() {
                                 <TableRow
                                   key={order.id}
                                   className="hover:bg-gray-50/50 transition-colors">
-                                  <TableCell className="font-bold text-gray-900">
+                                  <TableCell className="font-bold text-gray-900 whitespace-nowrap">
                                     {order.orderNumber}
                                   </TableCell>
-                                  <TableCell className="text-gray-500">
+                                  <TableCell className="text-gray-500 whitespace-nowrap">
                                     {new Date(
                                       order.createdAt,
                                     ).toLocaleDateString("id-ID", {
@@ -247,7 +247,7 @@ export default function InformationDetailCustomer() {
                                       year: "numeric",
                                     })}
                                   </TableCell>
-                                  <TableCell>
+                                  <TableCell className="whitespace-nowrap">
                                     <span
                                       className={`px-2 py-1 text-[10px] uppercase font-bold rounded ${
                                         order.status === "COMPLETED"
@@ -259,19 +259,18 @@ export default function InformationDetailCustomer() {
                                       {order.status.replace("_", " ")}
                                     </span>
                                   </TableCell>
-                                  <TableCell className="text-right font-bold text-gray-900">
+                                  <TableCell className="text-right font-bold text-gray-900 whitespace-nowrap">
                                     Rp{" "}
                                     {Number(order.totalAmount).toLocaleString(
                                       "id-ID",
                                     )}
                                   </TableCell>
-                                  {/* ✨ TAMBAHAN: Tombol Detail yang mengarah ke halaman Order Detail */}
-                                  <TableCell className="text-center">
+                                  <TableCell className="text-center whitespace-nowrap">
                                     <Button
                                       asChild
                                       variant="outline"
                                       size="sm"
-                                      className="text-xs">
+                                      className="text-xs rounded-none">
                                       <Link href={`/profile/order/${order.id}`}>
                                         Lihat Detail
                                       </Link>
@@ -290,9 +289,9 @@ export default function InformationDetailCustomer() {
                 {/* --- TAB: DETAILS --- */}
                 <TabsContent
                   value="details"
-                  className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500 focus-visible:outline-none">
                   <Card className="rounded-none border-none shadow-sm">
-                    <CardHeader>
+                    <CardHeader className="px-2 sm:px-6">
                       <CardTitle className="text-xl uppercase tracking-widest">
                         Personal Details
                       </CardTitle>
@@ -301,7 +300,7 @@ export default function InformationDetailCustomer() {
                         information.
                       </CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="px-2 sm:px-6">
                       <form onSubmit={handleUpdate} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {/* Email Always Read Only (Standard Security) */}
@@ -317,7 +316,6 @@ export default function InformationDetailCustomer() {
                             />
                           </div>
 
-                          {/* Kondisi INDIVIDUAL */}
                           {profileData?.accountType === "INDIVIDUAL" ? (
                             <>
                               <div className="space-y-2">
@@ -342,7 +340,6 @@ export default function InformationDetailCustomer() {
                               </div>
                             </>
                           ) : (
-                            /* Kondisi CORPORATE */
                             <>
                               <div className="space-y-2">
                                 <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
@@ -391,7 +388,7 @@ export default function InformationDetailCustomer() {
                         <Button
                           type="submit"
                           disabled={isUpdating}
-                          className="bg-black text-white rounded-none px-10 py-6 uppercase tracking-widest text-xs font-bold hover:bg-gray-800 transition-all">
+                          className="w-full md:w-auto bg-black text-white rounded-none px-10 py-6 uppercase tracking-widest text-xs font-bold hover:bg-gray-800 transition-all">
                           {isUpdating ? "Updating..." : "Update Profile"}
                         </Button>
                       </form>
@@ -402,7 +399,7 @@ export default function InformationDetailCustomer() {
                 {/* --- TAB: ADDRESSES --- */}
                 <TabsContent
                   value="address"
-                  className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  className="m-0 animate-in fade-in slide-in-from-bottom-4 duration-500 focus-visible:outline-none">
                   <AddressManager />
                 </TabsContent>
               </div>

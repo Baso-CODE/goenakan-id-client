@@ -120,8 +120,15 @@
       "taxNote": "Taxes and shipping calculated at checkout",
       "checkout": "Proceed to Checkout"
     }
-  }
+  },
 
+
+
+    "UnderConstruction": {
+    "title": "Under Construction",
+    "description": "Sorry, this page is currently being crafted by our team to bring you the best experience. Please check back soon!",
+    "backHome": "Return to Homepage"
+  }
 }
 
 

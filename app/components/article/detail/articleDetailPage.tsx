@@ -14,8 +14,8 @@ interface ArticleDetailPageProps {
 
 export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
   return (
-    <div className="min-h-screen bg-white pt-28">
-      <div className="container  mx-auto px-4 md:px-8">
+    <div className="min-h-screen bg-white pt-10">
+      <div className="container">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-stone-600 mb-6 flex-wrap">
           <Link

@@ -2,6 +2,7 @@
 
 import { submitContactMessage } from "@/app/api/contactMessages/submitContactMessage.api";
 import { ContactPayload } from "@/app/types/contactMessage.type";
+import { Link } from "@/i18n/routing";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -211,17 +212,17 @@ export function ContactForm() {
 
           <p className="text-center text-[11px] text-stone-400 mt-1 leading-relaxed">
             By clicking, you agree to our{" "}
-            <a
+            <Link
               href="/terms"
               className="underline hover:text-stone-600 transition-colors">
               Terms & Conditions
-            </a>
+            </Link>
             ,{" "}
-            <a
+            <Link
               href="/privacy"
               className="underline hover:text-stone-600 transition-colors">
               Privacy and Data Protection Policy
-            </a>
+            </Link>
           </p>
         </form>
       </div>

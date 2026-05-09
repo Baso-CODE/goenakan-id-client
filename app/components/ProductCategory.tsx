@@ -16,7 +16,7 @@ export default async function ProductCategory() {
 
   return (
     <section className="w-full py-20 bg-white">
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container ">
         {/* Judul Section */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl text-gray-900 uppercase tracking-wide">

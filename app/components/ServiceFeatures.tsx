@@ -24,7 +24,7 @@ export default function ServiceFeatures() {
 
   return (
     <section className="w-full py-32 bg-[#1E1E1E] border-b border-gray-100 ">
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container ">
         {/* --- HEADER SECTION --- */}
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl text-white leading-tight mb-6">

@@ -11,7 +11,7 @@ export default function WhoWeAre() {
 
   return (
     <section className="w-full py-20 bg-white text-gray-900">
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container ">
         {/* Grid Container: 12 Kolom untuk Desktop */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
           {/* --- KOLOM KIRI (Gambar Tinggi) --- */}

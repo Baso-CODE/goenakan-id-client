@@ -31,7 +31,7 @@ export default async function Portfolio() {
         </div>
 
         {/* Tulisan OUR PORTFOLIO */}
-        <div className="absolute inset-0 container mx-auto px-4 md:px-8 flex items-center justify-end">
+        <div className="absolute inset-0 container  flex items-center justify-end">
           <h2 className="text-4xl md:text-7xl text-white tracking-widest uppercase text-right leading-tight">
             Our <br className="hidden md:block" /> Portfolio
           </h2>
@@ -39,7 +39,7 @@ export default async function Portfolio() {
       </div>
 
       {/* --- BAGIAN BAWAH: Carousel Card atau Empty State --- */}
-      <div className="container mx-auto px-8 md:px-12 relative">
+      <div className="container relative">
         {portfolios.length > 0 ? (
           <Carousel
             opts={{

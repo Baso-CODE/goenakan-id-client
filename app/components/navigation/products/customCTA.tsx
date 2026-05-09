@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Link } from "@/i18n/routing";
 
 interface CustomCTAProps {
   title?: string;
@@ -32,13 +33,13 @@ export function CustomCTA({
 
         {/* Button */}
         {href ? (
-          <a href={href}>
+          <Link href={href}>
             <Button
               variant="outline"
               className="mt-1 bg-transparent border border-white text-white text-sm px-8 py-2 h-10 rounded-sm hover:bg-white hover:text-[#3d342b] transition-colors duration-200">
               {buttonText}
             </Button>
-          </a>
+          </Link>
         ) : (
           <Button
             variant="outline"

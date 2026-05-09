@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useRouter } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
-import { Loader2, MapPin, X } from "lucide-react";
+import { Loader2, Lock, MapPin, ShieldCheck, X } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Script from "next/script";
@@ -245,7 +245,7 @@ export default function CheckoutPage() {
       />
 
       <div className="min-h-screen bg-stone-50 pt-24 pb-16">
-        <div className="container mx-auto px-4 sm:px-6">
+        <div className="container ">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8 items-start">
             {/* ── Left Side ── */}
             <div className="flex flex-col gap-8">
@@ -364,33 +364,240 @@ export default function CheckoutPage() {
                   </div>
                 )}
               </div>
-
               <Separator />
 
               {/* Payment Info */}
               <div className="flex flex-col gap-3">
-                <h2 className="text-sm font-bold uppercase tracking-widest text-stone-800">
-                  Payment
-                </h2>
-                <div className="border border-stone-300 rounded-none bg-white p-4 flex items-center justify-between">
-                  <div className="flex flex-col gap-0.5">
-                    <p className="text-xs font-bold text-stone-700 uppercase">
-                      Midtrans Secure Payment
-                    </p>
-                    <p className="text-[10px] text-stone-400">
-                      VA, QRIS, E-Wallet, Credit Card
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-bold uppercase tracking-widest text-stone-800">
+                    Payment Method
+                  </h2>
+                  <div className="flex items-center gap-1 text-[10px] text-green-600 font-bold uppercase tracking-tighter">
+                    <ShieldCheck className="w-3 h-3" />
+                    Secure Payment
+                  </div>
+                </div>
+
+                <div className="border border-stone-200 rounded-none bg-white overflow-hidden">
+                  {/* Header Info */}
+                  <div className="bg-stone-50 p-4 border-b border-stone-100 flex items-center justify-between">
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-xs font-bold text-stone-700">
+                        Midtrans Payment Gateway
+                      </p>
+                      <p className="text-[10px] text-stone-500 uppercase tracking-tight flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Encrypted & Secured
+                      </p>
+                    </div>
+                    <Image
+                      src="/images/midtrans-payment.png" // Pastikan logo ini ada di folder public
+                      alt="Midtrans"
+                      width={70}
+                      height={18}
+                      className="object-contain  transition-all"
+                    />
+                  </div>
+
+                  {/* Payment Logos Grid */}
+                  <div className="p-4 space-y-5">
+                    {/* Category: E-Wallet & QRIS */}
+                    <div className="space-y-3">
+                      <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
+                        QRIS & E-Wallet
+                      </p>
+                      <div className="flex flex-wrap gap-2 items-center  transition-all duration-300">
+                        <div className="relative h-12 w-30">
+                          <Image
+                            src="/images/payment/qris.png"
+                            alt="QRIS"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-12 w-20">
+                          <Image
+                            src="/images/payment/gopay_landscape.png"
+                            alt="GoPay"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-4 w-20">
+                          <Image
+                            src="/images/payment/shopeepay.png"
+                            alt="ShopeePay"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        {/* <div className="relative h-4 w-14">
+                          <Image
+                            src="/images/payment/ovo.png"
+                            alt="OVO"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-5 w-12">
+                          <Image
+                            src="/images/payment/dana.png"
+                            alt="DANA"
+                            fill
+                            className="object-contain"
+                          />
+                        </div> */}
+                      </div>
+                    </div>
+
+                    {/* Category: Virtual Accounts */}
+                    <div className="space-y-3">
+                      <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
+                        Virtual Account (VA)
+                      </p>
+                      <div className="flex flex-wrap gap-3 items-center   transition-all duration-300">
+                        <div className="relative h-4 w-12">
+                          <Image
+                            src="/images/payment/bca.png"
+                            alt="BCA"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-5 w-16">
+                          <Image
+                            src="/images/payment/mandiri.png"
+                            alt="Mandiri"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-4 w-12">
+                          <Image
+                            src="/images/payment/bni.png"
+                            alt="BNI"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-4 w-12">
+                          <Image
+                            src="/images/payment/bri.png"
+                            alt="BRI"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-6 w-24">
+                          <Image
+                            src="/images/payment/permata_bank.png"
+                            alt="Permata"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-8 w-24">
+                          <Image
+                            src="/images/payment/cimbniaga.png"
+                            alt="Cimb Niaga"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-8 w-24">
+                          <Image
+                            src="/images/payment/maybank.png"
+                            alt="May Bank"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-8 w-24">
+                          <Image
+                            src="/images/payment/bank_mega.png"
+                            alt="Bank Mega"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Category: Cards */}
+                    <div className="space-y-3">
+                      <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
+                        Credit / Debit Card
+                      </p>
+                      <div className="flex flex-wrap gap-5 items-center  transition-all duration-300">
+                        <div className="relative h-5 w-10">
+                          <Image
+                            src="/images/payment/visa.png"
+                            alt="Visa"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-5 w-10">
+                          <Image
+                            src="/images/payment/mastercard.png"
+                            alt="Mastercard"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-5 w-10">
+                          <Image
+                            src="/images/payment/jcb.png"
+                            alt="JCB"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-5 w-16">
+                          <Image
+                            src="/images/payment/american_express.png"
+                            alt="Amex"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Category: Convenience Store (Opsional) */}
+                    <div className="space-y-3">
+                      <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
+                        Convenience Store
+                      </p>
+                      <div className="flex flex-wrap gap-5 items-center  transition-all duration-300">
+                        <div className="relative h-5 w-14">
+                          <Image
+                            src="/images/payment/alfamart.png"
+                            alt="Alfamart"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                        <div className="relative h-5 w-14">
+                          <Image
+                            src="/images/payment/indomaret.png"
+                            alt="Indomaret"
+                            fill
+                            className="object-contain"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Protection */}
+                  <div className="bg-stone-50 p-3 text-center border-t border-stone-100">
+                    <p className="text-[9px] text-stone-400 leading-relaxed italic">
+                      Anda akan diarahkan ke halaman pembayaran aman Midtrans
+                      untuk menyelesaikan transaksi.
                     </p>
                   </div>
-                  <Image
-                    src="/images/midtrans-logo.png"
-                    alt="Midtrans"
-                    width={80}
-                    height={20}
-                    className="object-contain opacity-70"
-                  />
                 </div>
               </div>
-
               <Button
                 variant="link"
                 asChild

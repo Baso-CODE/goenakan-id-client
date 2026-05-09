@@ -32,7 +32,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-white pt-28">
+    <div className="min-h-screen bg-white ">
       <ProductDetailPage product={product} />
       <RelatedProducts products={relatedProducts} title="You Might Also Like" />
 

@@ -33,7 +33,7 @@ export function PlanningLargerOrder({
       </div>
 
       {/* Right — Content */}
-      <div className="flex flex-col justify-center px-12 py-16 bg-white">
+      <div className="flex flex-col justify-center px-4 md:px-12 py-16 bg-white">
         <div className="max-w-md">
           <h2 className="font-serif text-2xl md:text-3xl text-stone-900 leading-tight mb-6">
             {t("heading")}

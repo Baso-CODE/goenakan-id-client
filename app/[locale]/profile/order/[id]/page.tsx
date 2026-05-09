@@ -2,6 +2,7 @@
 
 import PayNowButton from "@/app/components/checkout/payNowButton";
 import { apiUrl } from "@/app/utils/ApiUrl";
+import { Link } from "@/i18n/routing";
 import {
   ArrowLeft,
   Calendar,
@@ -15,7 +16,6 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -119,7 +119,6 @@ export default function OrderDetailPage() {
   const token = session?.user?.accessToken;
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
-  console.log(" ini adalah order detail", order);
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -172,7 +171,7 @@ export default function OrderDetailPage() {
       : order.shippingAddress;
 
   return (
-    <div className="min-h-screen bg-stone-50 pt-32 pb-16 ">
+    <div className="min-h-screen bg-stone-50 pt-10 ">
       <div className="container space-y-6">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

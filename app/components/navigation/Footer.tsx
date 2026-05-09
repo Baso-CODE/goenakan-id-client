@@ -20,7 +20,7 @@ export default function Footer() {
   }, []);
   return (
     <footer className="w-full bg-[#1c1c1c] text-white pt-16 pb-8 border-t border-gray-800">
-      <div className="container mx-auto px-4 md:px-8">
+      <div className="container ">
         {/* GRID UTAMA: 4 KOLOM */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 mb-16">
           {/* --- KOLOM 1: BRAND INFO (Lebih lebar, ambil 4 kolom) --- */}
