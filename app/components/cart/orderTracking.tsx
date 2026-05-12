@@ -18,12 +18,7 @@ export function OrderTracking() {
   };
 
   if (result) {
-    return (
-      <OrderTrackingResult
-        {...result}
-        onClose={() => setResult(null)} // tombol X kembali ke form
-      />
-    );
+    return <OrderTrackingResult {...result} onClose={() => setResult(null)} />;
   }
 
   return (
