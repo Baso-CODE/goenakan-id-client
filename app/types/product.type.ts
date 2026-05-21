@@ -1,3 +1,5 @@
+// src/app/types/product.type.ts
+
 export interface Product {
   id: string;
   name: string;
@@ -8,21 +10,29 @@ export interface Product {
   slug: string;
   image: string;
   category: string;
-  color: string;
-  size: string;
   availability: "in_stock" | "out_of_stock";
 }
 
 export interface FilterState {
   category: string;
-  color: string;
-  size: string;
-  price: string;
+  minPrice: string;
+  maxPrice: string;
   availability: string;
   sort: string;
+  // ✨ PERBAIKAN: Menampung atribut apapun secara dinamis
+  attributes: Record<string, string>;
 }
 
 export interface FilterOption {
   label: string;
   value: string;
+}
+
+export interface DynamicFilterOptions {
+  categories: FilterOption[];
+  // ✨ PERBAIKAN: Array of object yang berisi nama atribut & opsinya
+  attributes: {
+    name: string;
+    options: FilterOption[];
+  }[];
 }

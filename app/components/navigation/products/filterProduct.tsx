@@ -1,7 +1,14 @@
 "use client";
 
-import { getFilteredProductsAPI } from "@/app/api/products/getFilteredProduct.api";
-import { FilterState, Product } from "@/app/types/product.type";
+import {
+  getFilteredProductsAPI,
+  getFilterOptionsAPI,
+} from "@/app/api/products/getFilteredProduct.api";
+import {
+  DynamicFilterOptions,
+  FilterState,
+  Product,
+} from "@/app/types/product.type";
 import { useEffect, useState } from "react";
 import { FilterBar } from "./Filterbar";
 import { LoadMoreButton } from "./Loadmorebutton";
@@ -10,23 +17,34 @@ import { ProductGrid } from "./Productgrid";
 
 const DEFAULT_FILTERS: FilterState = {
   category: "all",
-  color: "all",
-  size: "all",
-  price: "all",
+  minPrice: "",
+  maxPrice: "",
   availability: "all",
   sort: "best_selling",
+  attributes: {},
 };
-
 export default function FilterProduct() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [products, setProducts] = useState<Product[]>([]);
+
+  const [filterOptions, setFilterOptions] = useState<DynamicFilterOptions>({
+    categories: [],
+    attributes: [], // ✨ State untuk atribut
+  });
 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Fetch data whenever filters change
+  useEffect(() => {
+    const fetchOptions = async () => {
+      const options = await getFilterOptionsAPI();
+      setFilterOptions(options);
+    };
+    fetchOptions();
+  }, []);
+
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsLoading(true);
@@ -40,15 +58,25 @@ export default function FilterProduct() {
     fetchInitialData();
   }, [filters]);
 
-  const handleFilterChange = (key: keyof FilterState, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  // ✨ TYPE AMAN: Tidak ada any lagi!
+  const handleFilterChange = (
+    keyOrObj: keyof FilterState | Partial<FilterState>,
+    value?: string,
+  ) => {
+    if (typeof keyOrObj === "object") {
+      setFilters((prev) => ({ ...prev, ...keyOrObj }));
+    } else {
+      setFilters((prev) => ({
+        ...prev,
+        [keyOrObj as keyof FilterState]: value || "",
+      }));
+    }
   };
 
   const handleLoadMore = async () => {
     setIsLoadingMore(true);
     const nextPage = page + 1;
     const result = await getFilteredProductsAPI(filters, nextPage);
-
     setProducts((prev) => [...prev, ...result.data]);
     setHasMore(result.meta.hasNext);
     setPage(nextPage);
@@ -57,15 +85,16 @@ export default function FilterProduct() {
 
   return (
     <div className="min-h-screen bg-stone-50 font-sans">
-      <PageHeader title="Our Product" brand="Bamboo" />
-
+      <PageHeader title="Our Product" />
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-7">
-          <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+          <FilterBar
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            dynamicOptions={filterOptions}
+          />
         </div>
-
         <ProductGrid products={products} isLoading={isLoading} />
-
         {!isLoading && (
           <LoadMoreButton
             onClick={handleLoadMore}

@@ -16,11 +16,7 @@ export function PageHeader({ title, brand, className }: PageHeaderProps) {
       <h1 className="text-white font-bold text-lg tracking-widest uppercase">
         {title}
       </h1>
-      {brand && (
-        <span className="text-white font-serif text-2xl tracking-wide">
-          {brand}
-        </span>
-      )}
+      ÷
     </header>
   );
 }
