@@ -1,3 +1,6 @@
+import { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+
 import Articles from "../components/Articles";
 import BestSeller from "../components/BestSeller";
 import Faq from "../components/Faq";
@@ -12,7 +15,28 @@ import ServiceFeatures from "../components/ServiceFeatures";
 import Testimonials from "../components/Testimonials";
 import WhoWeAre from "../components/WhoWeAre";
 
-export default function Home() {
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+// ✨ 3. Generate Metadata Dinamis
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+
+  const t = await getTranslations({ locale, namespace: "Metadata" });
+
+  return {
+    title: t("homeTitle"),
+    description: t("homeDescription"),
+    openGraph: {
+      title: t("homeTitle"),
+      description: t("homeDescription"),
+      type: "website",
+    },
+  };
+}
+
+export default async function Home() {
   return (
     <>
       <Hero />

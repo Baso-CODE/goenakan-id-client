@@ -1,4 +1,27 @@
 {
+
+  "Metadata": {
+    "homeTitle": "Custom Merchandise & Souvenir | Goenakan Indonesia",
+    "homeDescription": "Goenakan Indonesia is a custom product specialist. We turn your great ideas into tangible, high-quality products.",
+    "productsTitle": "Our Products | Goenakan Indonesia",
+    "productsDescription": "Explore our wide range of custom merchandise, souvenirs, and corporate gifts. Find the perfect product for your brand or event.",
+    "checkoutTitle": "Checkout | Goenakan Indonesia",
+    "checkoutDescription": "Complete your order securely at Goenakan Indonesia. Review your custom products and finalize your purchase.",
+    "loginTitle": "Sign In | Goenakan Indonesia",
+    "loginDescription": "Sign in to your Goenakan Indonesia account to track your orders and manage your custom merchandise.",
+    "cartTitle": "Your Cart | Goenakan Indonesia",
+    "cartDescription": "Review the custom products in your cart before proceeding to checkout securely.",
+    "registerTitle": "Create an Account | Goenakan Indonesia",
+    "registerDescription": "Create an account at Goenakan Indonesia to start designing and ordering your custom merchandise and souvenirs.",
+    "faqTitle": "FAQ | Goenakan Indonesia",
+    "faqDescription": "Find answers to frequently asked questions about our custom merchandise, ordering process, and shipping at Goenakan Indonesia.",
+    "contactTitle": "Contact Us | Goenakan Indonesia",
+    "contactDescription": "Get in touch with Goenakan Indonesia. We're here to help you create the best custom merchandise and souvenirs for your brand.",
+    "articleTitle": "Articles & Blog | Goenakan Indonesia",
+    "articleDescription": "Read the latest articles, tips, and insights about custom merchandise, souvenirs, and corporate gifts from Goenakan Indonesia.",
+    "aboutTitle": "About Us | Goenakan Indonesia",
+    "aboutDescription": "Learn more about Goenakan Indonesia, our history, core values, and the beloved clients we've worked with."
+  },
   "WhoWeAre": {
     "subtitle": "Who We Are",
     "title": "Every product starts with a great idea. Let's build yours!",

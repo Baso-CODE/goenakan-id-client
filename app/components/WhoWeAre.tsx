@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 export default function WhoWeAre() {
-  // ✨ 2. Inisialisasi translation dengan mengarahkan ke object "WhoWeAre" di JSON
   const t = useTranslations("WhoWeAre");
 
   return (

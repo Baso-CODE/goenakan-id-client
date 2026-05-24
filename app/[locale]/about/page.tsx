@@ -1,4 +1,5 @@
 "use client";
+
 import { getBrandClients } from "@/app/api/client-logos/getBrandClient.api";
 import { BrandClient } from "@/app/types/brandClient.type";
 import { useEffect, useState } from "react";
@@ -7,7 +8,7 @@ import { BelovedClients } from "../../components/about/belovedClients";
 import { CoreValues } from "../../components/about/coreValues";
 import { ShortStorySection } from "../../components/about/shortStorySection";
 
-export default function AboutPage() {
+export default function AboutPageClient() {
   const [clients, setClients] = useState<BrandClient[]>([]);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function AboutPage() {
 
     fetchData();
   }, []);
+
   return (
     <>
       <AboutUsTimeline />
