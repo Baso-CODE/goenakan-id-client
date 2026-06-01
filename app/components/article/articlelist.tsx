@@ -125,7 +125,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
   };
 
   return (
-    <section className="w-full container ">
+    <section className="w-full container py-12 ">
       <div className="flex items-center justify-between mb-6 border-b border-stone-200 pb-3">
         {/* Categories */}
         <div className="flex items-center gap-5 flex-wrap">

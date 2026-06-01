@@ -1,5 +1,3 @@
-// src/app/types/productDetail.type.ts (Sesuaikan path-nya)
-
 export type MediaType = "image" | "video";
 
 export interface MediaItem {
@@ -13,25 +11,6 @@ export interface AttributeDisplay {
   value: string;
 }
 
-export interface ProductVariantDisplay {
-  id: string;
-  name: string;
-  sku: string;
-  price: number | null;
-  images: MediaItem[];
-  attributes: AttributeDisplay[];
-
-  // Angka mentah untuk Payload Cart
-  rawWeight: number | null;
-  width: number | null;
-  height: number | null;
-  length: number | null;
-
-  // String siap pakai untuk UI
-  weightString: string;
-  dimensionsString: string;
-}
-
 export interface PriceTier {
   label: string;
   subtitle?: string;
@@ -41,9 +20,28 @@ export interface PriceTier {
   badge?: string;
 }
 
+export interface ProductVariantDisplay {
+  id: string;
+  name: string;
+  sku: string;
+  price: number | null;
+  images: MediaItem[];
+  attributes: AttributeDisplay[];
+
+  priceTiers?: PriceTier[];
+
+  rawWeight: number | null;
+  width: number | null;
+  height: number | null;
+  length: number | null;
+
+  weightString: string;
+  dimensionsString: string;
+}
+
 export interface ProductDetail {
   id: string;
-  sku: string; // Tambahan SKU Induk
+  sku: string;
   category: string;
   name: string;
   sold: number;

@@ -145,20 +145,6 @@ export default function Footer() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
                   <Link
-                    href="/categories"
-                    className="hover:text-white transition-colors">
-                    Product category
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/details"
-                    className="hover:text-white transition-colors">
-                    Product detail
-                  </Link>
-                </li>
-                <li>
-                  <Link
                     href="/faq"
                     className="hover:text-white transition-colors">
                     FAQ
@@ -175,7 +161,7 @@ export default function Footer() {
                   <Link
                     href="/cookies"
                     className="hover:text-white transition-colors">
-                    Cookies
+                    Best Price Guarantee
                   </Link>
                 </li>
               </ul>

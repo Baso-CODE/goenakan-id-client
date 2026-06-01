@@ -15,21 +15,25 @@ import { LoadMoreButton } from "./Loadmorebutton";
 import { PageHeader } from "./Pageheader";
 import { ProductGrid } from "./Productgrid";
 
+// ✨ Tambahkan inisialisasi awal untuk anak dan cucu kategori
 const DEFAULT_FILTERS: FilterState = {
   category: "all",
+  itemCategory: "all",
+  itemName: "all",
   minPrice: "",
   maxPrice: "",
   availability: "all",
   sort: "best_selling",
   attributes: {},
 };
+
 export default function FilterProduct() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [products, setProducts] = useState<Product[]>([]);
 
   const [filterOptions, setFilterOptions] = useState<DynamicFilterOptions>({
     categories: [],
-    attributes: [], // ✨ State untuk atribut
+    attributes: [],
   });
 
   const [page, setPage] = useState(1);
@@ -58,7 +62,6 @@ export default function FilterProduct() {
     fetchInitialData();
   }, [filters]);
 
-  // ✨ TYPE AMAN: Tidak ada any lagi!
   const handleFilterChange = (
     keyOrObj: keyof FilterState | Partial<FilterState>,
     value?: string,
@@ -66,10 +69,25 @@ export default function FilterProduct() {
     if (typeof keyOrObj === "object") {
       setFilters((prev) => ({ ...prev, ...keyOrObj }));
     } else {
-      setFilters((prev) => ({
-        ...prev,
-        [keyOrObj as keyof FilterState]: value || "",
-      }));
+      setFilters((prev) => {
+        const newState = {
+          ...prev,
+          [keyOrObj as keyof FilterState]: value || "",
+        };
+
+        // ✨ LOGIKA RESET CASCADING:
+        // Jika Category (Induk) diganti, reset anak dan cucunya
+        if (keyOrObj === "category") {
+          newState.itemCategory = "all";
+          newState.itemName = "all";
+        }
+        // Jika Item Category (Anak) diganti, reset cucunya
+        if (keyOrObj === "itemCategory") {
+          newState.itemName = "all";
+        }
+
+        return newState;
+      });
     }
   };
 

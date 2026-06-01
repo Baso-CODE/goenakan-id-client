@@ -12,10 +12,9 @@ export const getCategoryList = async (): Promise<CategoryPublic[]> => {
     }
 
     const result = await res.json();
-    // Mengembalikan data (asumsi struktur response API adalah { data: [...] })
     return result.data || result;
   } catch (error) {
     console.error("Error fetching categories:", error);
-    return []; // Kembalikan array kosong jika terjadi error
+    return [];
   }
 };

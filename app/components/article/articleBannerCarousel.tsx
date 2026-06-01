@@ -98,9 +98,8 @@ export function ArticleBannerCarousel({
 function ArticleBannerSlide({ article }: { article: ArticleBanner }) {
   return (
     <div
-      className="grid grid-cols-1 md:grid-cols-2 w-full pt-24"
-      style={{ minHeight: 620 }}>
-      {/* Left — Text */}
+      className="grid grid-cols-1 md:grid-cols-2 w-full "
+      style={{ minHeight: 420 }}>
       <div
         className="flex flex-col justify-center px-10 py-10 gap-4"
         style={{ backgroundColor: article.backgroundColor || "#3d342b" }}>
@@ -110,7 +109,7 @@ function ArticleBannerSlide({ article }: { article: ArticleBanner }) {
           </span>
         )}
 
-        <h2 className="text-white text-3xl md:text-5xl font-light leading-snug">
+        <h2 className="text-white text-2xl md:text-4xl font-light leading-snug">
           {article.title}
         </h2>
 

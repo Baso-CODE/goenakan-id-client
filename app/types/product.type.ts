@@ -11,15 +11,21 @@ export interface Product {
   image: string;
   category: string;
   availability: "in_stock" | "out_of_stock";
+  // ✨ OPSIONAL: Jika kamu butuh menampilkan nama turunannya di UI card produk
+  itemCategoryName?: string | null;
+  itemNameString?: string | null;
 }
 
 export interface FilterState {
   category: string;
+  // ✨ TAMBAHAN BARU: Menampung nilai filter untuk anak dan cucu kategori
+  itemCategory?: string;
+  itemName?: string;
+
   minPrice: string;
   maxPrice: string;
   availability: string;
   sort: string;
-  // ✨ PERBAIKAN: Menampung atribut apapun secara dinamis
   attributes: Record<string, string>;
 }
 
@@ -28,9 +34,27 @@ export interface FilterOption {
   value: string;
 }
 
+// ==========================================
+// ✨ INTERFACE BARU: Struktur Hierarki Kategori
+// ==========================================
+export interface ItemNameOption extends FilterOption {
+  id: string;
+}
+
+export interface ItemCategoryOption extends FilterOption {
+  id: string;
+  itemNames: ItemNameOption[];
+}
+
+export interface CategoryOption extends FilterOption {
+  id: string;
+  itemCategories: ItemCategoryOption[];
+}
+// ==========================================
+
 export interface DynamicFilterOptions {
-  categories: FilterOption[];
-  // ✨ PERBAIKAN: Array of object yang berisi nama atribut & opsinya
+  // ✨ PERBAIKAN: Menggunakan interface CategoryOption agar mendeteksi anak-anaknya (itemCategories & itemNames)
+  categories: CategoryOption[];
   attributes: {
     name: string;
     options: FilterOption[];

@@ -56,11 +56,34 @@ export function FilterBar({
   onFilterChange,
   dynamicOptions,
 }: FilterBarProps) {
+  // ✨ LOGIKA BERJENJANG UNTUK KATEGORI
+  // 1. Ambil list Parent Category
   const categoryOptions = [
     { label: "All Categories", value: "all" },
     ...(dynamicOptions.categories || []),
   ];
 
+  // 2. Cari objek kategori yang sedang dipilih untuk mengambil anak-anaknya (Item Categories)
+  const selectedCategoryObj = dynamicOptions.categories?.find(
+    (c) => c.value === filters.category,
+  );
+
+  const itemCategoryOptions = [
+    { label: "All Item Categories", value: "all" },
+    ...(selectedCategoryObj?.itemCategories || []),
+  ];
+
+  // 3. Cari objek item category yang sedang dipilih untuk mengambil cucu-cucunya (Item Names)
+  const selectedItemCategoryObj = selectedCategoryObj?.itemCategories?.find(
+    (ic) => ic.value === filters.itemCategory,
+  );
+
+  const itemNameOptions = [
+    { label: "All Item Names", value: "all" },
+    ...(selectedItemCategoryObj?.itemNames || []),
+  ];
+
+  // LOGIKA HARGA
   const [localMin, setLocalMin] = useState(filters.minPrice || "");
   const [localMax, setLocalMax] = useState(filters.maxPrice || "");
 
@@ -113,7 +136,7 @@ export function FilterBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {/* 1. FILTER CATEGORY */}
+      {/* 1. FILTER CATEGORY (Parent) */}
       <FilterSelect
         label="Category"
         options={categoryOptions}
@@ -121,7 +144,25 @@ export function FilterBar({
         onChange={(val) => onFilterChange("category", val)}
       />
 
-      {/* ✨ 2. FILTER ATRIBUT DINAMIS (Warna, Ukuran, dll otomatis dirender dari database) */}
+      {/* ✨ 1.B. FILTER ITEM CATEGORY (Child) */}
+      <FilterSelect
+        label="Item Category"
+        options={itemCategoryOptions}
+        value={filters.itemCategory || "all"}
+        onChange={(val) => onFilterChange("itemCategory", val)}
+        disabled={filters.category === "all"} // Disable jika parent belum dipilih
+      />
+
+      {/* ✨ 1.C. FILTER ITEM NAME (Grandchild) */}
+      <FilterSelect
+        label="Item Name"
+        options={itemNameOptions}
+        value={filters.itemName || "all"}
+        onChange={(val) => onFilterChange("itemName", val)}
+        disabled={filters.itemCategory === "all" || filters.category === "all"} // Disable jika parent/grandparent belum dipilih
+      />
+
+      {/* ✨ 2. FILTER ATRIBUT DINAMIS (Warna, Ukuran, dll) - SEMENTARA DI-COMMENT
       {dynamicOptions.attributes?.map((attr) => (
         <FilterSelect
           key={attr.name}
@@ -141,6 +182,7 @@ export function FilterBar({
           }}
         />
       ))}
+      */}
 
       {/* 3. FILTER HARGA (Custom + Quick Select) */}
       <Popover>
@@ -249,16 +291,18 @@ function FilterSelect({
   options,
   value,
   onChange,
+  disabled, // ✨ Tambah properti disabled
 }: {
   label: string;
   options: FilterOption[];
   value: string;
   onChange: (val: string) => void;
+  disabled?: boolean;
 }) {
   const selectedLabel = options.find((o) => o.value === value)?.label ?? value;
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 border border-stone-300 rounded-sm bg-white hover:bg-stone-50 text-xs text-stone-700 gap-1.5 px-3 min-w-fit focus:ring-1 focus:ring-stone-400 focus:ring-offset-0">
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger className="h-9 border border-stone-300 rounded-sm bg-white hover:bg-stone-50 text-xs text-stone-700 gap-1.5 px-3 min-w-fit focus:ring-1 focus:ring-stone-400 focus:ring-offset-0 disabled:opacity-50 disabled:cursor-not-allowed">
         <span className="text-stone-400 font-normal">{label}:</span>
         <SelectValue>
           <span className="font-medium text-stone-700 uppercase tracking-wide text-[11px]">

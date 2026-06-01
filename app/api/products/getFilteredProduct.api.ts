@@ -12,15 +12,29 @@ export async function getFilteredProductsAPI(
     });
 
     if (filters.category && filters.category !== "all") {
-      params.append("categoryId", filters.category);
+      params.append("category", filters.category);
     }
+
+    // ✨ 2. Filter Item Category (Anak)
+    if (filters.itemCategory && filters.itemCategory !== "all") {
+      params.append("itemCategory", filters.itemCategory);
+    }
+
+    // ✨ 3. Filter Item Name (Cucu)
+    if (filters.itemName && filters.itemName !== "all") {
+      params.append("itemName", filters.itemName);
+    }
+
     if (filters.minPrice) params.append("minPrice", filters.minPrice);
     if (filters.maxPrice) params.append("maxPrice", filters.maxPrice);
-    if (filters.availability && filters.availability !== "all")
+
+    if (filters.availability && filters.availability !== "all") {
       params.append("availability", filters.availability);
+    }
+
     if (filters.sort) params.append("sort", filters.sort);
 
-    // ✨ UBAH JSON ATTRIBUTES KE STRING LALU KIRIM
+    // ✨ 4. UBAH JSON ATTRIBUTES KE STRING LALU KIRIM
     if (filters.attributes && Object.keys(filters.attributes).length > 0) {
       params.append("attributes", JSON.stringify(filters.attributes));
     }
@@ -33,7 +47,6 @@ export async function getFilteredProductsAPI(
     return { data: [], meta: { hasNext: false } };
   }
 }
-// ... fungsi getFilterOptionsAPI di bawahnya biarkan saja
 
 export async function getFilterOptionsAPI() {
   try {
@@ -44,6 +57,7 @@ export async function getFilterOptionsAPI() {
     return result.data || result;
   } catch (error) {
     console.error("Fetch filter options error:", error);
-    return { categories: [], colors: [], sizes: [] };
+    // ✨ Ubah fallback return agar sesuai dengan tipe data baru
+    return { categories: [], attributes: [] };
   }
 }

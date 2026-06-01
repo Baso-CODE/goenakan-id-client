@@ -1,22 +1,14 @@
 "use client";
 
 import { submitContactMessage } from "@/app/api/contactMessages/submitContactMessage.api";
+import { getCategoryList } from "@/app/api/products/getCategoryProductList.api";
+import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { ContactPayload } from "@/app/types/contactMessage.type";
 import { Link } from "@/i18n/routing";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const WHATSAPP_NUMBER = "6282387902238";
-
-const INTEREST_OPTIONS = [
-  "Custom Tumbler",
-  "Custom Pen",
-  "Custom Tote Bag",
-  "Custom Notebook",
-  "Merchandise Perusahaan",
-  "Souvenir Event",
-  "Lainnya",
-];
 
 export function ContactForm() {
   const [form, setForm] = useState<ContactPayload>({
@@ -27,7 +19,30 @@ export function ContactForm() {
     message: "",
   });
 
+  // Menyimpan Nama Kategori yang dipilih (agar mudah dikirim ke WA/DB)
+  const [productCategoryName, setProductCategoryName] = useState("");
+  const [itemCategoryName, setItemCategoryName] = useState("");
+
+  const [categories, setCategories] = useState<CategoryPublic[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ✨ Fetch SEMUA kategori beserta item-nya dalam sekali tarik
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await getCategoryList();
+        setCategories(data);
+      } catch (error) {
+        console.error("Failed to load categories", error);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // ✨ Logika Pintar: Ambil item categories berdasarkan product category yang sedang aktif
+  const activeItemCategories =
+    categories.find((cat) => cat.name === productCategoryName)
+      ?.itemCategories || [];
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -43,8 +58,11 @@ export function ContactForm() {
 
     const toastId = toast.loading("Sedang mengirim pesan...");
 
+    const selectedInterest = `${productCategoryName} - ${itemCategoryName}`;
+    const payload = { ...form, interest: selectedInterest };
+
     try {
-      const isSuccess = await submitContactMessage(form);
+      const isSuccess = await submitContactMessage(payload);
 
       if (!isSuccess) {
         toast.error("Gagal mengirim pesan ke sistem. Silakan coba lagi.", {
@@ -53,7 +71,6 @@ export function ContactForm() {
         return;
       }
 
-      // ✨ Berhasil Simpan ke Database
       toast.success("Pesan berhasil terkirim ke sistem!", { id: toastId });
 
       const text = [
@@ -62,13 +79,13 @@ export function ContactForm() {
         `*Nama:* ${form.name}`,
         `*Email:* ${form.email}`,
         `*No. HP/WhatsApp:* ${form.phone}`,
-        `*Tertarik dengan:* ${form.interest || "-"}`,
+        `*Kategori Produk:* ${productCategoryName || "-"}`,
+        `*Kategori Item:* ${itemCategoryName || "-"}`,
         ``,
         `*Pesan:*`,
         form.message,
       ].join("\n");
 
-      // Buka WhatsApp
       const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
       window.open(url, "_blank");
 
@@ -80,6 +97,8 @@ export function ContactForm() {
         interest: "",
         message: "",
       });
+      setProductCategoryName("");
+      setItemCategoryName("");
     } catch (error) {
       console.error(error);
       toast.error("Terjadi kesalahan koneksi server.", { id: toastId });
@@ -107,7 +126,7 @@ export function ContactForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="relative">
               <input
                 type="text"
@@ -138,9 +157,6 @@ export function ContactForm() {
                 *
               </span>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="relative">
               <input
                 type="tel"
@@ -156,19 +172,51 @@ export function ContactForm() {
                 *
               </span>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div className="relative">
               <select
-                name="interest"
-                value={form.interest}
-                onChange={handleChange}
+                value={productCategoryName}
+                onChange={(e) => {
+                  setProductCategoryName(e.target.value);
+                  setItemCategoryName("");
+                }}
                 disabled={isSubmitting}
                 className={`${inputClass} appearance-none cursor-pointer`}>
                 <option value="" disabled>
-                  Interested in
+                  Select Product Category
                 </option>
-                {INTEREST_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.name}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <svg
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-stone-400"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </div>
+            <div className="relative">
+              <select
+                value={itemCategoryName}
+                onChange={(e) => setItemCategoryName(e.target.value)}
+                disabled={isSubmitting || !productCategoryName}
+                className={`${inputClass} appearance-none cursor-pointer disabled:bg-stone-200`}>
+                <option value="" disabled>
+                  Select Item Category
+                </option>
+                {/* Looping hanya dari array anak (activeItemCategories) */}
+                {activeItemCategories.map((child) => (
+                  <option key={child.id} value={child.name}>
+                    {child.name}
                   </option>
                 ))}
               </select>

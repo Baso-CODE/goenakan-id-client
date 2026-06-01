@@ -7,7 +7,7 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox"; // Re-added
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -43,8 +43,6 @@ interface CustomerAddress {
   isDefault: boolean;
 }
 
-const SHIPPING_COST = 10000;
-
 function formatRupiah(amount: number) {
   return `Rp ${amount.toLocaleString("id-ID")}`;
 }
@@ -74,7 +72,7 @@ export default function CheckoutPage() {
     city: "",
     district: "",
     postalCode: "",
-    address: "", // Mapping to fullAddress
+    address: "",
     label: "",
   });
 
@@ -82,7 +80,9 @@ export default function CheckoutPage() {
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
-  const total = subtotal + SHIPPING_COST;
+
+  // Total sekarang sama dengan subtotal karena tidak ada biaya pengiriman
+  const total = subtotal;
   const totalQty = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -122,7 +122,7 @@ export default function CheckoutPage() {
           items: cartItems,
           note,
           subtotal,
-          shippingCost: SHIPPING_COST,
+          shippingCost: 0, // Set nilai pengiriman menjadi 0
           totalAmount: total,
         }),
       });
@@ -143,7 +143,6 @@ export default function CheckoutPage() {
       if (!payData.success)
         throw new Error("Gagal mendapatkan token pembayaran.");
 
-      // ✨ PERBAIKAN: Ambil token dari payData
       const snapTokenFromApi = payData.data.token;
 
       // 3. Munculkan Pop-up Midtrans
@@ -160,7 +159,6 @@ export default function CheckoutPage() {
         },
         onError: function (result) {
           toast.error("Pembayaran gagal.");
-          // Jangan clear cart di sini agar user bisa coba lagi
         },
         onClose: async function () {
           toast.warning("Anda belum menyelesaikan pembayaran.");
@@ -379,7 +377,6 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="border border-stone-200 rounded-none bg-white overflow-hidden">
-                  {/* Header Info */}
                   <div className="bg-stone-50 p-4 border-b border-stone-100 flex items-center justify-between">
                     <div className="flex flex-col gap-0.5">
                       <p className="text-xs font-bold text-stone-700">
@@ -390,22 +387,21 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                     <Image
-                      src="/images/midtrans-payment.png" // Pastikan logo ini ada di folder public
+                      src="/images/midtrans-payment.png"
                       alt="Midtrans"
                       width={70}
                       height={18}
-                      className="object-contain  transition-all"
+                      className="object-contain transition-all"
                     />
                   </div>
 
-                  {/* Payment Logos Grid */}
                   <div className="p-4 space-y-5">
                     {/* Category: E-Wallet & QRIS */}
                     <div className="space-y-3">
                       <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
                         QRIS & E-Wallet
                       </p>
-                      <div className="flex flex-wrap gap-2 items-center  transition-all duration-300">
+                      <div className="flex flex-wrap gap-2 items-center transition-all duration-300">
                         <div className="relative h-12 w-30">
                           <Image
                             src="/images/payment/qris.png"
@@ -430,22 +426,6 @@ export default function CheckoutPage() {
                             className="object-contain"
                           />
                         </div>
-                        {/* <div className="relative h-4 w-14">
-                          <Image
-                            src="/images/payment/ovo.png"
-                            alt="OVO"
-                            fill
-                            className="object-contain"
-                          />
-                        </div>
-                        <div className="relative h-5 w-12">
-                          <Image
-                            src="/images/payment/dana.png"
-                            alt="DANA"
-                            fill
-                            className="object-contain"
-                          />
-                        </div> */}
                       </div>
                     </div>
 
@@ -454,7 +434,7 @@ export default function CheckoutPage() {
                       <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
                         Virtual Account (VA)
                       </p>
-                      <div className="flex flex-wrap gap-3 items-center   transition-all duration-300">
+                      <div className="flex flex-wrap gap-3 items-center transition-all duration-300">
                         <div className="relative h-4 w-12">
                           <Image
                             src="/images/payment/bca.png"
@@ -527,7 +507,7 @@ export default function CheckoutPage() {
                       <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
                         Credit / Debit Card
                       </p>
-                      <div className="flex flex-wrap gap-5 items-center  transition-all duration-300">
+                      <div className="flex flex-wrap gap-5 items-center transition-all duration-300">
                         <div className="relative h-5 w-10">
                           <Image
                             src="/images/payment/visa.png"
@@ -563,12 +543,12 @@ export default function CheckoutPage() {
                       </div>
                     </div>
 
-                    {/* Category: Convenience Store (Opsional) */}
+                    {/* Category: Convenience Store */}
                     <div className="space-y-3">
                       <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">
                         Convenience Store
                       </p>
-                      <div className="flex flex-wrap gap-5 items-center  transition-all duration-300">
+                      <div className="flex flex-wrap gap-5 items-center transition-all duration-300">
                         <div className="relative h-5 w-14">
                           <Image
                             src="/images/payment/alfamart.png"
@@ -589,7 +569,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  {/* Footer Protection */}
                   <div className="bg-stone-50 p-3 text-center border-t border-stone-100">
                     <p className="text-[9px] text-stone-400 leading-relaxed italic">
                       Anda akan diarahkan ke halaman pembayaran aman Midtrans
@@ -643,7 +622,6 @@ export default function CheckoutPage() {
                   ))}
                 </div>
 
-                {/* ✨ Re-added Note Section */}
                 <div className="px-4 py-3 bg-white border-t border-stone-100 space-y-2">
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -664,7 +642,7 @@ export default function CheckoutPage() {
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                       rows={2}
-                      className="rounded-none border-stone-200 text-xs resize-none focus-visible:ring-stone-400"
+                      className="rounded-none border-stone-200 border-2 text-xs resize-none focus-visible:ring-stone-400"
                     />
                   )}
                 </div>
@@ -678,12 +656,7 @@ export default function CheckoutPage() {
                       {formatRupiah(subtotal)}
                     </span>
                   </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-stone-500">Flat Shipping</span>
-                    <span className="font-bold text-stone-800">
-                      {formatRupiah(SHIPPING_COST)}
-                    </span>
-                  </div>
+                  {/* Bagian Flat Shipping dihapus dari sini */}
                   <Separator />
                   <div className="flex justify-between items-center py-2 font-bold uppercase tracking-widest text-stone-900">
                     <span className="text-sm">Total</span>
