@@ -47,7 +47,6 @@ const portfolioCategories = [
 ];
 
 export default async function OccasionsPage() {
-  // Panggil translasi khusus untuk Server Component
   const t = await getTranslations("Occasions");
 
   return (

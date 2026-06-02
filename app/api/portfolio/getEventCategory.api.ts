@@ -20,3 +20,23 @@ export async function getPublicEventCategories(): Promise<EventCategory[]> {
     return [];
   }
 }
+
+export async function getPublicEventCategoryBySlug(
+  slug: string,
+): Promise<EventCategory | null> {
+  try {
+    const res = await fetch(`${apiUrl}/event-categories/public/${slug}`, {
+      method: "GET",
+      next: { revalidate: 3600 },
+    });
+
+    const json = await res.json();
+    if (json.success && json.data) {
+      return json.data;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Gagal mengambil data event category ${slug}:`, error);
+    return null;
+  }
+}
