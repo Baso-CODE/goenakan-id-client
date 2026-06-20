@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/carousel";
 import { Link } from "@/i18n/routing";
 import Autoplay from "embla-carousel-autoplay";
-import { useLocale } from "next-intl"; // ✨ IMPORT HOOK LOCALE
+import { useLocale } from "next-intl";
 import Image from "next/image";
 import * as React from "react";
 import { useEffect, useState } from "react";
@@ -68,9 +68,7 @@ export default function Articles() {
 
         const json = await res.json();
 
-        // ✨ MAPPING DATA DARI BACKEND DENGAN LOGIKA TRANSLASI
         const formatted: Article[] = json.data.map((item: ArticleApiItem) => {
-          // Tentukan judul dan konten berdasarkan bahasa aktif (dengan fallback ke ID)
           const mappedTitle =
             locale === "en" && item.title_en ? item.title_en : item.title_id;
           const mappedContent =

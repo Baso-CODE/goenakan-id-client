@@ -47,6 +47,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
         const res = await fetch(`${apiUrl}/article-categories/list`);
         if (!res.ok) throw new Error("Gagal mengambil kategori");
         const data = await res.json();
+
         const categoryArray = data.data || data;
         const categoryNames = categoryArray.map(
           (cat: { id: string; name: string }) => cat.name,
@@ -80,7 +81,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
       if (!res.ok) throw new Error("Gagal mengambil data artikel");
 
       const json = await res.json();
-
+      console.log("Response API:", json);
       const formatted: Article[] = json.data.map((item: ArticleApiItem) => {
         const mappedTitle =
           locale === "en" && item.title_en ? item.title_en : item.title_id;
@@ -114,7 +115,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
       } else {
         setArticles((prev) => [...prev, ...formatted]);
       }
-      setHasMore(pageNum < json.meta.pageCount);
+      setHasMore(json.meta.hasNext);
     } catch (error) {
       console.error(error);
     } finally {

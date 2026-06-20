@@ -1,5 +1,6 @@
 import { ArticleDetail } from "@/app/types/articles/articleDetail.type";
 import { Link } from "@/i18n/routing";
+import { useLocale } from "next-intl"; // ✨ IMPORT HOOK LOCALE
 import Image from "next/image";
 import { ArticleContent } from "./articleContent";
 import { ArticleNavigation } from "./articleNavigation";
@@ -13,6 +14,15 @@ interface ArticleDetailPageProps {
 }
 
 export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
+  const locale = useLocale(); // ✨ DETEKSI BAHASA AKTIF
+
+  // ✨ KAMUS TEKS STATIS
+  const dict = {
+    breadcrumbRoot: locale === "en" ? "Article" : "Artikel",
+    by: locale === "en" ? "By" : "Oleh",
+    source: locale === "en" ? "Source:" : "Sumber:",
+  };
+
   return (
     <div className="min-h-screen bg-white pt-10">
       <div className="container">
@@ -20,13 +30,13 @@ export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
         <nav className="flex items-center gap-1.5 text-sm text-stone-600 mb-6 flex-wrap">
           <Link
             href="/article"
-            className=" hover:text-stone-800 transition-colors te">
-            Article
+            className="hover:text-stone-800 transition-colors">
+            {dict.breadcrumbRoot}
           </Link>
           <span>›</span>
           <Link
             href="/article"
-            className=" hover:text-stone-800 transition-colors">
+            className="hover:text-stone-800 transition-colors">
             {article.category}
           </Link>
           <span>›</span>
@@ -42,7 +52,7 @@ export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
                 {article.title}
               </h1>
               <p className="text-xs text-stone-500">
-                By {article.author} &nbsp;|&nbsp; {article.date}
+                {dict.by} {article.author} &nbsp;|&nbsp; {article.date}
               </p>
             </div>
 
@@ -67,7 +77,7 @@ export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
             {/* Source */}
             {article.source && (
               <p className="text-xs text-stone-400">
-                Sumber:{" "}
+                {dict.source}{" "}
                 <a
                   href={article.source}
                   target="_blank"
