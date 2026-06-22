@@ -54,7 +54,7 @@ export function FaqPage({
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 pt-24 pb-16">
+    <div className="min-h-screen bg-stone-50 pt-16 pb-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-[180px_1fr] gap-10 items-start">
           <aside className="hidden lg:block sticky top-28 self-start">
