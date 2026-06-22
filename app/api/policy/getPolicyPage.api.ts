@@ -3,7 +3,7 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 
 export async function getAllPolicies(): Promise<PolicyCategory[]> {
   try {
-    const res = await fetch(`${apiUrl}/policies/public/all`, {
+    const res = await fetch(`${apiUrl}/content/policies/public/all`, {
       cache: "no-store",
     });
 
