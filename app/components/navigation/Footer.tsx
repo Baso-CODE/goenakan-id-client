@@ -10,7 +10,6 @@ export default function Footer() {
   const [categories, setCategories] = useState<CategoryPublic[]>([]);
   const t = useTranslations("Footer");
   useEffect(() => {
-    // 🔄 Gunakan fungsi service agar lebih rapi
     const loadCategories = async () => {
       const data = await getCategoryList();
       setCategories(data);
@@ -144,21 +143,21 @@ export default function Footer() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
                   <Link
-                    href="/faq"
+                    href="/faqs"
                     className="hover:text-white transition-colors">
                     FAQ
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/policy"
+                    href="/policies"
                     className="hover:text-white transition-colors">
                     Our Policy
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/cookies"
+                    href="/best-price-guarantee"
                     className="hover:text-white transition-colors">
                     Best Price Guarantee
                   </Link>
