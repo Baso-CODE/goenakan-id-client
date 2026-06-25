@@ -16,6 +16,25 @@ function formatRupiah(amount: number) {
   return `Rp ${amount.toLocaleString("id-ID")}`;
 }
 
+interface CustomizationZone {
+  image: string;
+  fileName: string;
+  label: string;
+}
+
+function getCustomizationDetails(customization: any): CustomizationZone[] | null {
+  if (!customization) return null;
+  try {
+    const data = typeof customization === "string" ? JSON.parse(customization) : customization;
+    if (data && data.zones) {
+      return Object.values(data.zones) as CustomizationZone[];
+    }
+  } catch (e) {
+    console.error("Failed to parse customization", e);
+  }
+  return null;
+}
+
 export default function CartPage() {
   const t = useTranslations("Cart");
   const { data: session } = useSession();
@@ -128,6 +147,27 @@ export default function CartPage() {
                             <p className="text-sm font-bold text-stone-800 mt-3">
                               {formatRupiah(item.price)}
                             </p>
+
+                            {getCustomizationDetails(item.customization) && (
+                              <div className="mt-3 p-2.5 bg-stone-100 rounded-sm border border-stone-200 self-start max-w-sm">
+                                <p className="text-[9px] font-bold text-stone-600 uppercase tracking-widest mb-1.5">
+                                  Logo Kustom:
+                                </p>
+                                <div className="flex flex-col gap-1.5">
+                                  {getCustomizationDetails(item.customization)!.map((zone, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-[10px] text-stone-600">
+                                      <div className="relative w-6 h-6 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
+                                        <img src={zone.image} alt={zone.label} className="w-full h-full object-contain" />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <span className="font-semibold text-stone-800 block leading-tight">{zone.label}</span>
+                                        <span className="text-stone-400 text-[9px] truncate block max-w-[150px]">{zone.fileName}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
 

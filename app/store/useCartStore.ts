@@ -44,6 +44,7 @@ export const useCartStore = create<CartState>((set, get) => ({
               productId: i.productId,
               variantId: i.variantId || null,
               quantity: i.quantity,
+              customization: i.customization || null,
             })),
           };
 
@@ -102,6 +103,7 @@ export const useCartStore = create<CartState>((set, get) => ({
                 width: item.product.width,
                 height: item.product.height,
                 length: item.product.length,
+                customization: item.customization,
               };
             },
           );
@@ -138,6 +140,7 @@ export const useCartStore = create<CartState>((set, get) => ({
             productId: product.id,
             variantId: product.variantId || null,
             quantity: quantity,
+            customization: product.customization || null,
           }),
         });
 
@@ -160,7 +163,11 @@ export const useCartStore = create<CartState>((set, get) => ({
       if (existingItem) {
         newCart = cartItems.map((i) =>
           i.id === existingItem.id
-            ? { ...i, quantity: i.quantity + quantity }
+            ? {
+                ...i,
+                quantity: i.quantity + quantity,
+                customization: product.customization || i.customization,
+              }
             : i,
         );
       } else {
@@ -182,6 +189,7 @@ export const useCartStore = create<CartState>((set, get) => ({
             width: product.width,
             height: product.height,
             length: product.length,
+            customization: product.customization || null,
           },
         ];
       }

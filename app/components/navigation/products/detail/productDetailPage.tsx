@@ -6,9 +6,11 @@ import { MediaItem, ProductDetail } from "@/app/types/productDetail.type";
 import { useRouter } from "@/i18n/routing";
 import { useSession } from "next-auth/react";
 import { useMemo, useState } from "react";
+import { Sparkles } from "lucide-react";
 import { PriceTierSelector } from "./priceTierSelector";
 import { ProductDescription } from "./productDescription";
 import { ProductImageGallery } from "./productImageGallery";
+import { ProductCustomizer } from "./productCustomizer";
 import { QuantitySelector } from "./quantitySelector";
 import { ShareBar } from "./sharebar";
 import { WhatsAppBanner } from "./whatsappBanner";
@@ -22,6 +24,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
   const addToCart = useCartStore((state) => state.addToCart);
+  const [customization, setCustomization] = useState<any>(null);
+  const [isCustomizing, setIsCustomizing] = useState(false);
+
+  const handleCustomizingChange = (val: boolean) => {
+    setIsCustomizing(val);
+    if (!val) {
+      setCustomization(null);
+    }
+  };
 
   // 1. Tentukan Varian Default
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
@@ -81,8 +92,35 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return matchedIndex;
   }, [quantity, activeTiers]);
 
+  const customOptionsPriceModifier = useMemo(() => {
+    if (!isCustomizing || !customization || !customization.zones) {
+      return 0;
+    }
+
+    let totalModifier = 0;
+    const uploadedZoneLabels = Object.values(customization.zones).map(
+      (z: any) => z.label?.toLowerCase().trim()
+    );
+
+    if (product.attributeValues) {
+      product.attributeValues.forEach((av: any) => {
+        const valueName = av.value?.toLowerCase().trim();
+        if (uploadedZoneLabels.some(label => {
+          if (!label || !valueName) return false;
+          const cleanLabel = label.replace(/[^a-z0-9]/g, "");
+          const cleanVal = valueName.replace(/[^a-z0-9]/g, "");
+          return cleanLabel === cleanVal || cleanLabel.includes(cleanVal) || cleanVal.includes(cleanLabel);
+        })) {
+          totalModifier += av.priceModifier ?? 0;
+        }
+      });
+    }
+
+    return totalModifier;
+  }, [isCustomizing, customization, product.attributeValues]);
+
   // 5. Kalkulasi Harga Final yang Tepat
-  const finalPrice = useMemo(() => {
+  const basePrice = useMemo(() => {
     if (activeTiers && activeTiers.length > 0) {
       const tier = activeTiers[selectedTierIndex];
       return tier.pricePerPcs ?? 0;
@@ -92,6 +130,8 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
     return product.variants?.[0]?.price ?? 0;
   }, [activeTiers, selectedTierIndex, selectedVariant, product]);
+
+  const finalPrice = basePrice + customOptionsPriceModifier;
 
   // ✨ PERBAIKAN 3: Cukup ubah quantity, dan selectedTierIndex akan otomatis mengikuti
   const handleTierSelect = (index: number) => {
@@ -130,6 +170,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       width: selectedVariant?.width || product.width,
       height: selectedVariant?.height || product.height,
       length: selectedVariant?.length || product.length,
+      customization: customization,
     };
 
     await addToCart(payload, quantity, token);
@@ -155,10 +196,21 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
         {/* ── Left: Image Gallery ── */}
         <div className="flex flex-col gap-4">
-          <ProductImageGallery
-            media={activeGalleryMedia}
-            productName={product.name}
-          />
+          {product.isCustom && isCustomizing ? (
+            <ProductCustomizer
+              media={activeGalleryMedia}
+              productName={product.name}
+              isMultiFace={product.isMultiFace}
+              mockupFrontImageId={product.mockupFrontImageId}
+              mockupBackImageId={product.mockupBackImageId}
+              onChange={setCustomization}
+            />
+          ) : (
+            <ProductImageGallery
+              media={activeGalleryMedia}
+              productName={product.name}
+            />
+          )}
           <ShareBar productName={product.name} />
         </div>
 
@@ -175,6 +227,65 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               {product.sold.toLocaleString("id-ID")} Sold
             </p>
           </div>
+
+          {/* ── Customization Type Selector ── */}
+          {product.isCustom && (
+            <div className="bg-stone-50 border border-stone-200/80 rounded-md p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                Pilih Tipe Pembelian
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Option 1: Buy Polosan */}
+                <button
+                  type="button"
+                  onClick={() => handleCustomizingChange(false)}
+                  className={`flex flex-col items-start p-3 border rounded-sm transition-all duration-200 text-left cursor-pointer ${
+                    !isCustomizing
+                      ? "border-stone-900 bg-white ring-1 ring-stone-900 shadow-sm"
+                      : "border-stone-200 bg-white/40 hover:border-stone-400 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                      !isCustomizing ? "border-stone-900" : "border-stone-300"
+                    }`}>
+                      {!isCustomizing && <span className="w-1.5 h-1.5 rounded-full bg-stone-900" />}
+                    </span>
+                    <span className="text-xs font-bold text-stone-900">Beli Polosan</span>
+                  </div>
+                  <span className="text-[10px] text-stone-500 leading-normal font-normal">
+                    Tanpa cetak logo, proses pengiriman lebih cepat.
+                  </span>
+                </button>
+
+                {/* Option 2: Custom Cetak Logo */}
+                <button
+                  type="button"
+                  onClick={() => handleCustomizingChange(true)}
+                  className={`flex flex-col items-start p-3 border rounded-sm transition-all duration-200 text-left cursor-pointer ${
+                    isCustomizing
+                      ? "border-stone-900 bg-white ring-1 ring-stone-900 shadow-sm"
+                      : "border-stone-200 bg-white/40 hover:border-stone-400 hover:bg-white"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                      isCustomizing ? "border-stone-900" : "border-stone-300"
+                    }`}>
+                      {isCustomizing && <span className="w-1.5 h-1.5 rounded-full bg-stone-900" />}
+                    </span>
+                    <span className="text-xs font-bold text-stone-900 flex items-center gap-1">
+                      Custom Cetak Logo
+                      <Sparkles className="w-3 h-3 text-[#C4A48E]" />
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-stone-500 leading-normal font-normal">
+                    Tambahkan logo Anda sendiri ke produk.
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {product.variants && product.variants.length > 0 && (
             <div className="mt-1">

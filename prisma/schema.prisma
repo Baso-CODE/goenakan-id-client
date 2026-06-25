@@ -400,6 +400,11 @@ model Product {
   cartItems       CartItem[]
   webOrderItems   WebOrderItem[]
 
+  mockupAreaX      Float?
+  mockupAreaY      Float?
+  mockupAreaWidth  Float?
+  mockupAreaHeight Float?
+
   @@map("products")
 }
 
@@ -472,6 +477,7 @@ model ProductAttributeValue {
   attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id])
   attribute        Attribute?     @relation(fields: [attributeId], references: [id])
   attributeId      String?
+  priceModifier    Float?         @default(0)
 
   @@unique([productId, attributeValueId])
   @@map("product_attribute_values")

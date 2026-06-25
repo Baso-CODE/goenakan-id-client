@@ -15,4 +15,5 @@ export interface AddToCartPayload {
   width?: number | null;
   height?: number | null;
   length?: number | null;
+  customization?: any;
 }

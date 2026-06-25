@@ -37,4 +37,5 @@ export interface ApiCartItem {
   variant?: {
     price: string | number;
   } | null;
+  customization?: any;
 }

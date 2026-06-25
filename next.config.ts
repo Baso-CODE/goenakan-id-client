@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
       { protocol: "https", hostname: "*.unsplash.com", pathname: "/**" },
       { protocol: "https", hostname: "res.cloudinary.com", pathname: "/**" },
+      { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
+      { protocol: "https", hostname: "goenakan.id", pathname: "/**" },
+      { protocol: "https", hostname: "*.goenakan.id", pathname: "/**" },
       {
         protocol: "https",
         hostname: "static.midtrans.com",
