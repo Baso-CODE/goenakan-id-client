@@ -8,6 +8,9 @@ export interface MockupArea {
   height: number;
   label: string;
   description?: string;
+  physicalWidth?: number;
+  physicalHeight?: number;
+  unit?: string;
 }
 
 export interface MediaItem {
@@ -40,6 +43,7 @@ export interface ProductVariantDisplay {
   attributes: AttributeDisplay[];
 
   priceTiers?: PriceTier[];
+  stock: number;
 
   rawWeight: number | null;
   width: number | null;
@@ -60,6 +64,7 @@ export interface ProductDetail {
   variants?: ProductVariantDisplay[];
   priceTiers: PriceTier[];
   description: string;
+  stock: number;
 
   weight: string;
   dimensions: string;

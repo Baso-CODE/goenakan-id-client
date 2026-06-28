@@ -1,10 +1,23 @@
 "use client";
 
 import { MediaItem, MockupArea } from "@/app/types/productDetail.type";
-import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check } from "lucide-react";
+import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
+
+export interface LogoItem {
+  id: string;
+  image: string;
+  fileName: string;
+  logoCount?: number;
+  xOffset?: number;
+  yOffset?: number;
+  scale?: number;
+  rotate?: number;
+  aspectRatio?: number;
+  opacity?: number;
+}
 
 interface ProductCustomizerProps {
   media: MediaItem[];
@@ -44,25 +57,175 @@ export function ProductCustomizer({
     return initialCustomizableIndex !== -1 ? initialCustomizableIndex : 0;
   });
 
-  // Simpan mapping dari area.id ke detail logo kustom: { image: base64, fileName: string, label: string }
-  const [uploads, setUploads] = useState<Record<string, { image: string; fileName: string; label: string }>>({});
+  // Simpan mapping dari area.id ke array LogoItem: { id, image: base64, fileName, logoCount, xOffset, yOffset, scale, rotate, aspectRatio, opacity }
+  const [uploads, setUploads] = useState<Record<string, LogoItem[]>>({});
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  // Simpan id logo yang aktif dipilih untuk diedit di panel bawah
+  const [activeLogoId, setActiveLogoId] = useState<string | null>(null);
 
   // Jika active index tidak valid, default ke media pertama
   const activeMedia = media[activeIndex] || media[0];
 
+  const [activeAreaId, setActiveAreaId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  const handleLogoPointerDown = (
+    areaId: string,
+    logoId: string,
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    e.preventDefault();
+    setActiveAreaId(areaId);
+    setActiveLogoId(logoId);
+    const el = e.currentTarget;
+    el.setPointerCapture(e.pointerId);
+    setIsDragging(true);
+
+    const logoRect = el.getBoundingClientRect();
+    setDragStart({
+      x: e.clientX - logoRect.left,
+      y: e.clientY - logoRect.top,
+    });
+  };
+
+  const handleLogoPointerMove = (
+    areaId: string,
+    logoId: string,
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    if (!isDragging) return;
+    const el = e.currentTarget;
+    const parentEl = el.parentElement;
+    if (!parentEl) return;
+
+    const parentRect = parentEl.getBoundingClientRect();
+
+    let newX = e.clientX - parentRect.left - dragStart.x;
+    let newY = e.clientY - parentRect.top - dragStart.y;
+
+    // Default bounds: full canvas
+    let minX = 0, minY = 0;
+    let maxX = parentRect.width - el.clientWidth;
+    let maxY = parentRect.height - el.clientHeight;
+
+    const dragArea = activeMedia.mockupAreas?.find((a) => a.id === areaId);
+    if (dragArea) {
+      const aLeft   = (dragArea.x / 100) * parentRect.width;
+      const aTop    = (dragArea.y / 100) * parentRect.height;
+      const aRight  = ((dragArea.x + dragArea.width)  / 100) * parentRect.width  - el.clientWidth;
+      const aBottom = ((dragArea.y + dragArea.height) / 100) * parentRect.height - el.clientHeight;
+      minX = Math.max(minX, aLeft);
+      minY = Math.max(minY, aTop);
+      maxX = Math.min(maxX, Math.max(aLeft, aRight));
+      maxY = Math.min(maxY, Math.max(aTop,  aBottom));
+    }
+
+    newX = Math.max(minX, Math.min(newX, maxX));
+    newY = Math.max(minY, Math.min(newY, maxY));
+
+    const pctX = (newX / parentRect.width) * 100;
+    const pctY = (newY / parentRect.height) * 100;
+
+    setUploads((prev) => {
+      const list = prev[areaId] || [];
+      const updatedList = list.map((logo) =>
+        logo.id === logoId ? { ...logo, xOffset: pctX, yOffset: pctY } : logo
+      );
+      return {
+        ...prev,
+        [areaId]: updatedList,
+      };
+    });
+  };
+
+  const handleLogoPointerUp = (
+    _areaId: string,
+    _logoId: string,
+    e: React.PointerEvent<HTMLDivElement>
+  ) => {
+    setIsDragging(false);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
+
+  const getMaxScale = (area: MockupArea, logo: { aspectRatio?: number }) => {
+    const aspect = logo.aspectRatio || 1.0;
+    return Math.min(area.width, area.height * aspect);
+  };
+
+  const updateTransform = (areaId: string, logoId: string, key: "scale" | "rotate" | "xOffset" | "yOffset" | "opacity", value: number) => {
+    setUploads((prev) => {
+      const list = prev[areaId] || [];
+      const updatedList = list.map((item) => {
+        if (item.id === logoId) {
+          let val = value;
+          const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
+          if (area) {
+            if (key === "scale") {
+              const maxS = getMaxScale(area, item);
+              val = Math.min(maxS, Math.max(5, value));
+              
+              // Shift x & y jika melebihi area bounds saat diresize
+              const aspect = item.aspectRatio || 1.0;
+              const maxX = area.x + area.width - val;
+              const maxY = area.y + area.height - (val / aspect);
+              
+              return {
+                ...item,
+                scale: val,
+                xOffset: Math.max(area.x, Math.min(item.xOffset || area.x, maxX)),
+                yOffset: Math.max(area.y, Math.min(item.yOffset || area.y, maxY)),
+              };
+            }
+            if (key === "xOffset") {
+              const maxX = area.x + area.width - (item.scale || 10);
+              val = Math.max(area.x, Math.min(value, maxX));
+            }
+            if (key === "yOffset") {
+              const aspect = item.aspectRatio || 1.0;
+              const maxY = area.y + area.height - ((item.scale || 10) / aspect);
+              val = Math.max(area.y, Math.min(value, maxY));
+            }
+          }
+          return {
+            ...item,
+            [key]: val,
+          };
+        }
+        return item;
+      });
+      return {
+        ...prev,
+        [areaId]: updatedList,
+      };
+    });
+  };
+
   // Efek samping untuk mengirimkan state customization ke parent component
   useEffect(() => {
     if (onChange) {
-      if (Object.keys(uploads).length === 0) {
+      const activeUploads = Object.entries(uploads).filter(([_, list]) => list.length > 0);
+      if (activeUploads.length === 0) {
         onChange(null);
       } else {
+        const zonesObj: Record<string, { label: string; logos: LogoItem[]; logoCount: number }> = {};
+        for (const [areaId, list] of activeUploads) {
+          const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
+          const label = area?.label || "Kustom";
+          const totalCount = list.reduce((sum, item) => sum + (item.logoCount || 1), 0);
+          zonesObj[areaId] = {
+            label,
+            logos: list,
+            logoCount: totalCount,
+          };
+        }
         onChange({
-          zones: uploads,
+          zones: zonesObj,
         });
       }
     }
-  }, [uploads, onChange]);
+  }, [uploads, onChange, activeMedia]);
 
   if (!media || media.length === 0) return null;
 
@@ -84,15 +247,39 @@ export function ProductCustomizer({
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
-      setUploads((prev) => ({
-        ...prev,
-        [area.id]: {
+      const img = new window.Image();
+      img.onload = () => {
+        const ar = img.naturalWidth / img.naturalHeight;
+        const defaultSize = Math.round(area.width * 0.7);
+        const maxS = getMaxScale(area, { aspectRatio: ar });
+        const finalSize = Math.min(defaultSize, maxS);
+        
+        const initX = area.x + (area.width - finalSize) / 2;
+        const initY = area.y + (area.height - (finalSize / ar)) / 2;
+
+        const newLogo: LogoItem = {
+          id: Math.random().toString(36).substring(2, 9),
           image: base64,
           fileName: file.name,
-          label: area.label,
-        },
-      }));
-      toast.success(`Logo untuk "${area.label}" berhasil diunggah!`);
+          logoCount: 1, // Inisialisasi jumlah logo ke 1
+          xOffset: initX,
+          yOffset: initY,
+          scale: finalSize,
+          rotate: 0,
+          aspectRatio: ar,
+          opacity: 100,
+        };
+        setUploads((prev) => {
+          const existing = prev[area.id] || [];
+          return {
+            ...prev,
+            [area.id]: [...existing, newLogo],
+          };
+        });
+        setActiveLogoId(newLogo.id);
+        toast.success(`Logo untuk "${area.label}" berhasil diunggah!`);
+      };
+      img.src = base64;
     };
     reader.onerror = () => {
       toast.error("Gagal membaca file gambar.");
@@ -100,19 +287,29 @@ export function ProductCustomizer({
     reader.readAsDataURL(file);
   };
 
-  const handleRemoveUpload = (areaId: string, label: string, e: React.MouseEvent) => {
+  const handleRemoveLogo = (areaId: string, logoId: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Cegah men-trigger klik pada box
     setUploads((prev) => {
+      const list = prev[areaId] || [];
+      const filtered = list.filter((item) => item.id !== logoId);
       const copy = { ...prev };
-      delete copy[areaId];
+      if (filtered.length === 0) {
+        delete copy[areaId];
+      } else {
+        copy[areaId] = filtered;
+      }
       return copy;
     });
+
+    if (activeLogoId === logoId) {
+      setActiveLogoId(null);
+    }
+    toast.info("Logo dihapus.");
 
     // Reset file input value
     if (fileInputRefs.current[areaId]) {
       fileInputRefs.current[areaId]!.value = "";
     }
-    toast.info(`Logo untuk "${label}" dihapus.`);
   };
 
   const triggerUpload = (areaId: string) => {
@@ -167,32 +364,41 @@ export function ProductCustomizer({
               src={activeMedia.url}
               alt={`${productName} - view`}
               fill
-              className="object-contain p-6"
+              className="object-contain p-2"
               sizes="(max-width: 768px) 100vw, 40vw"
               priority
             />
 
-            {/* Render Overlay Mockup Area Interaktif */}
+            {/* Render Overlay Mockup Area Guides */}
             {isImageCustomizable(activeMedia) && activeMedia.mockupAreas?.map((area) => {
-              const upload = uploads[area.id];
+              const logoList = uploads[area.id] || [];
               return (
                 <div
-                  key={area.id}
+                  key={`guide-${area.id}`}
                   style={{
+                    position: "absolute",
                     left: `${area.x}%`,
                     top: `${area.y}%`,
                     width: `${area.width}%`,
                     height: `${area.height}%`,
                   }}
                   onClick={() => triggerUpload(area.id)}
-                  className={`absolute group cursor-pointer border transition-all duration-300 flex items-center justify-center overflow-hidden rounded-sm ${
-                    upload
-                      ? "border-green-500/80 bg-white/10 backdrop-blur-[1px] hover:border-green-600 hover:bg-white/20"
-                      : "border-dashed border-stone-400 hover:border-stone-800 hover:bg-stone-900/5 bg-white/20 backdrop-blur-[2px]"
+                  className={`border-2 border-dashed flex flex-col items-center justify-center p-1 rounded-sm group transition-colors select-none ${
+                    logoList.length > 0
+                      ? "border-green-400/50 bg-green-500/2"
+                      : "border-blue-400/60 bg-blue-500/3 hover:bg-blue-500/6 cursor-pointer"
                   }`}
-                  title={`Klik untuk unggah logo ke area: ${area.label}`}
+                  title={logoList.length > 0 ? `Klik untuk tambah logo ke area: ${area.label}` : `Klik untuk unggah logo ke area: ${area.label}`}
                 >
-                  {/* Input File Tersembunyi */}
+                  {logoList.length === 0 && (
+                    <>
+                      <Plus className="w-3.5 h-3.5 text-blue-500/60 group-hover:text-blue-600 transition-colors" />
+                      <span className="text-[7.5px] font-bold text-blue-600/80 uppercase tracking-widest text-center leading-tight">
+                        {area.label}
+                      </span>
+                    </>
+                  )}
+                  {/* Hidden File Input */}
                   <input
                     type="file"
                     ref={(el) => {
@@ -202,61 +408,56 @@ export function ProductCustomizer({
                     accept="image/*"
                     className="hidden"
                   />
-
-                  {upload ? (
-                    // Tampilan ketika gambar sudah diunggah
-                    <div className="relative w-full h-full p-1 flex items-center justify-center">
-                      <img
-                        src={upload.image}
-                        alt={area.label}
-                        className="w-full h-full object-contain pointer-events-none"
-                      />
-                      {/* Badge Hijau Penanda Sukses */}
-                      <span className="absolute top-1 right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center shadow-md">
-                        <Check className="w-2.5 h-2.5 text-white" />
-                      </span>
-                      {/* Overlay Hover untuk Aksi */}
-                      <div className="absolute inset-0 bg-stone-900/70 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-2 items-center justify-center text-white">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-green-400 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" /> Area Kustom
-                        </p>
-                        <div className="flex gap-1.5 mt-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              triggerUpload(area.id);
-                            }}
-                            className="p-1.5 bg-white/20 hover:bg-white/35 rounded-sm transition-colors"
-                            title="Ganti Logo"
-                          >
-                            <RefreshCw className="w-3.5 h-3.5 text-white" />
-                          </button>
-                          <button
-                            onClick={(e) => handleRemoveUpload(area.id, area.label, e)}
-                            className="p-1.5 bg-red-600/80 hover:bg-red-600 rounded-sm transition-colors"
-                            title="Hapus Logo"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // Tampilan Default (Belum Unggah Logo)
-                    <div className="flex flex-col items-center justify-center p-2 text-center text-stone-600 group-hover:text-stone-900 transition-colors">
-                      <Upload className="w-5 h-5 mb-1 stroke-[1.5]" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest leading-none block">
-                        {area.label}
-                      </span>
-                      {area.description && (
-                        <span className="text-[8px] text-stone-400 mt-0.5 max-w-full truncate block">
-                          {area.description}
-                        </span>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
+            })}
+
+            {/* Render Draggable Logo Layers relative to the parent canvas box */}
+            {isImageCustomizable(activeMedia) && activeMedia.mockupAreas?.map((area) => {
+              const logoList = uploads[area.id] || [];
+              return logoList.map((logo) => {
+                const isActive = activeLogoId === logo.id;
+                return (
+                  <div
+                    key={`logo-${logo.id}`}
+                    onPointerDown={(e) => handleLogoPointerDown(area.id, logo.id, e)}
+                    onPointerMove={(e) => handleLogoPointerMove(area.id, logo.id, e)}
+                    onPointerUp={(e) => handleLogoPointerUp(area.id, logo.id, e)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveLogoId(logo.id);
+                    }}
+                    className={`absolute group p-0.5 border-2 transition-shadow select-none ${
+                      isActive
+                        ? "border-blue-500 shadow-md shadow-blue-500/20"
+                        : "border-transparent hover:border-blue-300"
+                    }`}
+                    style={{
+                      position: "absolute",
+                      left: `${logo.xOffset}%`,
+                      top: `${logo.yOffset}%`,
+                      width: `${logo.scale}%`,
+                      transform: `rotate(${logo.rotate || 0}deg)`,
+                      opacity: (logo.opacity ?? 100) / 100,
+                      cursor: isDragging && isActive ? "grabbing" : "grab",
+                      touchAction: "none",
+                      zIndex: isActive ? 20 : 10,
+                    }}
+                  >
+                    <img
+                      src={logo.image}
+                      alt={logo.fileName}
+                      className="w-full h-auto object-contain select-none pointer-events-none"
+                    />
+                    {/* Badge Label Area */}
+                    {isActive && (
+                      <div className="absolute -top-5 left-0 bg-blue-600 text-white text-[7px] font-bold px-1.5 py-0.5 rounded uppercase select-none pointer-events-none leading-none whitespace-nowrap z-10">
+                        {area.label}
+                      </div>
+                    )}
+                  </div>
+                );
+              });
             })}
           </div>
         )}
@@ -264,48 +465,109 @@ export function ProductCustomizer({
 
       {/* ── Status Kustomisasi (Panel Bawah) ── */}
       <div className="bg-stone-50 border border-stone-200/80 p-4 rounded-sm">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-stone-800 mb-2.5 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#C4A48E]" /> Status Kustomisasi Logo
+        <h3 className="text-xs font-bold uppercase tracking-widest text-stone-800 mb-4 flex items-center gap-1.5">
+          <Sparkles className="w-3.5 h-3.5 text-[#C4A48E]" /> LOGO PER AREA
         </h3>
         {isImageCustomizable(activeMedia) && activeMedia.mockupAreas && activeMedia.mockupAreas.length > 0 ? (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-4">
             {activeMedia.mockupAreas.map((area) => {
-              const upload = uploads[area.id];
+              const logoList = uploads[area.id] || [];
               return (
-                <div
-                  key={area.id}
-                  onClick={() => triggerUpload(area.id)}
-                  className="flex items-center justify-between p-2.5 bg-white border border-stone-200 rounded-sm hover:border-stone-400 cursor-pointer transition-colors"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-sm bg-stone-100 border border-stone-200 flex items-center justify-center overflow-hidden shrink-0">
-                      {upload ? (
-                        <img src={upload.image} alt={area.label} className="w-full h-full object-cover" />
-                      ) : (
-                        <ImageIcon className="w-4 h-4 text-stone-400" />
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-stone-800 leading-tight">
-                        {area.label}
-                      </p>
-                      <p className="text-[10px] text-stone-400 truncate max-w-xs mt-0.5">
-                        {upload ? upload.fileName : area.description || "Belum ada logo diunggah"}
-                      </p>
-                    </div>
-                  </div>
-                  {upload ? (
-                    <button
-                      onClick={(e) => handleRemoveUpload(area.id, area.label, e)}
-                      className="text-stone-400 hover:text-red-600 p-1 transition-colors"
-                      title="Hapus"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <span className="text-[10px] font-bold text-[#C4A48E] uppercase tracking-wider">
-                      Unggah
+                <div key={area.id} className="space-y-2">
+                  {/* Area Header dengan tombol Tambah */}
+                  <div className="flex items-center justify-between border-b border-stone-200 pb-1.5">
+                    <span className="text-xs font-bold text-stone-700 flex items-center gap-1">
+                      {area.label} {area.physicalWidth && area.physicalHeight ? `(${area.physicalWidth} × ${area.physicalHeight} ${area.unit || "cm"})` : ""}
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => triggerUpload(area.id)}
+                      className="text-[10px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-0.5 bg-blue-50 hover:bg-blue-100/70 px-2 py-0.5 rounded-sm transition-colors uppercase tracking-wider"
+                    >
+                      <Plus className="w-3 h-3" /> Tambah
+                    </button>
+                  </div>
+                  {logoList.length > 0 ? (
+                    <div className="flex flex-col gap-2">
+                      {logoList.map((logo) => {
+                        const isActive = activeLogoId === logo.id;
+                        const logoCmWidth = ((logo.scale || 5) / area.width) * (area.physicalWidth || 0);
+                        const logoCmHeight = logoCmWidth / (logo.aspectRatio || 1.0);
+                        return (
+                          <div
+                            key={logo.id}
+                            onClick={() => setActiveLogoId(logo.id)}
+                            className={`flex items-center justify-between p-2.5 bg-white border rounded-sm transition-colors cursor-pointer ${
+                              isActive ? "border-blue-500 ring-1 ring-blue-500" : "border-stone-200 hover:border-stone-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-8 h-8 rounded-sm bg-stone-100 border border-stone-200 flex items-center justify-center overflow-hidden shrink-0">
+                                <img src={logo.image} alt={logo.fileName} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-semibold text-stone-800 leading-tight truncate max-w-[180px]">
+                                  {logo.fileName}
+                                </p>
+                                <p className="text-[10px] text-stone-400 mt-0.5">
+                                  {Math.round(logo.scale || 5)}% - {logo.rotate || 0}° - {logo.opacity ?? 100}%
+                                  {area.physicalWidth && logo.aspectRatio ? ` ≈ ${Math.round(logoCmWidth * 10) / 10} × ${Math.round(logoCmHeight * 10) / 10} ${area.unit || "cm"}` : ""}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                              {/* Quantity Counter */}
+                              <div className="flex items-center border border-stone-200 rounded-sm bg-stone-50 p-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const currentVal = logo.logoCount || 1;
+                                    if (currentVal > 1) {
+                                      setUploads((prev) => {
+                                        const updated = (prev[area.id] || []).map(l => l.id === logo.id ? { ...l, logoCount: currentVal - 1 } : l);
+                                        return { ...prev, [area.id]: updated };
+                                      });
+                                    }
+                                  }}
+                                  disabled={(logo.logoCount || 1) <= 1}
+                                  className="px-1.5 py-0.5 text-xs font-bold text-stone-500 hover:text-stone-800 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                                >
+                                  -
+                                </button>
+                                <span className="px-2 text-xs font-semibold text-stone-700 select-none">
+                                  {logo.logoCount || 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const currentVal = logo.logoCount || 1;
+                                    setUploads((prev) => {
+                                      const updated = (prev[area.id] || []).map(l => l.id === logo.id ? { ...l, logoCount: currentVal + 1 } : l);
+                                      return { ...prev, [area.id]: updated };
+                                    });
+                                  }}
+                                  className="px-1.5 py-0.5 text-xs font-bold text-stone-500 hover:text-stone-800 transition-colors"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={(e) => handleRemoveLogo(area.id, logo.id, e)}
+                                className="text-stone-400 hover:text-red-600 p-1 transition-colors"
+                                title="Hapus"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-stone-400 italic py-1">Belum ada logo diunggah</p>
                   )}
                 </div>
               );
@@ -316,6 +578,205 @@ export function ProductCustomizer({
             Gambar ini tidak mendukung kustomisasi logo. Gunakan switcher di atas untuk memilih tampak depan/belakang yang bisa dikustom.
           </p>
         )}
+ 
+        {/* ── MODIFIKASI LOGO TERPILIH Panel ── */}
+        {(() => {
+          let activeLogo: LogoItem | null = null;
+          let activeArea: MockupArea | null = null;
+ 
+          if (activeMedia.mockupAreas) {
+            for (const area of activeMedia.mockupAreas) {
+              const list = uploads[area.id] || [];
+              const found = list.find((l) => l.id === activeLogoId);
+              if (found) {
+                activeLogo = found;
+                activeArea = area;
+                break;
+              }
+            }
+          }
+ 
+          if (!activeLogo || !activeArea) return null;
+ 
+          const area = activeArea;
+          const logo = activeLogo;
+          const maxScale = getMaxScale(area, logo);
+          const currentCmWidth = ((logo.scale || 5) / area.width) * (area.physicalWidth || 0);
+          const currentCmHeight = currentCmWidth / (logo.aspectRatio || 1.0);
+          const maxAreaPercent = Math.round((maxScale / area.width) * 100);
+ 
+          return (
+            <div className="mt-4 pt-4 border-t border-stone-200 space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800 flex items-center gap-1.5">
+                <span className="w-1.5 h-3 bg-blue-500 rounded-sm"></span> MODIFIKASI LOGO TERPILIH <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">{area.label}</span>
+              </h4>
+ 
+              {/* Physical Size Calculated Preview */}
+              {area.physicalWidth && logo.aspectRatio && (
+                <div className="bg-indigo-50/70 border border-indigo-100/80 p-2.5 rounded-sm flex items-center justify-between text-indigo-900">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+                    Ukuran Logo Terhitung:
+                  </span>
+                  <span className="text-[11px] font-bold">
+                    ≈ {Math.round(currentCmWidth * 10) / 10} x {Math.round(currentCmHeight * 10) / 10} {area.unit || "cm"}
+                  </span>
+                </div>
+              )}
+ 
+              {/* Scale / Ukuran Sliders */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">Ukuran Logo</label>
+                  {area.physicalWidth && (
+                    <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-sm">
+                      maks {maxAreaPercent}% — batas area
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-3 items-center">
+                  <div className="flex-1 flex items-center gap-2.5">
+                    <input
+                      type="range"
+                      min="5"
+                      max={maxScale}
+                      step="1"
+                      value={Math.round(logo.scale || 5)}
+                      onChange={(e) => updateTransform(area.id, logo.id, "scale", parseFloat(e.target.value))}
+                      className="flex-1 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-stone-700"
+                    />
+                    <div className="flex items-center border border-stone-300 rounded bg-white px-1 shrink-0">
+                      <input
+                        type="number"
+                        min="5"
+                        max={Math.round(maxScale)}
+                        value={Math.round(logo.scale || 5)}
+                        onChange={(e) => {
+                          const pct = parseFloat(e.target.value) || 5;
+                          updateTransform(area.id, logo.id, "scale", pct);
+                        }}
+                        className="w-10 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
+                      />
+                      <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">%</span>
+                    </div>
+                  </div>
+ 
+                  {area.physicalWidth && (
+                    <div className="w-[85px] shrink-0 flex items-center border border-stone-300 rounded bg-white px-1">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={Math.round(currentCmWidth * 10) / 10}
+                        onChange={(e) => {
+                          const valCm = parseFloat(e.target.value) || 0;
+                          const newScale = (valCm / (area.physicalWidth || 1)) * area.width;
+                          updateTransform(area.id, logo.id, "scale", newScale);
+                        }}
+                        className="w-12 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
+                      />
+                      <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">{area.unit || "cm"}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+ 
+              {/* Rotate / Putar */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">Rotasi</label>
+                <div className="flex gap-2.5 items-center">
+                  <input
+                    type="range"
+                    min="0"
+                    max="360"
+                    step="1"
+                    value={logo.rotate || 0}
+                    onChange={(e) => updateTransform(area.id, logo.id, "rotate", parseInt(e.target.value))}
+                    className="flex-1 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-stone-700"
+                  />
+                  <div className="w-16 flex items-center border border-stone-300 rounded bg-white px-1 shrink-0">
+                    <input
+                      type="number"
+                      min="0"
+                      max="360"
+                      value={logo.rotate || 0}
+                      onChange={(e) => {
+                        const rot = parseInt(e.target.value) || 0;
+                        updateTransform(area.id, logo.id, "rotate", rot);
+                      }}
+                      className="w-8 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
+                    />
+                    <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">°</span>
+                  </div>
+                </div>
+              </div>
+ 
+              {/* Opasitas */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">Opasitas</label>
+                <div className="flex gap-2.5 items-center">
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    step="1"
+                    value={logo.opacity ?? 100}
+                    onChange={(e) => updateTransform(area.id, logo.id, "opacity", parseInt(e.target.value))}
+                    className="flex-1 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-stone-700"
+                  />
+                  <div className="w-16 flex items-center border border-stone-300 rounded bg-white px-1 shrink-0">
+                    <input
+                      type="number"
+                      min="10"
+                      max="100"
+                      value={logo.opacity ?? 100}
+                      onChange={(e) => {
+                        const op = parseInt(e.target.value) || 100;
+                        updateTransform(area.id, logo.id, "opacity", op);
+                      }}
+                      className="w-8 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
+                    />
+                    <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">%</span>
+                  </div>
+                </div>
+              </div>
+ 
+              {/* Offset X & Y Sliders */}
+              <div className="grid grid-cols-2 gap-4 pt-1">
+                {/* Geser X */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">Geser X (Horiz)</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="range"
+                      min={area.x}
+                      max={area.x + area.width - (logo.scale || 10)}
+                      step="0.5"
+                      value={logo.xOffset || area.x}
+                      onChange={(e) => updateTransform(area.id, logo.id, "xOffset", parseFloat(e.target.value))}
+                      className="flex-1 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-stone-700"
+                    />
+                    <span className="text-[10px] font-bold text-stone-600 w-10 text-right shrink-0">{Math.round(logo.xOffset || area.x)}%</span>
+                  </div>
+                </div>
+                {/* Geser Y */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">Geser Y (Vert)</label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="range"
+                      min={area.y}
+                      max={area.y + area.height - ((logo.scale || 10) / (logo.aspectRatio || 1.0))}
+                      step="0.5"
+                      value={logo.yOffset || area.y}
+                      onChange={(e) => updateTransform(area.id, logo.id, "yOffset", parseFloat(e.target.value))}
+                      className="flex-1 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-stone-700"
+                    />
+                    <span className="text-[10px] font-bold text-stone-600 w-10 text-right shrink-0">{Math.round(logo.yOffset || area.y)}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── Gallery Thumbnails ── */}

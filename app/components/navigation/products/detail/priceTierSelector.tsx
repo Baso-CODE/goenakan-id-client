@@ -24,14 +24,7 @@ interface PriceTierSelectorProps {
 }
 
 function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  })
-    .format(amount)
-    .replace("IDR", "")
-    .trim();
+  return "Rp " + amount.toLocaleString("id-ID");
 }
 
 export function PriceTierSelector({
@@ -95,7 +88,7 @@ export function PriceTierSelector({
 
               <div className="mt-3">
                 <p className="font-bold text-stone-900 text-sm sm:text-base leading-none">
-                  Rp {formatRupiah(price)}
+                  {formatRupiah(price)}
                 </p>
                 <p className="text-stone-700 text-[10px] sm:text-[11px] mt-1 font-medium">
                   {min.toLocaleString("id-ID")}

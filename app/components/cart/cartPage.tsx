@@ -20,6 +20,7 @@ interface CustomizationZone {
   image: string;
   fileName: string;
   label: string;
+  logoCount?: number;
 }
 
 function getCustomizationDetails(customization: any): CustomizationZone[] | null {
@@ -160,7 +161,9 @@ export default function CartPage() {
                                         <img src={zone.image} alt={zone.label} className="w-full h-full object-contain" />
                                       </div>
                                       <div className="min-w-0">
-                                        <span className="font-semibold text-stone-800 block leading-tight">{zone.label}</span>
+                                        <span className="font-semibold text-stone-800 block leading-tight">
+                                          {zone.label} {zone.logoCount && zone.logoCount > 1 ? `(x${zone.logoCount})` : ""}
+                                        </span>
                                         <span className="text-stone-400 text-[9px] truncate block max-w-[150px]">{zone.fileName}</span>
                                       </div>
                                     </div>
