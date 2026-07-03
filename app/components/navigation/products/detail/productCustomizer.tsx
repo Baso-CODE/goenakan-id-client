@@ -3,7 +3,7 @@
 import { MediaItem, MockupArea } from "@/app/types/productDetail.type";
 import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus } from "lucide-react";
 import Image from "next/image";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 export interface LogoItem {
@@ -25,7 +25,9 @@ interface ProductCustomizerProps {
   isMultiFace?: boolean;
   mockupFrontImageId?: string | null;
   mockupBackImageId?: string | null;
+  selectedAttributeValueIds?: string[];
   onChange?: (customization: any) => void;
+  attributeValues?: any[];
 }
 
 export function ProductCustomizer({
@@ -34,31 +36,52 @@ export function ProductCustomizer({
   isMultiFace = false,
   mockupFrontImageId,
   mockupBackImageId,
+  selectedAttributeValueIds = [],
   onChange,
+  attributeValues = [],
 }: ProductCustomizerProps) {
   const isImageCustomizable = (item: MediaItem) => {
-    const hasAreas = !!(item.mockupAreas && item.mockupAreas.length > 0);
-    if (!hasAreas) return false;
-
-    if (mockupFrontImageId) {
-      if (isMultiFace) {
-        return item.id === mockupFrontImageId || (mockupBackImageId && item.id === mockupBackImageId);
-      } else {
-        return item.id === mockupFrontImageId;
-      }
-    }
-    return true;
+    return !!(item.mockupAreas && item.mockupAreas.length > 0);
   };
 
-  const customizableViews = media.filter(isImageCustomizable);
+  const getSidePriceModifier = (item: MediaItem) => {
+    if (!item.attributeValueId || !attributeValues) return 0;
+    const av = attributeValues.find((av: any) => av.attributeValueId === item.attributeValueId);
+    return av ? (av.priceModifier ?? 0) : 0;
+  };
+
+  const customizableViews = useMemo(() => {
+    let views = media.filter(isImageCustomizable);
+    if (selectedAttributeValueIds && selectedAttributeValueIds.length > 0) {
+      const matchingViews = views.filter(
+        (item) => item.attributeValueId && selectedAttributeValueIds.includes(item.attributeValueId)
+      );
+      if (matchingViews.length > 0) {
+        views = matchingViews;
+      }
+    }
+    return views;
+  }, [media, selectedAttributeValueIds]);
 
   const [activeIndex, setActiveIndex] = useState(() => {
-    const initialCustomizableIndex = media.findIndex(isImageCustomizable);
+    const initialCustomizableIndex = media.findIndex((m) => m.id === customizableViews[0]?.id);
     return initialCustomizableIndex !== -1 ? initialCustomizableIndex : 0;
   });
 
+  useEffect(() => {
+    if (customizableViews.length > 0) {
+      const currentActiveMedia = media[activeIndex];
+      const newIndex = customizableViews.findIndex((item: MediaItem) => item.id === currentActiveMedia?.id);
+      if (newIndex === -1) {
+        const fallbackIndex = media.findIndex((m) => m.id === customizableViews[0].id);
+        setActiveIndex(fallbackIndex !== -1 ? fallbackIndex : 0);
+      }
+    }
+  }, [customizableViews, media, activeIndex]);
+
   // Simpan mapping dari area.id ke array LogoItem: { id, image: base64, fileName, logoCount, xOffset, yOffset, scale, rotate, aspectRatio, opacity }
   const [uploads, setUploads] = useState<Record<string, LogoItem[]>>({});
+
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Simpan id logo yang aktif dipilih untuk diedit di panel bawah
@@ -66,6 +89,60 @@ export function ProductCustomizer({
 
   // Jika active index tidak valid, default ke media pertama
   const activeMedia = media[activeIndex] || media[0];
+
+  // Synchronize uploads state across different mockup media items when variants change
+  useEffect(() => {
+    if (!activeMedia || !activeMedia.mockupAreas) return;
+    
+    setUploads((prev) => {
+      let hasChanged = false;
+      const updated = { ...prev };
+      
+      activeMedia.mockupAreas?.forEach((area) => {
+        // If this new areaId has no uploads yet, see if another areaId with the same label has uploads
+        if (!updated[area.id] || updated[area.id].length === 0) {
+          const normalizedLabel = area.label?.toLowerCase().trim();
+          if (normalizedLabel) {
+            // Find another areaId in prev that matches the same label
+            const matchingKey = Object.keys(prev).find((key) => {
+              if (key === area.id) return false;
+              const otherArea = media.flatMap((m) => m.mockupAreas || []).find((a) => a.id === key);
+              return otherArea?.label?.toLowerCase().trim() === normalizedLabel;
+            });
+            
+            if (matchingKey && prev[matchingKey] && prev[matchingKey].length > 0) {
+              const oldArea = media.flatMap((m) => m.mockupAreas || []).find((a) => a.id === matchingKey);
+              if (oldArea) {
+                updated[area.id] = prev[matchingKey].map((logo) => {
+                  const xVal = logo.xOffset ?? 0;
+                  const yVal = logo.yOffset ?? 0;
+                  const sVal = logo.scale ?? 0;
+
+                  const relX = (xVal - oldArea.x) / oldArea.width;
+                  const relY = (yVal - oldArea.y) / oldArea.height;
+                  const relScale = sVal / oldArea.width;
+                  
+                  const newScale = relScale * area.width;
+                  const newX = area.x + relX * area.width;
+                  const newY = area.y + relY * area.height;
+                  
+                  return {
+                    ...logo,
+                    xOffset: newX,
+                    yOffset: newY,
+                    scale: newScale,
+                  };
+                });
+                hasChanged = true;
+              }
+            }
+          }
+        }
+      });
+      
+      return hasChanged ? updated : prev;
+    });
+  }, [activeMedia, media]);
 
   const [activeAreaId, setActiveAreaId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -202,6 +279,53 @@ export function ProductCustomizer({
     });
   };
 
+  const alignLogo = (
+    areaId: string,
+    logoId: string,
+    alignment: "left" | "center-horiz" | "right" | "top" | "center-vert" | "bottom"
+  ) => {
+    const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
+    if (!area) return;
+
+    setUploads((prev) => {
+      const list = prev[areaId] || [];
+      const updatedList = list.map((item) => {
+        if (item.id === logoId) {
+          let newX = item.xOffset ?? area.x;
+          let newY = item.yOffset ?? area.y;
+          const scale = item.scale ?? 10;
+          const aspect = item.aspectRatio ?? 1.0;
+          const logoHeight = scale / aspect;
+
+          if (alignment === "left") {
+            newX = area.x;
+          } else if (alignment === "center-horiz") {
+            newX = area.x + (area.width - scale) / 2;
+          } else if (alignment === "right") {
+            newX = area.x + area.width - scale;
+          } else if (alignment === "top") {
+            newY = area.y;
+          } else if (alignment === "center-vert") {
+            newY = area.y + (area.height - logoHeight) / 2;
+          } else if (alignment === "bottom") {
+            newY = area.y + area.height - logoHeight;
+          }
+
+          return {
+            ...item,
+            xOffset: newX,
+            yOffset: newY,
+          };
+        }
+        return item;
+      });
+      return {
+        ...prev,
+        [areaId]: updatedList,
+      };
+    });
+  };
+
   // Efek samping untuk mengirimkan state customization ke parent component
   useEffect(() => {
     if (onChange) {
@@ -209,15 +333,16 @@ export function ProductCustomizer({
       if (activeUploads.length === 0) {
         onChange(null);
       } else {
-        const zonesObj: Record<string, { label: string; logos: LogoItem[]; logoCount: number }> = {};
+        const zonesObj: Record<string, { label: string; logos: LogoItem[]; logoCount: number; printPositionValueId?: string | null }> = {};
         for (const [areaId, list] of activeUploads) {
           const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
-          const label = area?.label || "Kustom";
+          const label = activeMedia.mockupSideName || area?.label || "Kustom";
           const totalCount = list.reduce((sum, item) => sum + (item.logoCount || 1), 0);
           zonesObj[areaId] = {
             label,
             logos: list,
             logoCount: totalCount,
+            printPositionValueId: activeMedia.printPositionValueId,
           };
         }
         onChange({
@@ -277,7 +402,7 @@ export function ProductCustomizer({
           };
         });
         setActiveLogoId(newLogo.id);
-        toast.success(`Logo untuk "${area.label}" berhasil diunggah!`);
+        toast.success(`Logo untuk "${activeMedia.mockupSideName || area.label}" berhasil diunggah!`);
       };
       img.src = base64;
     };
@@ -321,9 +446,21 @@ export function ProductCustomizer({
       {/* ── Switcher Tab Utama (Front / Back / Customizable Views) ── */}
       {customizableViews.length > 1 && (
         <div className="flex items-center gap-2 bg-stone-100 p-1 rounded-md self-start">
-          {customizableViews.map((item) => {
+          {customizableViews.map((item: MediaItem) => {
             const originalIndex = media.findIndex((m) => m.id === item.id);
             const isActive = activeIndex === originalIndex;
+            const sideName = item.mockupSideName && item.mockupSideName.trim() !== ""
+              ? item.mockupSideName.trim()
+              : isMultiFace && item.id === mockupBackImageId
+              ? "Tampak Belakang"
+              : isMultiFace && item.id === mockupFrontImageId
+              ? "Tampak Depan"
+              : (item.mockupAreas?.[0]?.label.toLowerCase().includes("back") ||
+                 item.url.toLowerCase().includes("back") ||
+                 (item.mockupAreas && item.mockupAreas.some((a: MockupArea) => a.label.toLowerCase().includes("belakang"))))
+              ? "Tampak Belakang"
+              : item.mockupAreas?.[0]?.label || "Tampak Depan";
+
             return (
               <button
                 key={item.id}
@@ -334,15 +471,7 @@ export function ProductCustomizer({
                     : "text-stone-500 hover:text-stone-800"
                 }`}
               >
-                {isMultiFace && item.id === mockupBackImageId
-                  ? "Tampak Belakang"
-                  : isMultiFace && item.id === mockupFrontImageId
-                  ? "Tampak Depan"
-                  : (item.mockupAreas?.[0]?.label.toLowerCase().includes("back") ||
-                     item.url.toLowerCase().includes("back") ||
-                     (item.mockupAreas && item.mockupAreas.some((a) => a.label.toLowerCase().includes("belakang"))))
-                  ? "Tampak Belakang"
-                  : "Tampak Depan"}
+                {sideName}
               </button>
             );
           })}
@@ -388,13 +517,13 @@ export function ProductCustomizer({
                       ? "border-green-400/50 bg-green-500/2"
                       : "border-blue-400/60 bg-blue-500/3 hover:bg-blue-500/6 cursor-pointer"
                   }`}
-                  title={logoList.length > 0 ? `Klik untuk tambah logo ke area: ${area.label}` : `Klik untuk unggah logo ke area: ${area.label}`}
+                  title={logoList.length > 0 ? `Klik untuk tambah logo ke area: ${activeMedia.mockupSideName || area.label}` : `Klik untuk unggah logo ke area: ${activeMedia.mockupSideName || area.label}`}
                 >
                   {logoList.length === 0 && (
                     <>
                       <Plus className="w-3.5 h-3.5 text-blue-500/60 group-hover:text-blue-600 transition-colors" />
                       <span className="text-[7.5px] font-bold text-blue-600/80 uppercase tracking-widest text-center leading-tight">
-                        {area.label}
+                        {activeMedia.mockupSideName || area.label}
                       </span>
                     </>
                   )}
@@ -452,7 +581,168 @@ export function ProductCustomizer({
                     {/* Badge Label Area */}
                     {isActive && (
                       <div className="absolute -top-5 left-0 bg-blue-600 text-white text-[7px] font-bold px-1.5 py-0.5 rounded uppercase select-none pointer-events-none leading-none whitespace-nowrap z-10">
-                        {area.label}
+                        {activeMedia.mockupSideName || area.label}
+                      </div>
+                    )}
+                    {/* Floating Alignment Shortcuts Toolbar */}
+                    {isActive && (
+                      <div
+                        className="absolute left-1/2 -translate-x-1/2 bg-stone-900/90 text-white rounded shadow-lg px-2 py-1 flex items-center gap-1.5 z-30 select-none backdrop-blur-xs"
+                        style={{
+                          top: (logo.yOffset ?? 0) < 10 ? "calc(100% + 8px)" : "-38px",
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => alignLogo(area.id, logo.id, "left")}
+                          className="p-1 hover:bg-stone-800 rounded transition-colors text-white cursor-pointer"
+                          title="Align Left"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 22V2M8 4h12M8 12h8M8 20h12"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignLogo(area.id, logo.id, "center-horiz")}
+                          className="p-1 hover:bg-stone-800 rounded transition-colors text-white cursor-pointer"
+                          title="Align Center Horizontally"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M8 5h8M6 12h12M8 19h8"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignLogo(area.id, logo.id, "right")}
+                          className="p-1 hover:bg-stone-800 rounded transition-colors text-white cursor-pointer"
+                          title="Align Right"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 22V2M4 4h12M8 12h8M4 20h12"/></svg>
+                        </button>
+                        <div className="w-[1px] h-4 bg-stone-700 mx-0.5" />
+                        <button
+                          type="button"
+                          onClick={() => alignLogo(area.id, logo.id, "top")}
+                          className="p-1 hover:bg-stone-800 rounded transition-colors text-white cursor-pointer"
+                          title="Align Top"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 4H2M4 8v12M12 8v8M20 8v12"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignLogo(area.id, logo.id, "center-vert")}
+                          className="p-1 hover:bg-stone-800 rounded transition-colors text-white cursor-pointer"
+                          title="Align Center Vertically"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 12h20M5 8v8M12 6v12M19 8v8"/></svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => alignLogo(area.id, logo.id, "bottom")}
+                          className="p-1 hover:bg-stone-800 rounded transition-colors text-white cursor-pointer"
+                          title="Align Bottom"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 20H2M4 4v12M12 8v8M20 4v12"/></svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            })}
+
+            {/* Distance Guidelines Overlay */}
+            {isImageCustomizable(activeMedia) && activeMedia.mockupAreas?.map((area) => {
+              const logoList = uploads[area.id] || [];
+              return logoList.map((logo) => {
+                const isActive = activeLogoId === logo.id;
+                if (!isActive) return null;
+
+                const scale = logo.scale ?? 10;
+                const xOffset = logo.xOffset ?? area.x;
+                const yOffset = logo.yOffset ?? area.y;
+                const aspect = logo.aspectRatio || 1.0;
+                const logoHeight = scale / aspect;
+
+                const leftDistance = xOffset - area.x;
+                const rightDistance = (area.x + area.width) - (xOffset + scale);
+                const topDistance = yOffset - area.y;
+                const bottomDistance = (area.y + area.height) - (yOffset + logoHeight);
+
+                const getDisplayDist = (distPct: number, physicalSize?: number, baseSize?: number) => {
+                  if (physicalSize && baseSize) {
+                    const cmVal = distPct * (physicalSize / baseSize);
+                    return `${Math.round(cmVal * 10) / 10} ${area.unit || "cm"}`;
+                  }
+                  return `${Math.round(distPct)}%`;
+                };
+
+                return (
+                  <div key={`guidelines-${logo.id}`} className="absolute inset-0 pointer-events-none z-15">
+                    {/* Left Line */}
+                    {leftDistance > 0.5 && (
+                      <div
+                        className="absolute border-t border-dashed border-indigo-500/80 flex items-center justify-center"
+                        style={{
+                          left: `${area.x}%`,
+                          width: `${leftDistance}%`,
+                          top: `${yOffset + logoHeight / 2}%`,
+                          height: "1px",
+                        }}
+                      >
+                        <span className="bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow leading-none select-none -translate-y-1/2">
+                          {getDisplayDist(leftDistance, area.physicalWidth, area.width)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Right Line */}
+                    {rightDistance > 0.5 && (
+                      <div
+                        className="absolute border-t border-dashed border-indigo-500/80 flex items-center justify-center"
+                        style={{
+                          left: `${xOffset + scale}%`,
+                          width: `${rightDistance}%`,
+                          top: `${yOffset + logoHeight / 2}%`,
+                          height: "1px",
+                        }}
+                      >
+                        <span className="bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow leading-none select-none -translate-y-1/2">
+                          {getDisplayDist(rightDistance, area.physicalWidth, area.width)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Top Line */}
+                    {topDistance > 0.5 && (
+                      <div
+                        className="absolute border-l border-dashed border-indigo-500/80 flex items-center justify-center"
+                        style={{
+                          left: `${xOffset + scale / 2}%`,
+                          top: `${area.y}%`,
+                          height: `${topDistance}%`,
+                          width: "1px",
+                        }}
+                      >
+                        <span className="bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow leading-none select-none -translate-x-1/2">
+                          {getDisplayDist(topDistance, area.physicalHeight, area.height)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Bottom Line */}
+                    {bottomDistance > 0.5 && (
+                      <div
+                        className="absolute border-l border-dashed border-indigo-500/80 flex items-center justify-center"
+                        style={{
+                          left: `${xOffset + scale / 2}%`,
+                          top: `${yOffset + logoHeight}%`,
+                          height: `${bottomDistance}%`,
+                          width: "1px",
+                        }}
+                      >
+                        <span className="bg-indigo-600 text-white text-[8px] font-bold px-1 py-0.5 rounded shadow leading-none select-none -translate-x-1/2">
+                          {getDisplayDist(bottomDistance, area.physicalHeight, area.height)}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -477,7 +767,7 @@ export function ProductCustomizer({
                   {/* Area Header dengan tombol Tambah */}
                   <div className="flex items-center justify-between border-b border-stone-200 pb-1.5">
                     <span className="text-xs font-bold text-stone-700 flex items-center gap-1">
-                      {area.label} {area.physicalWidth && area.physicalHeight ? `(${area.physicalWidth} × ${area.physicalHeight} ${area.unit || "cm"})` : ""}
+                      {activeMedia.mockupSideName || area.label} {area.physicalWidth && area.physicalHeight ? `(${area.physicalWidth} × ${area.physicalHeight} ${area.unit || "cm"})` : ""}
                     </span>
                     <button
                       type="button"
@@ -608,7 +898,7 @@ export function ProductCustomizer({
           return (
             <div className="mt-4 pt-4 border-t border-stone-200 space-y-4">
               <h4 className="text-xs font-bold uppercase tracking-wider text-stone-800 flex items-center gap-1.5">
-                <span className="w-1.5 h-3 bg-blue-500 rounded-sm"></span> MODIFIKASI LOGO TERPILIH <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">{area.label}</span>
+                <span className="w-1.5 h-3 bg-blue-500 rounded-sm"></span> MODIFIKASI LOGO TERPILIH <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">{activeMedia.mockupSideName || area.label}</span>
               </h4>
  
               {/* Physical Size Calculated Preview */}
@@ -807,8 +1097,8 @@ export function ProductCustomizer({
                     sizes="80px"
                   />
                   {isCustomizable && (
-                    <span className="absolute bottom-0 inset-x-0 bg-stone-900/80 text-[8px] text-white font-bold uppercase py-0.5 text-center leading-none tracking-widest">
-                      Kustom
+                    <span className="absolute bottom-0 inset-x-0 bg-stone-900/90 text-[7px] text-white font-bold uppercase py-1 text-center leading-tight tracking-wider px-1 truncate" title={item.mockupSideName || item.mockupAreas?.map((a) => a.label).join(" & ") || ""}>
+                      {item.mockupSideName || item.mockupAreas?.map((a) => a.label).join(" & ") || "Kustom"}
                     </span>
                   )}
                 </>

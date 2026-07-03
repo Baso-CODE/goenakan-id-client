@@ -18,11 +18,18 @@ export interface MediaItem {
   type: MediaType;
   url: string;
   mockupAreas?: MockupArea[];
+  attributeValueId?: string | null;
+  altText?: string | null;
+  mockupSideName?: string | null;
+  printPositionValueId?: string | null;
 }
 
 export interface AttributeDisplay {
   name: string;
   value: string;
+  type?: string;
+  parentValueId?: string | null;
+  attributeValueId?: string | null;
 }
 
 export interface PriceTier {
@@ -59,6 +66,7 @@ export interface ProductDetail {
   sku: string;
   category: string;
   name: string;
+  basePrice: number;
   sold: number;
   media: MediaItem[];
   variants?: ProductVariantDisplay[];
@@ -77,6 +85,7 @@ export interface ProductDetail {
   height?: number | null;
   length?: number | null;
   isCustom?: boolean;
+  isMadeByOrder?: boolean;
   isMultiFace?: boolean;
   mockupFrontImageId?: string | null;
   mockupBackImageId?: string | null;
@@ -90,4 +99,6 @@ export interface ProductAttributeValueDetail {
   priceModifier: number;
   value: string;
   attributeName: string;
+  attributeType?: string;
+  parentValueId?: string | null;
 }
