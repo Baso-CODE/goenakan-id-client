@@ -155,6 +155,108 @@
     "title": "Under Construction",
     "description": "Sorry, this page is currently being crafted by our team to bring you the best experience. Please check back soon!",
     "backHome": "Return to Homepage"
+  },
+
+
+  "AboutTimeline": {
+    "tagline": "About us",
+    "heading": "Every product starts somewhere.",
+    "subHeading": "Sometimes, it's from a simple request. Sometimes, it's from the desire to create something more meaningful.\nGoenakan Indonesia helps bridge that gap. We work with brands and individuals to turn early-stage ideas into custom products that are thoughtfully made, properly produced, and genuinely representative of who you are.",
+    "timeline": {
+      "item1": {
+        "year": "2019",
+        "title": "A Story That Started Small",
+        "description": "It began with a very specific request: a Bali resort needed wooden combs engraved with their logo, in a small quantity, on a tight timeline. Products like this were typically sourced overseas in large minimum orders. That single request opened up a bigger question: could custom products be made more flexibly? Goenakan Indonesia was built around that answer."
+      },
+      "item2": {
+        "year": "2020",
+        "title": "",
+        "description": "As businesses adapted to a changing environment, so did the demand. Requests shifted toward hampers, branded merchandise, and more personal gifts. It became clear that products aren't just functional objects—they carry meaning, and getting that meaning right matters."
+      },
+      "item3": {
+        "year": "2022",
+        "title": "",
+        "description": "More brands came with more varied ideas. Some arrived with fully-formed concepts. Others came with just a rough image or a mood. From this, a more collaborative way of working took shape—connecting ideas to production, and design to reality."
+      },
+      "item4": {
+        "year": "Today",
+        "title": "",
+        "description": "Goenakan Indonesia continues to grow as a custom product specialist, helping brands create products that feel considered, personal, and right for their purpose."
+      }
+    },
+    "buttonText": "View Our Company Profile",
+    "buttonLink": "https://drive.google.com/file/d/1fKK2nseyj7jTvSkx_jM88-1oE9Z-8G72/view?usp=sharing"
+  },
+
+
+  "ShortStory": {
+    "title": "Short Story",
+    "description": "Every great project starts with a simple question: \"Can we bring this to life?\" Whether it begins with a polished sketch or just a spark of an idea, the journey from \"nothing\" to \"something\" is one we walk together. At Goenakan Indonesia, we don't just ship orders. We listen, we refine, and we build. We are your partner in every stitch and detail, ensuring your vision becomes a reality you’re proud to hold.",
+    "readBioText": "Read Bio",
+    "team": {
+      "marisa": {
+        "name": "Marisa Permatasari",
+        "role": "Founder",
+        "bio": "Marisa started Goenakan Indonesia with a straightforward vision: to help brands create custom products that are not only visually compelling, but reliably well-made. With experience across hospitality and corporate merchandise projects, she has built Goenakan Indonesia into a trusted partner for brands who care about how their products look, feel, and land.",
+        "linkedin": "https://www.linkedin.com/in/marisa-permatasari-0b1b9515b/"
+      },
+      "nadya": {
+        "name": "Nadya Yuniar Desi Prameswari",
+        "role": "Co-Founder",
+        "bio": "Nadya brings depth to Goenakan Indonesia through her focus on product research, strategic partnerships, market expansion, and marketing. She ensures that every product direction is grounded in real insight, while actively building the relationships and reach that help Goenakan Indonesia grow into new markets and opportunities.",
+        "linkedin": "https://www.linkedin.com/in/nadyayuniar"
+      },
+      "group": {
+        "name": "The Goenakan Team",
+        "role": "Production & Partnerships",
+        "bio": "Behind every project is a network of craftspeople and production partners who bring ideas to life. The Goenakan Indonesia team coordinates each step of the process, from early concept discussions to final delivery—ensuring quality and consistency throughout.",
+        "linkedin": ""
+      }
+    }
+  },
+  "CoreValues": {
+    "heading": "How Every Project\nIs Approached",
+    "subheading": "",
+    "values": {
+      "item1": {
+        "title": "Purposeful Customization",
+        "description": "Every product is designed with intention. Function, aesthetics, and brand identity are all considered together—not as separate boxes to tick."
+      },
+      "item2": {
+        "title": "Attention to Detail",
+        "description": "The details that seem small often matter most. Materials, finishing, and consistency are held to a careful standard across every order."
+      },
+      "item3": {
+        "title": "Reliable Execution",
+        "description": "A structured process means fewer surprises. Each stage is managed clearly so that timelines and quality can be counted on."
+      },
+      "item4": {
+        "title": "Responsible Choices",
+        "description": "Thoughtful decisions about materials and production methods are part of how we work—not an afterthought."
+      },
+      "item5": {
+        "title": "Collaborative by Default",
+        "description": "Every project is a shared process. Open communication and genuine alignment between both sides leads to better outcomes."
+      }
+    }
+  },
+
+  "Login": {
+    "title": "Welcome Back",
+    "subtitle": "Please enter your details to sign in.",
+    "emailPlaceholder": "Email Address",
+    "passwordPlaceholder": "Password",
+    "forgotPassword": "Forgot Password?",
+    "signInButton": "Sign In",
+    "signingInText": "Signing in...",
+    "orText": "Or",
+    "googleSignIn": "Sign in with Google",
+    "noAccountText": "Don't have an account?",
+    "createAccountLink": "Create an account",
+    "messages": {
+      "success": "Login successful! Welcome back.",
+      "errorDefault": "An error occurred during login."
+    }
   }
 }
 
