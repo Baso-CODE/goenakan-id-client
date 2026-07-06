@@ -1,3 +1,4 @@
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
 import { NextAuthProvider } from "@/providers/NextAuthProvider";
 import type { Metadata } from "next";
@@ -43,7 +44,7 @@ export default async function RootLayout({
         <NextAuthProvider>
           <NextIntlClientProvider messages={messages}>
             <Navbar />
-            {children}
+            <TooltipProvider>{children}</TooltipProvider>
             <Toaster position="top-center" richColors />
             <Footer />
           </NextIntlClientProvider>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useRouter } from "@/i18n/routing";
 import { signIn } from "next-auth/react";
+import { useTranslations } from "next-intl"; // 1. Import next-intl
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,9 @@ function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+
+  // 2. Inisialisasi hook dengan namespace "Login"
+  const t = useTranslations("Login");
 
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -37,7 +41,8 @@ function LoginFormInner() {
       if (res?.error) {
         toast.error(res.error);
       } else if (res?.ok) {
-        toast.success("Login berhasil! Selamat datang kembali.");
+        // Menggunakan pesan sukses dari file terjemahan
+        toast.success(t("messages.success"));
         router.push(callbackUrl);
         router.refresh();
       }
@@ -45,7 +50,8 @@ function LoginFormInner() {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Terjadi kesalahan saat login.",
+          : // Menggunakan pesan error dari file terjemahan
+            t("messages.errorDefault"),
       );
     } finally {
       setIsLoading(false);
@@ -65,17 +71,16 @@ function LoginFormInner() {
   return (
     <div className="w-full max-w-100">
       <h1 className="text-4xl font-light text-stone-800 text-center mb-2">
-        Welcome Back
+        {t("title")}
       </h1>
-      <p className="text-center text-sm text-stone-500 mb-8">
-        Please enter your details to sign in.
-      </p>
+      <p className="text-center text-sm text-stone-500 mb-8">{t("subtitle")}</p>
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* Email Field */}
         <Input
           name="email"
           type="email"
-          placeholder="Email Address"
+          placeholder={t("emailPlaceholder")}
           value={formData.email}
           onChange={handleChange}
           required
@@ -88,7 +93,7 @@ function LoginFormInner() {
           <Input
             name="password"
             type="password"
-            placeholder="Password"
+            placeholder={t("passwordPlaceholder")}
             value={formData.password}
             onChange={handleChange}
             required
@@ -99,7 +104,7 @@ function LoginFormInner() {
             <Link
               href="/forgot-password"
               className="text-[11px] font-medium text-stone-500 hover:text-stone-800 transition-colors">
-              Forgot Password?
+              {t("forgotPassword")}
             </Link>
           </div>
         </div>
@@ -109,14 +114,14 @@ function LoginFormInner() {
           type="submit"
           disabled={isLoading || !formData.email || !formData.password}
           className="w-full bg-[#b5956a] hover:bg-[#a07d55] text-white text-sm font-medium rounded-sm py-6 mt-2 transition-colors">
-          {isLoading ? "Signing in..." : "Sign In"}
+          {isLoading ? t("signingInText") : t("signInButton")}
         </Button>
 
         {/* Divider */}
         <div className="flex items-center gap-3 my-2">
           <div className="flex-1 h-px bg-stone-200"></div>
           <span className="text-xs text-stone-400 uppercase tracking-widest font-medium">
-            Or
+            {t("orText")}
           </span>
           <div className="flex-1 h-px bg-stone-200"></div>
         </div>
@@ -146,15 +151,16 @@ function LoginFormInner() {
               fill="#EA4335"
             />
           </svg>
-          Sign in with Google
+          {t("googleSignIn")}
         </Button>
       </form>
+
       <p className="text-center text-sm text-stone-500 mt-8">
-        Don&apos;t have an account?{" "}
+        {t("noAccountText")}{" "}
         <Link
           href="/register"
           className="underline text-stone-700 hover:text-stone-900 transition-colors font-medium">
-          Create an account
+          {t("createAccountLink")}
         </Link>
       </p>
     </div>

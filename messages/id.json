@@ -153,6 +153,109 @@
     "title": "Sedang Dalam Pengembangan",
     "description": "Maaf, halaman ini sedang diracik oleh tim kami untuk memberikan pengalaman terbaik bagi Anda. Silakan kembali lagi nanti!",
     "backHome": "Kembali ke Beranda"
+  },
+
+  "AboutTimeline": {
+    "tagline": "Tentang Kami",
+    "heading": "Setiap produk punya titik awalnya sendiri.",
+    "subHeading": "Kadang bermula dari satu permintaan sederhana. Kadang dari keinginan untuk menciptakan sesuatu yang lebih dari sekadar ada.\nDi situlah Goenakan Indonesia hadir. Kami membantu brand dan individu mengubah ide awal menjadi produk custom yang dibuat dengan pertimbangan matang, diproduksi dengan baik, dan benar-benar mencerminkan identitas mereka.",
+    "timeline": {
+      "item1": {
+        "year": "2019",
+        "title": "Perjalanan yang Dimulai dari Hal Sederhana",
+        "description": "Semuanya berawal dari satu permintaan yang sangat spesifik: sebuah resort di Bali membutuhkan sisir kayu dengan logo mereka dalam jumlah kecil dan waktu yang singkat. Produk seperti ini biasanya harus dipesan dari luar negeri dengan minimum order besar. Dari kebutuhan itulah muncul pertanyaan yang lebih besar: apakah produk custom bisa dibuat dengan cara yang lebih fleksibel? Goenakan Indonesia lahir dari jawaban atas pertanyaan itu."
+      },
+      "item2": {
+        "year": "2020",
+        "title": "",
+        "description": "Ketika banyak bisnis menghadapi perubahan besar, kebutuhan pun ikut bergeser. Permintaan mulai beralih ke hampers, merchandise, dan produk-produk yang lebih personal. Dari sini mulai terbentuk pemahaman bahwa produk bukan cuma benda biasa tapi mereka juga membawa makna, dan memastikan makna itu tersampaikan dengan tepat adalah hal yang penting."
+      },
+      "item3": {
+        "year": "2022",
+        "title": "",
+        "description": "Semakin banyak brand datang dengan ide yang semakin beragam. Ada yang konsepnya sudah sangat jelas, ada yang masih berupa gambaran kasar. Dari situlah proses kolaborasi mulai terbentuk untuk menghubungkan ide dengan produksi, dan desain dengan realisasi."
+      },
+      "item4": {
+        "year": "Hari Ini",
+        "title": "",
+        "description": "Goenakan Indonesia terus berkembang sebagai custom product specialist, membantu brand menciptakan produk yang terasa lebih personal, lebih relevan, dan lebih tepat sasaran."
+      }
+    },
+    "buttonText": "Lihat Profil Perusahaan",
+    "buttonLink": "https://drive.google.com/file/d/1fKK2nseyj7jTvSkx_jM88-1oE9Z-8G72/view?usp=sharing"
+  },
+
+
+  "ShortStory": {
+    "title": "Kisah\nSingkat",
+    "description": "Setiap proyek besar selalu dimulai dengan satu pertanyaan sederhana: \"Bisa tidak ya, ide ini diwujudkan?\" Ada yang datang membawa ide yang sudah tertata rapi, ada pula yang hanya membawa mimpi. Di Goenakan Indonesia, kami hadir untuk menemani perjalanan itu. Kami bukan hanya vendor kustom souvenir biasa, tapi juga rekan yang ikut berpikir, merevisi, dan memastikan hasil akhirnya nyata, sama persis seperti yang kamu bayangkan.",
+    "readBioText": "Baca Bio",
+    "team": {
+      "marisa": {
+        "name": "Marisa Permatasari",
+        "role": "Founder",
+        "bio": "Marisa membangun Goenakan Indonesia dengan visi yang sederhana: membantu brand menciptakan produk custom yang tidak hanya menarik secara visual, tapi juga benar-benar bisa diandalkan kualitasnya. Dengan pengalaman di berbagai proyek hospitality dan corporate merchandise, ia terus mengembangkan Goenakan Indonesia sebagai partner terpercaya bagi brand yang peduli pada bagaimana produk mereka terlihat, terasa, dan diterima.",
+        "linkedin": "https://www.linkedin.com/in/marisa-permatasari-0b1b9515b/"
+      },
+      "nadya": {
+        "name": "Nadya Yuniar Desi Prameswari",
+        "role": "Co-Founder",
+        "bio": "Nadya memperkuat Goenakan Indonesia melalui fokusnya pada riset produk, kemitraan strategis, ekspansi market, dan marketing. Ia memastikan setiap arah pengembangan produk berakar pada insight yang nyata, sekaligus aktif membangun relasi dan jangkauan yang membawa Goenakan Indonesia tumbuh ke pasar dan peluang baru.",
+        "linkedin": "https://www.linkedin.com/in/nadyayuniar"
+      },
+      "group": {
+        "name": "Tim Goenakan",
+        "role": "Produksi & Kemitraan",
+        "bio": "Di balik setiap proyek, ada jaringan pengrajin dan mitra produksi yang mewujudkan ide menjadi kenyataan. Tim Goenakan Indonesia mengelola setiap tahap mulai dari diskusi awal hingga pengiriman untuk memastikan kualitas dan konsistensi di setiap langkahnya.",
+        "linkedin": ""
+      }
+    }
+  },
+
+  "CoreValues": {
+    "heading": "Cara Kami Bekerja\ndalam Setiap Proyek",
+    "subheading": "",
+    "values": {
+      "item1": {
+        "title": "Kustomisasi yang Penuh Pertimbangan",
+        "description": "Setiap produk dirancang dengan tujuan yang jelas. Fungsi, estetika, dan identitas brand dipikirkan bersama—bukan sebagai hal yang terpisah."
+      },
+      "item2": {
+        "title": "Perhatian pada Detail",
+        "description": "Detail yang tampak kecil sering kali paling menentukan. Material, finishing, dan konsistensi selalu diperhatikan dengan standar yang sama di setiap pesanan."
+      },
+      "item3": {
+        "title": "Eksekusi yang Bisa Diandalkan",
+        "description": "Proses yang terstruktur berarti lebih sedikit kejutan. Setiap tahap dikelola dengan jelas agar timeline dan kualitas bisa dipastikan."
+      },
+      "item4": {
+        "title": "Pilihan yang Lebih Bertanggung Jawab",
+        "description": "Memilih material dan metode produksi dengan bijak adalah bagian dari cara kami bekerja—bukan sesuatu yang dipikirkan belakangan."
+      },
+      "item5": {
+        "title": "Kolaborasi Sebagai Cara Kerja",
+        "description": "Setiap proyek adalah proses bersama. Komunikasi yang terbuka dan keselarasan antara kedua pihak menghasilkan output yang lebih baik."
+      }
+    }
+  },
+
+  
+  "Login": {
+    "title": "Selamat Datang",
+    "subtitle": "Silakan masukkan detail Anda untuk masuk.",
+    "emailPlaceholder": "Alamat Email",
+    "passwordPlaceholder": "Kata Sandi",
+    "forgotPassword": "Lupa Kata Sandi?",
+    "signInButton": "Masuk",
+    "signingInText": "Sedang masuk...",
+    "orText": "Atau",
+    "googleSignIn": "Masuk dengan Google",
+    "noAccountText": "Belum punya akun?",
+    "createAccountLink": "Buat akun sekarang",
+    "messages": {
+      "success": "Login berhasil! Selamat datang kembali.",
+      "errorDefault": "Terjadi kesalahan saat login."
+    }
   }
 
 }
