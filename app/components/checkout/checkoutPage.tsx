@@ -47,6 +47,26 @@ function formatRupiah(amount: number) {
   return `Rp ${amount.toLocaleString("id-ID")}`;
 }
 
+interface CustomizationZone {
+  image: string;
+  fileName: string;
+  label: string;
+  logoCount?: number;
+}
+
+function getCustomizationDetails(customization: any): CustomizationZone[] | null {
+  if (!customization) return null;
+  try {
+    const data = typeof customization === "string" ? JSON.parse(customization) : customization;
+    if (data && data.zones) {
+      return Object.values(data.zones) as CustomizationZone[];
+    }
+  } catch (e) {
+    console.error("Failed to parse customization", e);
+  }
+  return null;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { data: session } = useSession();
@@ -617,6 +637,28 @@ export default function CheckoutPage() {
                         <p className="text-xs font-bold text-stone-800 mt-1">
                           {formatRupiah(item.price)}
                         </p>
+                        {getCustomizationDetails(item.customization) && (
+                          <div className="mt-1.5 p-1.5 bg-stone-100 rounded-sm border border-stone-200 self-start max-w-full">
+                            <p className="text-[8px] font-bold text-stone-600 uppercase tracking-widest mb-1">
+                              Logo Kustom:
+                            </p>
+                            <div className="flex flex-col gap-1">
+                              {getCustomizationDetails(item.customization)!.map((zone, idx) => (
+                                <div key={idx} className="flex items-center gap-1.5 text-[9px] text-stone-600">
+                                  <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
+                                    <img src={zone.image} alt={zone.label} className="w-full h-full object-contain" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="font-semibold text-stone-800 block leading-none">
+                                      {zone.label} {zone.logoCount && zone.logoCount > 1 ? `(x${zone.logoCount})` : ""}
+                                    </span>
+                                    <span className="text-stone-400 text-[8px] truncate block max-w-[120px]">{zone.fileName}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

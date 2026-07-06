@@ -395,10 +395,16 @@ model Product {
   images          ProductImage[]
   videos          ProductVideo[]
   productVariants ProductVariant[]
+  attributes      Attribute[]
   seo             ProductSEO?
   articleProducts ArticleProduct[]
   cartItems       CartItem[]
   webOrderItems   WebOrderItem[]
+
+  mockupAreaX      Float?
+  mockupAreaY      Float?
+  mockupAreaWidth  Float?
+  mockupAreaHeight Float?
 
   @@map("products")
 }
@@ -441,8 +447,13 @@ model Attribute {
   id        String   @id @default(uuid())
   name      String
   slug      String   @unique
+  position  Int      @default(0)
+  type      String   @default("TEXT")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  productId String?
+  product   Product?   @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   values   AttributeValue[]
   products ProductAttributeValue[]
@@ -453,6 +464,7 @@ model Attribute {
 model AttributeValue {
   id          String    @id @default(uuid())
   value       String
+  position    Int       @default(0)
   attributeId String
   attribute   Attribute @relation(fields: [attributeId], references: [id])
 
@@ -472,6 +484,7 @@ model ProductAttributeValue {
   attributeValue   AttributeValue @relation(fields: [attributeValueId], references: [id])
   attribute        Attribute?     @relation(fields: [attributeId], references: [id])
   attributeId      String?
+  priceModifier    Float?         @default(0)
 
   @@unique([productId, attributeValueId])
   @@map("product_attribute_values")
