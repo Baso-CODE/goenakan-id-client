@@ -640,7 +640,62 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return !!hasAreas;
   }, [product.variants, product.attributeValues, product.media]);
 
+  const resolvedVariantDetails = useMemo(() => {
+    if (!selectedVariant) return null;
+
+    // Default values from variant
+    let weight = selectedVariant.weightString || "";
+    let rawWeight = selectedVariant.rawWeight || null;
+    let width = selectedVariant.width || null;
+    let height = selectedVariant.height || null;
+    let length = selectedVariant.length || null;
+    let dimensions = selectedVariant.dimensionsString || "";
+
+    // Find if any attribute of this variant has SIZE type with custom dimensions/weight
+    if (selectedVariant.attributes && product.attributeValues) {
+      for (const attr of selectedVariant.attributes) {
+        const match = product.attributeValues.find(
+          (av: any) =>
+            av.attributeType === "SIZE" &&
+            (av.attributeValueId === attr.attributeValueId ||
+              (av.attributeName === attr.name && av.value === attr.value))
+        );
+
+        if (match) {
+          // If match has custom dimensions or weight, use them!
+          if (match.weight) {
+            rawWeight = Number(match.weight);
+            weight = `${match.weight} gram`;
+          }
+          if (match.width || match.height || match.length) {
+            width = match.width ? Number(match.width) : null;
+            height = match.height ? Number(match.height) : null;
+            length = match.length ? Number(match.length) : null;
+            dimensions = `${length || 0}x${width || 0}x${height || 0} cm`;
+          }
+          break; // Found the size attribute
+        }
+      }
+    }
+
+    return {
+      weight,
+      rawWeight,
+      width,
+      height,
+      length,
+      dimensions,
+    };
+  }, [selectedVariant, product.attributeValues]);
+
   const handleAddToCart = async () => {
+    const variantWeight = resolvedVariantDetails ? resolvedVariantDetails.weight : (selectedVariant?.weightString || product.weight);
+    const variantRawWeight = resolvedVariantDetails ? resolvedVariantDetails.rawWeight : (selectedVariant?.rawWeight || product.rawWeight);
+    const variantWidth = resolvedVariantDetails ? resolvedVariantDetails.width : (selectedVariant?.width || product.width);
+    const variantHeight = resolvedVariantDetails ? resolvedVariantDetails.height : (selectedVariant?.height || product.height);
+    const variantLength = resolvedVariantDetails ? resolvedVariantDetails.length : (selectedVariant?.length || product.length);
+    const variantDimensions = resolvedVariantDetails ? resolvedVariantDetails.dimensions : (selectedVariant?.dimensionsString || product.dimensions);
+
     const payload: AddToCartPayload = {
       id: product.id,
       name: product.name,
@@ -650,13 +705,13 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         product.media?.[0]?.url ||
         "/images/products/demo-products.png",
       variantId: selectedVariantId,
-      dimensions: selectedVariant?.dimensionsString || product.dimensions,
-      weight: selectedVariant?.weightString || product.weight,
+      dimensions: variantDimensions,
+      weight: variantWeight,
       materialType: product.materialType,
-      rawWeight: selectedVariant?.rawWeight || product.rawWeight,
-      width: selectedVariant?.width || product.width,
-      height: selectedVariant?.height || product.height,
-      length: selectedVariant?.length || product.length,
+      rawWeight: variantRawWeight,
+      width: variantWidth,
+      height: variantHeight,
+      length: variantLength,
       customization: customization,
     };
 
@@ -668,12 +723,13 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     router.push("/checkout");
   };
 
-  const displayWeight = selectedVariant
-    ? selectedVariant.weightString
-    : product.weight;
-  const displayDimensions = selectedVariant
-    ? selectedVariant.dimensionsString
-    : product.dimensions;
+  const displayWeight = resolvedVariantDetails
+    ? resolvedVariantDetails.weight
+    : (selectedVariant ? selectedVariant.weightString : product.weight);
+
+  const displayDimensions = resolvedVariantDetails
+    ? resolvedVariantDetails.dimensions
+    : (selectedVariant ? selectedVariant.dimensionsString : product.dimensions);
 
   const minAllowedQty =
     activeTiers.length > 0 ? (activeTiers[0].minQty ?? 1) : 1;
