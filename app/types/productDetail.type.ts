@@ -101,4 +101,8 @@ export interface ProductAttributeValueDetail {
   attributeName: string;
   attributeType?: string;
   parentValueId?: string | null;
+  weight?: number | null;
+  width?: number | null;
+  height?: number | null;
+  length?: number | null;
 }
