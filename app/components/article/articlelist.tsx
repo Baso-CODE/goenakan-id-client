@@ -5,6 +5,7 @@ import { Article } from "@/app/types/articles/articleList.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/routing";
+import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -22,9 +23,16 @@ const stripHtml = (html: string) => {
 };
 
 export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
-  const [activeCategory, setActiveCategory] = useState("All posts");
+  const locale = useLocale();
+
+  // Teks Statis Multibahasa
+  const allPostsText = locale === "en" ? "All posts" : "Semua Postingan";
+  const newestText = locale === "en" ? "newest" : "terbaru";
+  const olderText = locale === "en" ? "older" : "terlama";
+
+  const [activeCategory, setActiveCategory] = useState(allPostsText);
   const [sort, setSort] = useState<"newest" | "older">("newest");
-  const [categories, setCategories] = useState<string[]>(["All posts"]);
+  const [categories, setCategories] = useState<string[]>([allPostsText]);
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [page, setPage] = useState(1);
@@ -39,11 +47,12 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
         const res = await fetch(`${apiUrl}/article-categories/list`);
         if (!res.ok) throw new Error("Gagal mengambil kategori");
         const data = await res.json();
+
         const categoryArray = data.data || data;
         const categoryNames = categoryArray.map(
           (cat: { id: string; name: string }) => cat.name,
         );
-        setCategories(["All posts", ...categoryNames]);
+        setCategories([allPostsText, ...categoryNames]);
       } catch (error) {
         console.error("Error fetching categories:", error);
       } finally {
@@ -51,7 +60,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
       }
     };
     fetchCategories();
-  }, []);
+  }, [allPostsText]);
 
   const fetchArticles = async (
     pageNum: number,
@@ -61,7 +70,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
     setIsLoading(true);
     try {
       let url = `${apiUrl}/articles/list?page=${pageNum}&take=${pageSize}&sort=${sortOrder}`;
-      if (cat !== "All posts") {
+      if (cat !== allPostsText) {
         url += `&categoryName=${encodeURIComponent(cat)}`;
       }
       const [res] = await Promise.all([
@@ -72,19 +81,29 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
       if (!res.ok) throw new Error("Gagal mengambil data artikel");
 
       const json = await res.json();
+      console.log("Response API:", json);
       const formatted: Article[] = json.data.map((item: ArticleApiItem) => {
-        const plainText = stripHtml(item.content);
+        const mappedTitle =
+          locale === "en" && item.title_en ? item.title_en : item.title_id;
+        const mappedContent =
+          locale === "en" && item.content_en
+            ? item.content_en
+            : item.content_id;
+
+        const plainText = stripHtml(mappedContent || "");
+
         return {
           id: item.id,
-          title: item.title,
+          title: mappedTitle,
           excerpt:
             plainText.length > 100
               ? plainText.substring(0, 100) + "..."
               : plainText,
           image: item.coverImage || "/images/articles/article-placeholder.jpg",
           category: item.category?.name || "Uncategorized",
+
           date: new Date(item.publishedAt || item.createdAt).toLocaleDateString(
-            "en-US",
+            locale === "en" ? "en-US" : "id-ID",
             { month: "long", day: "numeric", year: "numeric" },
           ),
           href: `/article/${item.slug || item.id}`,
@@ -96,7 +115,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
       } else {
         setArticles((prev) => [...prev, ...formatted]);
       }
-      setHasMore(pageNum < json.meta.pageCount);
+      setHasMore(json.meta.hasNext);
     } catch (error) {
       console.error(error);
     } finally {
@@ -167,7 +186,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
                 ? "text-stone-900 font-medium"
                 : "text-stone-400 hover:text-stone-600"
             }>
-            newest
+            {newestText}
           </button>
 
           <span className="text-stone-300">|</span>
@@ -185,7 +204,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
                 ? "text-stone-900 font-medium"
                 : "text-stone-400 hover:text-stone-600"
             }>
-            older
+            {olderText}
           </button>
         </div>
       </div>
@@ -205,7 +224,9 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
           ))
         ) : articles.length === 0 ? (
           <div className="col-span-full text-center py-20 text-stone-500">
-            Tidak ada artikel ditemukan di kategori ini.
+            {locale === "en"
+              ? "No articles found in this category."
+              : "Tidak ada artikel ditemukan di kategori ini."}
           </div>
         ) : (
           articles.map((article) => (
@@ -237,7 +258,13 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
             onClick={handleLoadMore}
             disabled={isLoading}
             className="border border-stone-300 text-stone-600 text-sm px-8 py-2 rounded-sm hover:bg-stone-50 transition-colors disabled:opacity-50">
-            {isLoading ? "loading..." : "load more"}
+            {isLoading
+              ? locale === "en"
+                ? "loading..."
+                : "memuat..."
+              : locale === "en"
+                ? "load more"
+                : "muat lebih banyak"}
           </button>
         </div>
       )}

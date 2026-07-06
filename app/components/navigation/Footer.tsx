@@ -10,7 +10,6 @@ export default function Footer() {
   const [categories, setCategories] = useState<CategoryPublic[]>([]);
   const t = useTranslations("Footer");
   useEffect(() => {
-    // 🔄 Gunakan fungsi service agar lebih rapi
     const loadCategories = async () => {
       const data = await getCategoryList();
       setCategories(data);
@@ -86,7 +85,6 @@ export default function Footer() {
                     All Products
                   </Link>
                 </li>
-                {/* 🔄 Mapping data kategori yang sudah rapi */}
                 {categories.map((cat) => (
                   <li key={cat.id}>
                     <Link
@@ -145,21 +143,21 @@ export default function Footer() {
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
                   <Link
-                    href="/faq"
+                    href="/faqs"
                     className="hover:text-white transition-colors">
                     FAQ
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/policy"
+                    href="/policies"
                     className="hover:text-white transition-colors">
                     Our Policy
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/cookies"
+                    href="/best-price-guarantee"
                     className="hover:text-white transition-colors">
                     Best Price Guarantee
                   </Link>
@@ -210,25 +208,47 @@ export default function Footer() {
             <div>
               <h3 className="font-bold text-white mb-4">Marketplace</h3>
               <div className="flex gap-4">
-                {/* Icon 1 (Misal: Shopee) */}
-                <div className="relative w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity">
+                {/* Shopee */}
+                <a
+                  href="https://shopee.co.id/goenakan.id"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity">
                   <Image
-                    src="/images/footer/shopee.png" // Ganti dengan path gambar kamu
+                    src="/images/footer/shopee.png"
                     alt="Shopee"
                     fill
-                    className="object-contain" // Agar gambar pas di dalam kotak tanpa gepeng
+                    className="object-contain"
                   />
-                </div>
+                </a>
 
-                {/* Icon 2 (Misal: Tokopedia) */}
-                <div className="relative w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity">
+                {/* Tokopedia */}
+                <a
+                  href="https://www.tokopedia.com/goenakanid"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity">
                   <Image
-                    src="/images/footer/tokopedia.png" // Ganti dengan path gambar kamu
+                    src="/images/footer/tokopedia.png"
                     alt="Tokopedia"
                     fill
                     className="object-contain"
                   />
-                </div>
+                </a>
+
+                {/* TikTok Shop */}
+                <a
+                  href="https://vt.tiktok.com/ZSQT9hvku/?page=Mall"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative w-10 h-10 cursor-pointer hover:opacity-80 transition-opacity">
+                  <Image
+                    src="/images/footer/tiktok.png"
+                    alt="TikTok Shop"
+                    fill
+                    className="object-contain"
+                  />
+                </a>
               </div>
             </div>
           </div>

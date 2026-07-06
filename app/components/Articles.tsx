@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/carousel";
 import { Link } from "@/i18n/routing";
 import Autoplay from "embla-carousel-autoplay";
+import { useLocale } from "next-intl";
 import Image from "next/image";
 import * as React from "react";
 import { useEffect, useState } from "react";
@@ -38,12 +39,25 @@ export interface Article {
 }
 
 export default function Articles() {
+  const locale = useLocale(); // ✨ DETEKSI BAHASA AKTIF ("id" atau "en")
+
   const plugin = React.useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true }),
   );
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // ✨ TEKS STATIS MULTIBAHASA
+  const dict = {
+    title: locale === "en" ? "Articles" : "Artikel",
+    loading: locale === "en" ? "Loading articles..." : "Memuat artikel...",
+    empty:
+      locale === "en"
+        ? "No articles published yet."
+        : "Belum ada artikel yang dipublikasikan.",
+    readMore: locale === "en" ? "Read more" : "Baca selengkapnya",
+  };
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -54,12 +68,19 @@ export default function Articles() {
 
         const json = await res.json();
 
-        // Mapping data dari backend ke format tampilan
         const formatted: Article[] = json.data.map((item: ArticleApiItem) => {
-          const plainText = stripHtml(item.content);
+          const mappedTitle =
+            locale === "en" && item.title_en ? item.title_en : item.title_id;
+          const mappedContent =
+            locale === "en" && item.content_en
+              ? item.content_en
+              : item.content_id;
+
+          const plainText = stripHtml(mappedContent || "");
+
           return {
             id: item.id,
-            title: item.title,
+            title: mappedTitle,
             excerpt:
               plainText.length > 120
                 ? plainText.substring(0, 120) + "..."
@@ -78,7 +99,7 @@ export default function Articles() {
     };
 
     fetchArticles();
-  }, []);
+  }, [locale]); // Menambahkan locale di dependency array agar re-render jika bahasa diganti
 
   return (
     <section className="w-full bg-white pb-24">
@@ -121,17 +142,15 @@ export default function Articles() {
       <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl text-gray-900 uppercase tracking-wide">
-            Articles
+            {dict.title}
           </h2>
         </div>
         {isLoading ? (
           <div className="text-center py-20 text-gray-500 animate-pulse">
-            Memuat artikel...
+            {dict.loading}
           </div>
         ) : articles.length === 0 ? (
-          <div className="text-center py-20 text-gray-500">
-            Belum ada artikel yang dipublikasikan.
-          </div>
+          <div className="text-center py-20 text-gray-500">{dict.empty}</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-12 mb-16">
             {articles.map((article) => (
@@ -173,7 +192,7 @@ export default function Articles() {
         <div className="flex justify-center">
           <Link href="/article">
             <Button className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-10 py-6 text-base font-medium">
-              Read more
+              {dict.readMore}
             </Button>
           </Link>
         </div>

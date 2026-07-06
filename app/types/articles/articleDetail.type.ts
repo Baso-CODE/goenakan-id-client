@@ -9,13 +9,13 @@ export interface RelatedProduct {
 
 export interface ArticleDetail {
   id: string;
-  title: string;
+  title: string; // Akan diisi title_id atau title_en dari server
   author: string;
   date: string;
   category: string;
   slug?: string;
   coverImage: string;
-  content: string;
+  content: string; // Akan diisi content_id atau content_en dari server
   source?: string | null;
   prevArticle?: { title: string; href: string } | null;
   nextArticle?: { title: string; href: string } | null;
@@ -28,6 +28,7 @@ export interface TocItem {
   text: string;
   level: number;
 }
+
 export interface RelevantArticle {
   id: string;
   title: string;

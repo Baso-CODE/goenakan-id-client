@@ -62,7 +62,7 @@ export default function Navbar() {
   return (
     <header
       className={cn(
-        "sticky top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out", // Ganti fixed jadi sticky
+        "sticky top-0 left-0 right-0 z-50 transition-all duration-300 ease-in-out",
         isScrolled
           ? "bg-white/80 backdrop-blur-md shadow-sm py-4"
           : "bg-transparent py-6",

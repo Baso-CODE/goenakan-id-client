@@ -19,7 +19,6 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-// ✨ 3. Generate Metadata Dinamis
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
 
