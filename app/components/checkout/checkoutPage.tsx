@@ -54,10 +54,15 @@ interface CustomizationZone {
   logoCount?: number;
 }
 
-function getCustomizationDetails(customization: any): CustomizationZone[] | null {
+function getCustomizationDetails(
+  customization: string,
+): CustomizationZone[] | null {
   if (!customization) return null;
   try {
-    const data = typeof customization === "string" ? JSON.parse(customization) : customization;
+    const data =
+      typeof customization === "string"
+        ? JSON.parse(customization)
+        : customization;
     if (data && data.zones) {
       return Object.values(data.zones) as CustomizationZone[];
     }
@@ -643,19 +648,34 @@ export default function CheckoutPage() {
                               Logo Kustom:
                             </p>
                             <div className="flex flex-col gap-1">
-                              {getCustomizationDetails(item.customization)!.map((zone, idx) => (
-                                <div key={idx} className="flex items-center gap-1.5 text-[9px] text-stone-600">
-                                  <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
-                                    <img src={zone.image} alt={zone.label} className="w-full h-full object-contain" />
+                              {getCustomizationDetails(item.customization)!.map(
+                                (zone, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1.5 text-[9px] text-stone-600">
+                                    <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
+                                      <Image
+                                        width={100}
+                                        height={100}
+                                        src={zone.image}
+                                        alt={zone.label}
+                                        className="w-full h-full object-contain"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="font-semibold text-stone-800 block leading-none">
+                                        {zone.label}{" "}
+                                        {zone.logoCount && zone.logoCount > 1
+                                          ? `(x${zone.logoCount})`
+                                          : ""}
+                                      </span>
+                                      <span className="text-stone-400 text-[8px] truncate block max-w-30">
+                                        {zone.fileName}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="min-w-0">
-                                    <span className="font-semibold text-stone-800 block leading-none">
-                                      {zone.label} {zone.logoCount && zone.logoCount > 1 ? `(x${zone.logoCount})` : ""}
-                                    </span>
-                                    <span className="text-stone-400 text-[8px] truncate block max-w-[120px]">{zone.fileName}</span>
-                                  </div>
-                                </div>
-                              ))}
+                                ),
+                              )}
                             </div>
                           </div>
                         )}
