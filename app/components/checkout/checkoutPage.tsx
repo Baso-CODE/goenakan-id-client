@@ -76,15 +76,12 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
-
   const { cartItems, fetchCart, clearCart } = useCartStore();
-
   const [addNote, setAddNote] = useState(false);
   const [note, setNote] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const [userAddresses, setUserAddresses] = useState<CustomerAddress[]>([]);
-  console.log("ini adalah userAddress", userAddresses);
 
   const [showAddressModal, setShowAddressModal] = useState(false);
 
@@ -106,7 +103,6 @@ export default function CheckoutPage() {
     0,
   );
 
-  // Total sekarang sama dengan subtotal karena tidak ada biaya pengiriman
   const total = subtotal;
   const totalQty = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -147,7 +143,7 @@ export default function CheckoutPage() {
           items: cartItems,
           note,
           subtotal,
-          shippingCost: 0, // Set nilai pengiriman menjadi 0
+          shippingCost: 0,
           totalAmount: total,
         }),
       });
@@ -170,7 +166,6 @@ export default function CheckoutPage() {
 
       const snapTokenFromApi = payData.data.token;
 
-      // 3. Munculkan Pop-up Midtrans
       window.snap.pay(snapTokenFromApi, {
         onSuccess: async function (result) {
           toast.success("Pembayaran berhasil!");
@@ -738,7 +733,6 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* ✨ Modal Choice Address */}
       {showAddressModal && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <Card className="w-full max-w-lg bg-white rounded-none shadow-2xl overflow-hidden border-none">

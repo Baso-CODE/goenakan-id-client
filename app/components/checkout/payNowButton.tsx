@@ -103,7 +103,6 @@ export default function PayNowButton({
     <Button
       onClick={handlePay}
       disabled={isProcessing}
-      // Styling diselaraskan persis dengan CheckoutPage (rounded-none, font-bold, uppercase, tracking-lebar)
       className="w-full sm:w-auto bg-[#463b34] hover:bg-stone-800 text-white text-xs font-bold tracking-[0.2em] rounded-none py-6 transition-all uppercase shadow-sm">
       {isProcessing ? "PROCESSING..." : "BAYAR SEKARANG"}
     </Button>

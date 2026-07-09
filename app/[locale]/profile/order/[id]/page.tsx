@@ -23,7 +23,6 @@ import { toast } from "sonner";
 // ==========================================
 // 1. DEFINISI TIPE DATA (INTERFACES)
 // ==========================================
-
 interface ShippingAddress {
   recipient?: string;
   phone?: string;
@@ -93,7 +92,6 @@ interface OrderDetail {
 // ==========================================
 // 2. FUNGSI PEMBANTU
 // ==========================================
-
 function formatRupiah(amount: number) {
   return `Rp ${amount.toLocaleString("id-ID")}`;
 }
@@ -111,35 +109,41 @@ function getDisplayImage(item: OrderItem): string {
 // ==========================================
 // 3. KOMPONEN UTAMA
 // ==========================================
-
 export default function OrderDetailPage() {
   const params = useParams();
   const orderId = params.id as string;
-  const { data: session } = useSession();
+
+  const { data: session, status } = useSession();
   const token = session?.user?.accessToken;
 
   const [order, setOrder] = useState<OrderDetail | null>(null);
-
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (status === "loading") return;
+
     const fetchOrderDetail = async () => {
-      if (!token) return;
       try {
+        // Siapkan header standar
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
         const response = await fetch(`${apiUrl}/web-orders/${orderId}`, {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
         });
+
         const json = await response.json();
 
         if (!response.ok || !json.success) throw new Error(json.message);
 
         setOrder(json.data);
       } catch (error: unknown) {
-        // Penanganan error tanpa any
         const errorMessage =
           error instanceof Error ? error.message : "Gagal memuat pesanan";
         toast.error(errorMessage);
@@ -149,7 +153,7 @@ export default function OrderDetailPage() {
     };
 
     fetchOrderDetail();
-  }, [orderId, token]);
+  }, [orderId, token, status]);
 
   if (isLoading) {
     return (
@@ -164,7 +168,6 @@ export default function OrderDetailPage() {
   const isPending =
     order.status === "PENDING" || order.status === "PENDING_PAYMENT";
 
-  // Parse JSON Alamat secara aman dan casting ke interface ShippingAddress
   const address: ShippingAddress =
     typeof order.shippingAddress === "string"
       ? JSON.parse(order.shippingAddress)
@@ -175,11 +178,21 @@ export default function OrderDetailPage() {
       <div className="container space-y-6">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <Link
-            href="/profile?tab=orders"
-            className="flex items-center text-stone-500 hover:text-stone-900 transition-colors text-sm font-medium">
-            <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Riwayat Pesanan
-          </Link>
+          {/* 💡 PERBAIKAN 3: Kondisi untuk tombol kembali */}
+          {token ? (
+            <Link
+              href="/profile?tab=orders"
+              className="flex items-center text-stone-500 hover:text-stone-900 transition-colors text-sm font-medium">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Riwayat Pesanan
+            </Link>
+          ) : (
+            <Link
+              href="/"
+              className="flex items-center text-stone-500 hover:text-stone-900 transition-colors text-sm font-medium">
+              <ArrowLeft className="w-4 h-4 mr-2" /> Kembali ke Beranda
+            </Link>
+          )}
+
           <div className="flex items-center gap-2 text-stone-400 text-sm">
             <Calendar className="w-4 h-4" />
             {new Date(order.createdAt).toLocaleDateString("id-ID", {
@@ -192,6 +205,7 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* --- Sisa kode UI di bawah ini sama persis seperti sebelumnya --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Kolom Kiri: Detail Produk & Pembayaran */}
           <div className="lg:col-span-2 space-y-6">
@@ -223,7 +237,6 @@ export default function OrderDetailPage() {
                   <div
                     key={item.id}
                     className="flex gap-4 py-4 first:pt-0 last:pb-0">
-                    {/* Gambar Cerdas (Varian / Produk) */}
                     <div className="relative w-24 h-24 bg-stone-100 rounded-lg overflow-hidden border border-stone-100 shrink-0">
                       <Image
                         src={getDisplayImage(item)}
@@ -233,7 +246,6 @@ export default function OrderDetailPage() {
                       />
                     </div>
 
-                    {/* Rincian Produk & Varian */}
                     <div className="flex-1 flex flex-col justify-center">
                       <h3 className="text-sm font-bold text-stone-800 uppercase tracking-tight">
                         {item.productName}
@@ -246,8 +258,6 @@ export default function OrderDetailPage() {
                               Varian: {item.variant.variantName}
                             </p>
                           )}
-
-                          {/* Mapping Detail Atribut (contoh: Warna: Merah) */}
                           <div className="flex flex-wrap gap-x-2">
                             {item.variant.attributeValues?.map((av) => (
                               <span
@@ -272,7 +282,6 @@ export default function OrderDetailPage() {
                       </p>
                     </div>
 
-                    {/* Total Harga Item */}
                     <div className="flex flex-col justify-center items-end">
                       <p className="text-sm font-bold text-stone-800">
                         {formatRupiah(item.quantity * Number(item.price))}
@@ -283,7 +292,6 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Note & Info Section */}
             {order.customerNote && (
               <div className="bg-stone-100/50 border border-stone-200 p-6 rounded-xl">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-stone-600 mb-2 flex items-center gap-2">
@@ -298,7 +306,6 @@ export default function OrderDetailPage() {
 
           {/* Kolom Kanan: Summary & Shipping */}
           <div className="space-y-6">
-            {/* Status Pembayaran */}
             {isPending && (
               <div className="bg-orange-50 border border-orange-100 p-6 rounded-xl space-y-4">
                 <p className="text-xs text-orange-700 font-medium">
@@ -313,7 +320,6 @@ export default function OrderDetailPage() {
               </div>
             )}
 
-            {/* Alamat Pengiriman */}
             <div className="bg-white border border-stone-200 p-6 rounded-xl shadow-sm">
               <h3 className="text-xs font-bold uppercase tracking-widest text-stone-800 mb-4 flex items-center gap-2 border-b pb-2">
                 <MapPin className="w-4 h-4 text-stone-400" /> Shipping Info
@@ -346,7 +352,6 @@ export default function OrderDetailPage() {
               </div>
             </div>
 
-            {/* Rincian Biaya */}
             <div className="bg-white border border-stone-200 p-6 rounded-xl shadow-sm space-y-3">
               <h3 className="text-xs font-bold uppercase tracking-widest text-stone-800 mb-2 border-b pb-2">
                 Payment Summary
