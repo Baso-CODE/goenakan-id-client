@@ -239,8 +239,7 @@
     }
   },
 
-  
-  "Login": {
+ "Login": {
     "title": "Selamat Datang",
     "subtitle": "Silakan masukkan detail Anda untuk masuk.",
     "emailPlaceholder": "Alamat Email",
@@ -254,7 +253,11 @@
     "createAccountLink": "Buat akun sekarang",
     "messages": {
       "success": "Login berhasil! Selamat datang kembali.",
-      "errorDefault": "Terjadi kesalahan saat login."
+      "errorDefault": "Terjadi kesalahan saat login.",
+      "tooManyAttempts": "Terlalu banyak percobaan login. Silakan coba lagi dalam 15 menit.",
+      "invalidCredentials": "Email atau kata sandi salah. Silakan coba lagi.",
+      "serverError": "Kesalahan server. Silakan coba lagi nanti.",
+      "networkError": "Kesalahan jaringan. Silakan periksa koneksi Anda."
     }
   }
 

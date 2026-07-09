@@ -191,7 +191,7 @@ model User {
   emailVerified       DateTime?
   password            String?
   image               String?
-  roleId              String
+  roleId              String?
   createdAt           DateTime             @default(now())
   articles            Article[]
   invoices            Invoice[]
@@ -206,7 +206,7 @@ model User {
   updatedPOs          PurchaseOrder[]      @relation("POUpdatedBy")
   approvedPOs         PurchaseOrder[]      @relation("POApprovedBy")
   orders              Order[]
-  role                Role                 @relation(fields: [roleId], references: [id])
+  role                Role?                @relation(fields: [roleId], references: [id])
   createdQuotations   Quotation[]          @relation("QuotationCreatedBy")
   updatedQuotations   Quotation[]          @relation("QuotationUpdatedBy")
   approvedQuotations  Quotation[]          @relation("QuotationApprovedBy")
