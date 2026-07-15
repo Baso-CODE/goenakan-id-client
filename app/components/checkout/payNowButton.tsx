@@ -1,9 +1,18 @@
 "use client";
 
+import { SnapOptions } from "@/app/types/midtrans/snapOptions.type";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
+declare global {
+  interface Window {
+    snap: {
+      pay: (token: string, options?: SnapOptions) => void;
+    };
+  }
+}
 
 interface PayNowButtonProps {
   orderId: string;
@@ -19,7 +28,6 @@ export default function PayNowButton({
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
 
-  // Memastikan script Midtrans dimuat di halaman ini
   useEffect(() => {
     const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
     const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || "";
@@ -34,9 +42,17 @@ export default function PayNowButton({
   }, []);
 
   const handlePay = async () => {
+    if (isProcessing) return;
+
     setIsProcessing(true);
+
     try {
-      // 1. Panggil API pembayaran
+      if (typeof window.snap === "undefined") {
+        throw new Error(
+          "Sistem pembayaran belum siap. Silakan tunggu sebentar.",
+        );
+      }
+
       const payRes = await fetch(`${apiUrl}/web-orders/${orderId}/pay`, {
         method: "POST",
         headers: {
@@ -52,7 +68,6 @@ export default function PayNowButton({
 
       const snapToken = payData.data.token;
 
-      // 2. Munculkan Pop-up Midtrans
       window.snap.pay(snapToken, {
         onSuccess: function () {
           toast.success("Pembayaran berhasil!");
@@ -64,11 +79,13 @@ export default function PayNowButton({
         },
         onError: function () {
           toast.error("Pembayaran gagal. Silakan coba lagi.");
+          setIsProcessing(false);
         },
         onClose: function () {
           toast.warning(
             "Anda menutup pop-up sebelum menyelesaikan pembayaran.",
           );
+          setIsProcessing(false);
         },
       });
     } catch (error: unknown) {
@@ -77,7 +94,7 @@ export default function PayNowButton({
           ? error.message
           : "Terjadi kesalahan pada sistem.";
       toast.error(errorMessage);
-    } finally {
+
       setIsProcessing(false);
     }
   };
@@ -86,8 +103,8 @@ export default function PayNowButton({
     <Button
       onClick={handlePay}
       disabled={isProcessing}
-      className="w-full sm:w-auto bg-[#463b34] text-white hover:bg-[#342b26] transition-all duration-200 shadow-sm">
-      {isProcessing ? "Memproses..." : "Bayar Sekarang"}
+      className="w-full sm:w-auto bg-[#463b34] hover:bg-stone-800 text-white text-xs font-bold tracking-[0.2em] rounded-none py-6 transition-all uppercase shadow-sm">
+      {isProcessing ? "PROCESSING..." : "BAYAR SEKARANG"}
     </Button>
   );
 }

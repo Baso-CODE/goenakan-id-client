@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useRouter } from "@/i18n/routing";
 import { signIn } from "next-auth/react";
-import { useTranslations } from "next-intl"; // 1. Import next-intl
+import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 function LoginFormInner() {
@@ -14,21 +14,99 @@ function LoginFormInner() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
 
-  // 2. Inisialisasi hook dengan namespace "Login"
   const t = useTranslations("Login");
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(0);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
+  useEffect(() => {
+    const rateLimitKey = "login_rate_limit";
+    const stored = localStorage.getItem(rateLimitKey);
+
+    if (stored) {
+      const { retryAfter } = JSON.parse(stored);
+      const now = Date.now();
+      const timeRemaining = retryAfter - now;
+
+      if (timeRemaining > 0) {
+        setIsRateLimited(true);
+        setRemainingTime(Math.ceil(timeRemaining / 1000));
+      } else {
+        localStorage.removeItem(rateLimitKey);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isRateLimited || remainingTime <= 0) return;
+
+    const timer = setInterval(() => {
+      setRemainingTime((prev) => {
+        if (prev <= 1) {
+          setIsRateLimited(false);
+          localStorage.removeItem("login_rate_limit");
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isRateLimited, remainingTime]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const getErrorMessage = (error: string): string => {
+    if (!error) return t("messages.errorDefault");
+
+    // Rate limit error
+    if (
+      error.includes("Terlalu banyak") ||
+      error.includes("Too many") ||
+      error.includes("429")
+    ) {
+      return t("messages.tooManyAttempts");
+    }
+
+    // Invalid credentials
+    if (
+      error.includes("Email atau password") ||
+      error.includes("Invalid") ||
+      error.includes("salah")
+    ) {
+      return t("messages.invalidCredentials");
+    }
+
+    // Server error
+    if (error.includes("Server") || error.includes("500")) {
+      return t("messages.serverError");
+    }
+
+    // Network error
+    if (error.includes("Network") || error.includes("fetch")) {
+      return t("messages.networkError");
+    }
+
+    return error;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ❌ Block jika sedang rate limited
+    if (isRateLimited) {
+      toast.error(t("messages.tooManyAttempts"));
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -39,26 +117,43 @@ function LoginFormInner() {
       });
 
       if (res?.error) {
-        toast.error(res.error);
+        const errorMessage = getErrorMessage(res.error);
+        toast.error(errorMessage);
+
+        if (
+          res.error.includes("Terlalu banyak") ||
+          res.error.includes("Too many")
+        ) {
+          const retryAfter = Date.now() + 15 * 60 * 1000; // 15 menit
+          localStorage.setItem(
+            "login_rate_limit",
+            JSON.stringify({ timestamp: Date.now(), retryAfter }),
+          );
+          setIsRateLimited(true);
+          setRemainingTime(15 * 60);
+        }
       } else if (res?.ok) {
-        // Menggunakan pesan sukses dari file terjemahan
         toast.success(t("messages.success"));
+        localStorage.removeItem("login_rate_limit");
         router.push(callbackUrl);
         router.refresh();
       }
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : // Menggunakan pesan error dari file terjemahan
-            t("messages.errorDefault"),
+      const errorMessage = getErrorMessage(
+        error instanceof Error ? error.message : "",
       );
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleGoogleSignIn = () => {
+    if (isRateLimited) {
+      toast.error(t("messages.tooManyAttempts"));
+      return;
+    }
+
     signIn("google", {
       callbackUrl: "/",
       prompt: "select_account",
@@ -75,6 +170,17 @@ function LoginFormInner() {
       </h1>
       <p className="text-center text-sm text-stone-500 mb-8">{t("subtitle")}</p>
 
+      {isRateLimited && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-sm">
+          <p className="text-red-700 text-sm font-medium">
+            {t("messages.tooManyAttempts")}
+          </p>
+          <p className="text-red-600 text-xs mt-1">
+            Retry in: <span className="font-bold">{remainingTime}s</span>
+          </p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {/* Email Field */}
         <Input
@@ -84,8 +190,9 @@ function LoginFormInner() {
           value={formData.email}
           onChange={handleChange}
           required
-          disabled={isLoading}
+          disabled={isLoading || isRateLimited}
           className={inputClass}
+          autoComplete="email"
         />
 
         {/* Password Field */}
@@ -97,8 +204,9 @@ function LoginFormInner() {
             value={formData.password}
             onChange={handleChange}
             required
-            disabled={isLoading}
+            disabled={isLoading || isRateLimited}
             className={inputClass}
+            autoComplete="current-password"
           />
           <div className="flex justify-end mt-1">
             <Link
@@ -112,8 +220,11 @@ function LoginFormInner() {
         {/* Sign In Button */}
         <Button
           type="submit"
-          disabled={isLoading || !formData.email || !formData.password}
-          className="w-full bg-[#b5956a] hover:bg-[#a07d55] text-white text-sm font-medium rounded-sm py-6 mt-2 transition-colors">
+          disabled={
+            isLoading || isRateLimited || !formData.email || !formData.password
+          }
+          className="w-full bg-[#b5956a] hover:bg-[#a07d55] text-white text-sm font-medium rounded-sm py-6 mt-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title={isRateLimited ? t("messages.tooManyAttempts") : ""}>
           {isLoading ? t("signingInText") : t("signInButton")}
         </Button>
 
@@ -131,8 +242,8 @@ function LoginFormInner() {
           type="button"
           variant="outline"
           onClick={handleGoogleSignIn}
-          disabled={isLoading}
-          className="w-full border border-stone-300 rounded-sm py-6 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-3">
+          disabled={isLoading || isRateLimited}
+          className="w-full border border-stone-300 rounded-sm py-6 text-sm text-stone-700 hover:bg-stone-50 flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed">
           <svg width="18" height="18" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

@@ -1,7 +1,6 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import * as argon2 from "argon2";
 import { sign } from "jsonwebtoken";
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./prisma";
@@ -35,44 +34,95 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email dan password wajib diisi");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !user.password) {
-          throw new Error(
-            "Email tidak ditemukan atau terdaftar menggunakan Google",
+        try {
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                email: credentials.email,
+                password: credentials.password,
+              }),
+            },
           );
+
+          // ❌ Handle error dari backend (termasuk rate limit 429)
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+
+            // Rate Limit Error (429)
+            if (response.status === 429) {
+              throw new Error(
+                "Terlalu banyak percobaan login, coba lagi dalam 15 menit",
+              );
+            }
+
+            // Unauthorized (401)
+            if (response.status === 401) {
+              throw new Error(error.message || "Email atau password salah");
+            }
+
+            // Server Error (500)
+            if (response.status === 500) {
+              throw new Error("Server error, silahkan coba lagi nanti");
+            }
+
+            throw new Error(error.message || "Login gagal");
+          }
+
+          const user = await response.json();
+
+          // ✅ Return user data ke Next Auth
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            roleId: user.roleId,
+          };
+        } catch (error) {
+          // ✅ Throw error ke signIn callback
+          if (error instanceof Error) {
+            throw new Error(error.message);
+          }
+          throw new Error("Terjadi kesalahan saat login");
         }
-
-        const isPasswordValid = await argon2.verify(
-          user.password,
-          credentials.password,
-        );
-
-        if (!isPasswordValid) {
-          throw new Error("Password salah");
-        }
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        };
       },
     }),
   ],
+
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google" && user.email) {
+        const customerRole = await prisma.role.findUnique({
+          where: { name: "CUSTOMER" },
+        });
+
+        if (customerRole) {
+          await prisma.user.update({
+            where: { email: user.email },
+            data: { roleId: customerRole.id },
+          });
+        }
+      }
+      return true;
+    },
+
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
+        const customUser = user as User;
+
+        token.id = customUser.id;
+        token.role = customUser.role || "CUSTOMER";
+        token.roleId = customUser.roleId;
         token.accessToken = sign(
           {
-            id: user.id,
-            email: user.email,
-            role: user.role,
+            id: customUser.id,
+            email: customUser.email,
+            role: customUser.role || "CUSTOMER",
           },
           process.env.NEXTAUTH_SECRET!,
           { expiresIn: "1d" },
@@ -85,16 +135,20 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.roleId = token.roleId;
         session.user.accessToken = token.accessToken;
       }
       return session;
     },
   },
+
   session: {
     strategy: "jwt",
   },
+
   pages: {
     signIn: "/login",
   },
+
   secret: process.env.NEXTAUTH_SECRET,
 };

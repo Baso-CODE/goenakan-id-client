@@ -254,8 +254,12 @@
     "noAccountText": "Don't have an account?",
     "createAccountLink": "Create an account",
     "messages": {
-      "success": "Login successful! Welcome back.",
-      "errorDefault": "An error occurred during login."
+      "success": "Login successful!",
+      "errorDefault": "Login failed, please try again",
+      "tooManyAttempts": "Too many login attempts. Please try again in 15 minutes",
+      "invalidCredentials": "Invalid email or password",
+      "serverError": "Server error. Please try again later",
+      "networkError": "Network error. Please check your connection"
     }
   }
 }

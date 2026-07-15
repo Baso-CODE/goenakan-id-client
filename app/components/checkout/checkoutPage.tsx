@@ -54,10 +54,15 @@ interface CustomizationZone {
   logoCount?: number;
 }
 
-function getCustomizationDetails(customization: any): CustomizationZone[] | null {
+function getCustomizationDetails(
+  customization: string,
+): CustomizationZone[] | null {
   if (!customization) return null;
   try {
-    const data = typeof customization === "string" ? JSON.parse(customization) : customization;
+    const data =
+      typeof customization === "string"
+        ? JSON.parse(customization)
+        : customization;
     if (data && data.zones) {
       return Object.values(data.zones) as CustomizationZone[];
     }
@@ -71,15 +76,12 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
-
   const { cartItems, fetchCart, clearCart } = useCartStore();
-
   const [addNote, setAddNote] = useState(false);
   const [note, setNote] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const [userAddresses, setUserAddresses] = useState<CustomerAddress[]>([]);
-  console.log("ini adalah userAddress", userAddresses);
 
   const [showAddressModal, setShowAddressModal] = useState(false);
 
@@ -101,7 +103,6 @@ export default function CheckoutPage() {
     0,
   );
 
-  // Total sekarang sama dengan subtotal karena tidak ada biaya pengiriman
   const total = subtotal;
   const totalQty = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -142,7 +143,7 @@ export default function CheckoutPage() {
           items: cartItems,
           note,
           subtotal,
-          shippingCost: 0, // Set nilai pengiriman menjadi 0
+          shippingCost: 0,
           totalAmount: total,
         }),
       });
@@ -165,7 +166,6 @@ export default function CheckoutPage() {
 
       const snapTokenFromApi = payData.data.token;
 
-      // 3. Munculkan Pop-up Midtrans
       window.snap.pay(snapTokenFromApi, {
         onSuccess: async function (result) {
           toast.success("Pembayaran berhasil!");
@@ -643,19 +643,34 @@ export default function CheckoutPage() {
                               Logo Kustom:
                             </p>
                             <div className="flex flex-col gap-1">
-                              {getCustomizationDetails(item.customization)!.map((zone, idx) => (
-                                <div key={idx} className="flex items-center gap-1.5 text-[9px] text-stone-600">
-                                  <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
-                                    <img src={zone.image} alt={zone.label} className="w-full h-full object-contain" />
+                              {getCustomizationDetails(item.customization)!.map(
+                                (zone, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-1.5 text-[9px] text-stone-600">
+                                    <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
+                                      <Image
+                                        width={100}
+                                        height={100}
+                                        src={zone.image}
+                                        alt={zone.label}
+                                        className="w-full h-full object-contain"
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <span className="font-semibold text-stone-800 block leading-none">
+                                        {zone.label}{" "}
+                                        {zone.logoCount && zone.logoCount > 1
+                                          ? `(x${zone.logoCount})`
+                                          : ""}
+                                      </span>
+                                      <span className="text-stone-400 text-[8px] truncate block max-w-30">
+                                        {zone.fileName}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div className="min-w-0">
-                                    <span className="font-semibold text-stone-800 block leading-none">
-                                      {zone.label} {zone.logoCount && zone.logoCount > 1 ? `(x${zone.logoCount})` : ""}
-                                    </span>
-                                    <span className="text-stone-400 text-[8px] truncate block max-w-[120px]">{zone.fileName}</span>
-                                  </div>
-                                </div>
-                              ))}
+                                ),
+                              )}
                             </div>
                           </div>
                         )}
@@ -718,7 +733,6 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* ✨ Modal Choice Address */}
       {showAddressModal && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <Card className="w-full max-w-lg bg-white rounded-none shadow-2xl overflow-hidden border-none">

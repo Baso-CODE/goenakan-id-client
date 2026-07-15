@@ -14,11 +14,11 @@ datasource db {
 // ===============================================
 // ENUMS & MASTER TABLES
 enum OrderStatus {
-  PENDING
-  PROCESSING
-  SHIPPED
-  COMPLETED
-  CANCELLED
+  PENDING // Menunggu pembayaran / konfirmasi
+  PROCESSING // Sedang diproses / diproduksi
+  SHIPPED // Sedang dikirim (jika ada pengiriman fisik)
+  COMPLETED // Selesai
+  CANCELLED // Dibatalkan (baik dari web maupun manual)
 }
 
 enum WarrantyStatus {
@@ -192,7 +192,7 @@ model User {
   emailVerified       DateTime?
   password            String?
   image               String?
-  roleId              String
+  roleId              String?
   createdAt           DateTime             @default(now())
   articles            Article[]
   invoices            Invoice[]
@@ -207,7 +207,7 @@ model User {
   updatedPOs          PurchaseOrder[]      @relation("POUpdatedBy")
   approvedPOs         PurchaseOrder[]      @relation("POApprovedBy")
   orders              Order[]
-  role                Role                 @relation(fields: [roleId], references: [id])
+  role                Role?                @relation(fields: [roleId], references: [id])
   createdQuotations   Quotation[]          @relation("QuotationCreatedBy")
   updatedQuotations   Quotation[]          @relation("QuotationUpdatedBy")
   approvedQuotations  Quotation[]          @relation("QuotationApprovedBy")
@@ -469,7 +469,6 @@ model Product {
   isMultiFace        Boolean @default(false)
   mockupFrontImageId String?
   mockupBackImageId  String?
-  vendorPrices       VendorPriceRecord[]
 
   @@map("products")
 }
@@ -886,7 +885,6 @@ model Vendor {
   productionJobs ProductionTracker[]
   shipments      Shipment[]
   purchaseOrders PurchaseOrder[]
-  vendorPrices   VendorPriceRecord[]
 
   @@map("vendors")
 }
@@ -1558,7 +1556,6 @@ model Currency {
   orders            Order[]
   purchaseOrders    PurchaseOrder[]
   quotations        Quotation[]
-  vendorPrices      VendorPriceRecord[]
 
   @@map("currencies")
 }
