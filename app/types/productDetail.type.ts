@@ -22,6 +22,7 @@ export interface MediaItem {
   altText?: string | null;
   mockupSideName?: string | null;
   printPositionValueId?: string | null;
+  printSideValueId?: string | null;
 }
 
 export interface AttributeDisplay {

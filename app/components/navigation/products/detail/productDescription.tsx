@@ -26,8 +26,8 @@ export function ProductDescription({
     <div className="flex flex-col gap-4">
       {/* Description */}
       <div>
-        <p className="text-sm text-stone-700 leading-relaxed">
-          <span className="font-semibold text-stone-900">Description – </span>
+        <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-line">
+          <span className="font-semibold text-stone-900 block mb-1">Description</span>
           {description || "Tidak ada deskripsi."}
         </p>
       </div>

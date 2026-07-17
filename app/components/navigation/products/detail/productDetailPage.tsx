@@ -6,7 +6,8 @@ import { MediaItem, ProductDetail } from "@/app/types/productDetail.type";
 import { useRouter } from "@/i18n/routing";
 import { useSession } from "next-auth/react";
 import { useMemo, useState, useEffect, useCallback } from "react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, ZoomIn, X } from "lucide-react";
+import { toast } from "sonner";
 import { PriceTierSelector } from "./priceTierSelector";
 import { ProductDescription } from "./productDescription";
 import { ProductImageGallery } from "./productImageGallery";
@@ -94,6 +95,25 @@ function parseClientColorValue(val: string) {
   return { name: val, hex: "#cbd5e1", cmyk: "CMYK N/A" };
 }
 
+const isPrintRelatedAttribute = (type: string, name: string) => {
+  const t = type?.toUpperCase() || "";
+  const n = name?.toLowerCase() || "";
+  const isPhysical =
+    t === "COLOR" ||
+    t === "SIZE" ||
+    t === "MODEL_SHAPE" ||
+    n.includes("warna") ||
+    n.includes("color") ||
+    n.includes("ukuran") ||
+    n.includes("size") ||
+    n.includes("kapasitas") ||
+    n.includes("capacity") ||
+    n.includes("model") ||
+    n.includes("shape");
+
+  return !isPhysical;
+};
+
 interface ProductDetailPageProps {
   product: ProductDetail;
 }
@@ -105,12 +125,67 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const addToCart = useCartStore((state) => state.addToCart);
   const [customization, setCustomization] = useState<any>(null);
   const [isCustomizing, setIsCustomizing] = useState(false);
+  const [selectedCustomColor, setSelectedCustomColor] = useState("#ffffff");
+  const [selectedMockupPositions, setSelectedMockupPositions] = useState<string[]>([]);
+  const [previewImage, setPreviewImage] = useState<{ url: string; name: string } | null>(null);
 
   const handleCustomizingChange = (val: boolean) => {
     setIsCustomizing(val);
     if (!val) {
-      setCustomization(null);
+      setCustomization((prev: any) => prev?.customColor ? { customColor: prev.customColor } : null);
+      setSelectedMockupPositions([]);
+      setSelections((prev) => {
+        const next = { ...prev };
+        attributeGroups.forEach((group) => {
+          if (isPrintRelatedAttribute(group.type, group.name)) {
+            delete next[group.name];
+          }
+        });
+
+        // Find the variant matching the cleared selections (lowest price first)
+        const variantAttrNames = new Set(product.variants?.[0]?.attributes?.map((a: any) => a.name) || []);
+        const matchingVariants = product.variants?.filter((v) => {
+          return Object.entries(next)
+            .filter(([name]) => variantAttrNames.has(name))
+            .every(([name, value]) => {
+              const attr = v.attributes?.find((a) => a.name === name);
+              const cleanVal = value?.split("|")[0]?.toLowerCase().trim();
+              const cleanAttrVal = attr?.value?.split("|")[0]?.toLowerCase().trim();
+              return cleanAttrVal === cleanVal;
+            });
+        }) || [];
+        const variantMatch = matchingVariants.length > 0
+          ? [...matchingVariants].sort((a, b) => (a.price ?? 0) - (b.price ?? 0))[0]
+          : null;
+
+        if (variantMatch) {
+          setSelectedVariantId(variantMatch.id);
+        }
+
+        return next;
+      });
+    } else {
+      // Auto-select first option for print-related attributes when custom logo print is activated
+      setSelections((prev) => {
+        const next = { ...prev };
+        attributeGroups.forEach((group) => {
+          if (isPrintRelatedAttribute(group.type, group.name)) {
+            if (!next[group.name] && group.values.length > 0) {
+              next[group.name] = group.values[0];
+            }
+          }
+        });
+        return next;
+      });
     }
+  };
+
+  const handleCustomColorChange = (hex: string) => {
+    setSelectedCustomColor(hex);
+    setCustomization((prev: any) => ({
+      ...(prev || {}),
+      customColor: hex
+    }));
   };
 
 
@@ -122,47 +197,86 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       {
         values: Set<string>;
         attributePosition: number;
-        valuePositions: Record<string, number>;
         type: string;
         parentValueId: string | null;
       }
     > = {};
 
-    product.variants?.forEach((variant) => {
-      variant.attributes?.forEach((attr) => {
-        if (!groups[attr.name]) {
-          groups[attr.name] = {
-            values: new Set<string>(),
-            attributePosition: (attr as any).attributePosition ?? 0,
-            valuePositions: {},
-            type: attr.type || "TEXT",
-            parentValueId: attr.parentValueId || null,
-          };
-        }
-        groups[attr.name].values.add(attr.value);
-        groups[attr.name].valuePositions[attr.value] =
-          (attr as any).valuePosition ?? 0;
-      });
+    product.attributeValues?.forEach((av: any) => {
+      if (!groups[av.attributeName]) {
+        groups[av.attributeName] = {
+          values: new Set<string>(),
+          attributePosition: av.attributePosition ?? 0,
+          type: av.attributeType || "TEXT",
+          parentValueId: av.parentValueId || null,
+        };
+      }
+      groups[av.attributeName].values.add(av.value);
     });
 
     return Object.entries(groups)
-      .map(([name, { values, attributePosition, valuePositions, type, parentValueId }]) => {
-        const sortedValues = Array.from(values).sort((a, b) => {
-          return (valuePositions[a] ?? 0) - (valuePositions[b] ?? 0);
-        });
+      .map(([name, { values, attributePosition, type, parentValueId }]) => {
         return {
           name,
-          values: sortedValues,
+          values: Array.from(values),
           attributePosition,
           type,
           parentValueId,
         };
       })
       .sort((a, b) => a.attributePosition - b.attributePosition);
-  }, [product.variants]);
+  }, [product.attributeValues]);
 
   // 2. Selection state tracking
   const [selections, setSelections] = useState<Record<string, string>>({});
+ 
+  const availableMockupPositions = useMemo(() => {
+    if (!product.media) return [];
+ 
+    const selectedSizeVal = product.attributeValues?.find((av: any) => {
+      if (av.attributeType !== "SIZE") return false;
+      const selectVal = selections[av.attributeName];
+      if (!selectVal) return false;
+      const cleanSelected = selectVal.split("|")[0].toLowerCase().trim();
+      const cleanVal = av.value.split("|")[0].toLowerCase().trim();
+      return cleanSelected === cleanVal;
+    });
+ 
+    const sizeId = selectedSizeVal?.attributeValueId || null;
+    const mockups = product.media.filter((img: any) => {
+      const isMockup = img.mockupSideName || (img.mockupAreas && img.mockupAreas.length > 0);
+      if (!isMockup) return false;
+      return !img.attributeValueId || img.attributeValueId === sizeId;
+    });
+ 
+    const uniquePositionsMap: Record<string, { id: string; name: string; printPositionValueId: string | null }> = {};
+    mockups.forEach((img: any) => {
+      const posKey = img.printPositionValueId || img.mockupSideName || "Bebas";
+      if (!uniquePositionsMap[posKey]) {
+        uniquePositionsMap[posKey] = {
+          id: img.id,
+          name: img.mockupSideName || "Mockup Position",
+          printPositionValueId: img.printPositionValueId || null,
+        };
+      }
+    });
+ 
+    return Object.values(uniquePositionsMap);
+  }, [product.media, product.attributeValues, selections]);
+ 
+  useEffect(() => {
+    if (isCustomizing && availableMockupPositions.length > 0) {
+      setSelectedMockupPositions((prev) => {
+        if (prev.length === 0) {
+          return availableMockupPositions.map((p) => p.printPositionValueId || p.name);
+        }
+        const validIds = new Set(availableMockupPositions.map((p) => p.printPositionValueId || p.name));
+        const filtered = prev.filter((id) => validIds.has(id));
+        return filtered.length > 0 ? filtered : [availableMockupPositions[0].printPositionValueId || availableMockupPositions[0].name];
+      });
+    }
+  }, [isCustomizing, availableMockupPositions]);
+ 
 
   // 3. Tentukan Varian Default
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
@@ -170,31 +284,93 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   // 4. Auto-select first in-stock variant attributes on mount
   useEffect(() => {
     if (product.variants && product.variants.length > 0) {
-      const inStockVariant = product.variants.find((v) => (v.stock ?? 0) > 0);
-      if (inStockVariant) {
+      const defaultVariant = product.variants.find((v) => (v.stock ?? 0) > 0) || product.variants[0];
+      if (defaultVariant) {
         const initialSelections: Record<string, string> = {};
-        inStockVariant.attributes?.forEach((attr) => {
-          initialSelections[attr.name] = attr.value;
+        defaultVariant.attributes?.forEach((attr) => {
+          if (!isPrintRelatedAttribute(attr.type || "", attr.name)) {
+            initialSelections[attr.name] = attr.value;
+          }
         });
         setSelections(initialSelections);
-        setSelectedVariantId(inStockVariant.id);
-      } else {
-        // If all are out of stock, do not select any variant by default
-        setSelections({});
-        setSelectedVariantId(null);
+
+        const variantAttrNames = new Set(product.variants?.[0]?.attributes?.map((a: any) => a.name) || []);
+        const matchingVariants = product.variants?.filter((v) => {
+          return Object.entries(initialSelections)
+            .filter(([name]) => variantAttrNames.has(name))
+            .every(([name, val]) => {
+              const attr = v.attributes?.find((a) => a.name === name);
+              const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
+              const cleanAttrVal = attr?.value?.split("|")[0]?.toLowerCase().trim();
+              return cleanAttrVal === cleanVal;
+            });
+        }) || [];
+
+        const variantMatch = matchingVariants.length > 0
+          ? [...matchingVariants].sort((a, b) => (a.price ?? 0) - (b.price ?? 0))[0]
+          : defaultVariant;
+
+        setSelectedVariantId(variantMatch.id);
       }
     }
   }, [product.variants]);
 
+  const doesSizeHaveMockups = useCallback((sizeValue: string) => {
+    let sizeAttrValId: string | null = null;
+    
+    // Cari di variants attributes
+    product.variants?.forEach((v) => {
+      v.attributes?.forEach((attr: any) => {
+        if (attr.value === sizeValue && attr.attributeValueId) {
+          sizeAttrValId = attr.attributeValueId;
+        }
+      });
+    });
+
+    if (!sizeAttrValId) {
+      // Cari di product.attributeValues
+      const match = product.attributeValues?.find((av) => av.value === sizeValue);
+      if (match) {
+        sizeAttrValId = match.attributeValueId;
+      }
+    }
+
+    if (!sizeAttrValId) return false;
+
+    // Cek apakah ada image di parent media yang ditautkan ke sizeAttrValId ini dan memiliki area mockup
+    const hasAreas = product.media?.some(
+      (img) => img.attributeValueId === sizeAttrValId && img.mockupAreas && img.mockupAreas.length > 0
+    );
+    return !!hasAreas;
+  }, [product.variants, product.attributeValues, product.media]);
+
   // 5. Availability matrix checker
   const isOptionDisabled = (attrName: string, value: string) => {
+    const variantAttrNames = new Set(product.variants?.[0]?.attributes?.map((a: any) => a.name) || []);
+    
+    const isSizeAttr = attrName.toLowerCase().includes("ukuran") || attrName.toLowerCase().includes("size") || attrName.toLowerCase().includes("kapasitas") || attrName.toLowerCase().includes("capacity");
+    if (isCustomizing && isSizeAttr) {
+      const cleanValue = value.split("|")[0];
+      if (!doesSizeHaveMockups(cleanValue)) {
+        return true;
+      }
+    }
+
+    if (variantAttrNames.size > 0 && !variantAttrNames.has(attrName)) {
+      return false; // Custom options (non-variant-generating attributes) are never disabled
+    }
+
     const simulated = { ...selections, [attrName]: value };
     const match = product.variants?.some((variant) => {
-      const matchesAll = Object.entries(simulated).every(([name, val]) => {
-        const attr = variant.attributes?.find((a) => a.name === name);
-        return attr?.value === val;
-      });
-      return matchesAll && (variant.stock ?? 0) > 0;
+      const matchesAll = Object.entries(simulated)
+        .filter(([name]) => variantAttrNames.has(name))
+        .every(([name, val]) => {
+          const attr = variant.attributes?.find((a) => a.name === name);
+          const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
+          const cleanAttrVal = attr?.value?.split("|")[0]?.toLowerCase().trim();
+          return cleanAttrVal === cleanVal;
+        });
+      return matchesAll && (product.isMadeByOrder || (variant.stock ?? 0) > 0);
     });
     return !match;
   };
@@ -204,13 +380,39 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     const nextSelections = { ...selections, [attrName]: value };
     setSelections(nextSelections);
 
-    // Find corresponding variant
-    const variantMatch = product.variants?.find((v) => {
-      return Object.entries(nextSelections).every(([name, val]) => {
-        const attr = v.attributes?.find((a) => a.name === name);
-        return attr?.value === val;
+    // If they chose a Custom Color, make sure customization gets updated with the color
+    const isCustomVal = value.toLowerCase().includes("custom") || value.toLowerCase().includes("kustom");
+    if (isCustomVal) {
+      setCustomization((prev: any) => ({
+        ...(prev || {}),
+        customColor: selectedCustomColor
+      }));
+    } else {
+      // If they chose a non-custom color, remove customColor from customization
+      setCustomization((prev: any) => {
+        if (!prev) return null;
+        const next = { ...prev };
+        delete next.customColor;
+        return Object.keys(next).length > 0 ? next : null;
       });
-    });
+    }
+
+    // Find corresponding variant
+    const variantAttrNames = new Set(product.variants?.[0]?.attributes?.map((a: any) => a.name) || []);
+    const matchingVariants = product.variants?.filter((v) => {
+      return Object.entries(nextSelections)
+        .filter(([name]) => variantAttrNames.has(name))
+        .every(([name, val]) => {
+          const attr = v.attributes?.find((a) => a.name === name);
+          const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
+          const cleanAttrVal = attr?.value?.split("|")[0]?.toLowerCase().trim();
+          return cleanAttrVal === cleanVal;
+        });
+    }) || [];
+
+    const variantMatch = matchingVariants.length > 0
+      ? [...matchingVariants].sort((a, b) => (a.price ?? 0) - (b.price ?? 0))[0]
+      : null;
 
     if (variantMatch) {
       handleVariantSelect(variantMatch.id);
@@ -344,220 +546,164 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   }, [quantity, activeTiers]);
 
   const customOptionsPriceModifier = useMemo(() => {
-    if (!isCustomizing || !customization || !customization.zones) {
-      return 0;
-    }
-
     let totalModifier = 0;
     console.log("--- START PRICING CALCULATION ---");
-    console.log("Customization zones:", Object.values(customization.zones).map((z: any) => ({ label: z.label, logoCount: z.logoCount })));
-
+    console.log("selections:", selections);
+    console.log("isCustomizing:", isCustomizing);
+    console.log("selectedMockupPositions:", selectedMockupPositions);
+ 
+    const variantAttrNames = new Set(selectedVariant?.attributes?.map((a: any) => a.name) || []);
+    console.log("variantAttrNames:", Array.from(variantAttrNames));
+ 
     if (product.attributeValues) {
-      // Hitung total logo yang diunggah di semua area mockup
-      const totalLogosCount = Object.values(customization.zones).reduce(
-        (sum: number, z: any) => sum + (z.logoCount || 1),
-        0
-      );
-
       product.attributeValues.forEach((av: any) => {
         const valueName = av.value?.toLowerCase().trim();
         const attrName = av.attributeName?.toLowerCase().trim() || "";
         if (!valueName) return;
-
-        // Lewati opsi "no print" / "tanpa cetak" / "polosan"
-        if (
-          valueName.includes("no print") ||
-          valueName.includes("tanpa") ||
-          valueName.includes("polos")
-        ) {
-          console.log(`Skipping no-print option: ${av.attributeName} = ${av.value}`);
-          return;
-        }
-
-        // 1. Cek kecocokan posisi spesifik (misal: "Front Print" cocok dengan "Tampak Depan")
-        const matchingZone = Object.values(customization.zones).find((z: any) => {
-          if (z.printPositionValueId && z.printPositionValueId === av.attributeValueId) {
-            return true;
+ 
+        // 1. Regular custom options (excluding print side and mockup side because we calculate them dynamically based on selected mockup positions)
+        const isSkippedPrintAttr = av.attributeType === "PRINT_SIDE" || av.attributeType === "MOCKUP_SIDE";
+        const isCustomOption = !variantAttrNames.has(av.attributeName);
+ 
+        if (isCustomOption && !isSkippedPrintAttr) {
+          const activeSelectedValue = selections[av.attributeName];
+          if (activeSelectedValue) {
+            const cleanSelected = activeSelectedValue.split("|")[0].toLowerCase().trim();
+            const cleanValue = av.value.split("|")[0].toLowerCase().trim();
+            if (cleanSelected === cleanValue) {
+              totalModifier += (av.priceModifier ?? 0);
+              console.log(`Matched custom option: ${av.attributeName} = ${av.value}. Adding priceModifier = ${av.priceModifier}. Running total = ${totalModifier}`);
+            }
           }
-          const label = z.label?.toLowerCase().trim();
-          if (!label) return false;
-          const cleanLabel = label.replace(/[^a-z0-9]/g, "");
-          const cleanVal = valueName.replace(/[^a-z0-9]/g, "");
+        }
+      });
+ 
+      // 2. Add print-related modifiers based on selected mockup positions
+      if (isCustomizing) {
+        const selectedCount = selectedMockupPositions.length;
+ 
 
-          // Kecocokan depan / front
-          const isLabelFront = cleanLabel.includes("front") || cleanLabel.includes("depan");
-          const isValFront = cleanVal.includes("front") || cleanVal.includes("depan");
-          if (isLabelFront && isValFront) return true;
+ 
+        // B. Add specific print position (MOCKUP_SIDE) modifiers (e.g. Lid modifier)
+        selectedMockupPositions.forEach((posKey) => {
+          const matchedPositionAttr = product.attributeValues?.find((av: any) => {
+            if (av.attributeType !== "MOCKUP_SIDE") return false;
+            if (av.attributeValueId && av.attributeValueId === posKey) return true;
+            
+            const cleanVal = av.value.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const cleanKey = posKey.toLowerCase().replace(/[^a-z0-9]/g, "");
+            return cleanVal === cleanKey || cleanVal.includes(cleanKey) || cleanKey.includes(cleanVal);
+          });
+ 
+          if (matchedPositionAttr) {
+            totalModifier += (matchedPositionAttr.priceModifier ?? 0);
+            console.log(`Matched position modifier for ${posKey}: Adding priceModifier = ${matchedPositionAttr.priceModifier}. Running total = ${totalModifier}`);
+          }
+        });
+      }
+    }
+ 
+    console.log("Final computed customOptionsPriceModifier =", totalModifier);
+    console.log("--- END PRICING CALCULATION ---");
+    return totalModifier;
+  }, [isCustomizing, selectedMockupPositions, product.attributeValues, selections, selectedVariant]);
 
-          // Kecocokan belakang / back
-          const isLabelBack = cleanLabel.includes("back") || cleanLabel.includes("belakang");
-          const isValBack = cleanVal.includes("back") || cleanVal.includes("belakang");
-          if (isLabelBack && isValBack) return true;
+  const activePrintFeesList = useMemo(() => {
+    if (!isCustomizing || !product.attributeValues) {
+      return [];
+    }
+ 
+    const list: { name: string; modifier: number }[] = [];
+ 
+    // 1. Add all selected custom options (excluding print-related ones)
+    const variantAttrNames = new Set(selectedVariant?.attributes?.map((a: any) => a.name) || []);
+    product.attributeValues.forEach((av: any) => {
+      const isSkippedPrintAttr = av.attributeType === "PRINT_SIDE" || av.attributeType === "MOCKUP_SIDE";
+      const isCustomOption = !variantAttrNames.has(av.attributeName);
+ 
+      if (isCustomOption && !isSkippedPrintAttr) {
+        const activeSelectedValue = selections[av.attributeName];
+        if (activeSelectedValue) {
+          const cleanSelected = activeSelectedValue.split("|")[0].toLowerCase().trim();
+          const cleanValue = av.value.split("|")[0].toLowerCase().trim();
+          if (cleanSelected === cleanValue) {
+            if ((av.priceModifier ?? 0) > 0) {
+              list.push({
+                name: `${av.attributeName}: ${av.value.split("|")[0]}`,
+                modifier: av.priceModifier,
+              });
+            }
+          }
+        }
+      }
+    });
+ 
+    // 2. Add print-related modifiers based on selected mockup positions
+    const selectedCount = selectedMockupPositions.length;
+ 
 
-          return cleanLabel === cleanVal || cleanLabel.includes(cleanVal) || cleanVal.includes(cleanLabel);
-        }) as any;
+ 
+    // B. Add specific print position (MOCKUP_SIDE) modifiers (e.g. Lid modifier)
+    selectedMockupPositions.forEach((posKey) => {
+      const matchedPositionAttr = product.attributeValues?.find((av: any) => {
+        if (av.attributeType !== "MOCKUP_SIDE") return false;
+        if (av.attributeValueId && av.attributeValueId === posKey) return true;
+        
+        const cleanVal = av.value.toLowerCase().replace(/[^a-z0-9]/g, "");
+        const cleanKey = posKey.toLowerCase().replace(/[^a-z0-9]/g, "");
+        return cleanVal === cleanKey || cleanVal.includes(cleanKey) || cleanKey.includes(cleanVal);
+      });
+ 
+      if (matchedPositionAttr) {
+        if ((matchedPositionAttr.priceModifier ?? 0) > 0) {
+          list.push({
+            name: `${matchedPositionAttr.attributeName}: ${matchedPositionAttr.value.split("|")[0]}`,
+            modifier: matchedPositionAttr.priceModifier,
+          });
+        }
+      }
+    });
+ 
+    return list;
+  }, [isCustomizing, selectedMockupPositions, product.attributeValues, selections, selectedVariant]);
 
-        if (matchingZone) {
-          totalModifier += (av.priceModifier ?? 0);
-          console.log(`Matched position: ${av.attributeName} = ${av.value}. Adding priceModifier = ${av.priceModifier}. Running total = ${totalModifier}`);
-        } else {
-          // 2. Opsi Cetak Logo Generik: Jika atribut atau nilainya mengandung cetak/logo/print,
-          // tapi tidak merujuk pada posisi spesifik (depan/belakang/front/back).
-          const isPrintAttr =
-            attrName.includes("print") ||
-            attrName.includes("logo") ||
-            attrName.includes("cetak") ||
-            valueName.includes("print") ||
-            valueName.includes("logo") ||
-            valueName.includes("cetak");
+  // 5. Kalkulasi Harga Final yang Tepat
+  const basePrice = useMemo(() => {
+    let price = 0;
+    if (activeTiers && activeTiers.length > 0) {
+      const tier = activeTiers[selectedTierIndex];
+      price = tier.pricePerPcs ?? 0;
+    } else if (selectedVariant?.price != null) {
+      price = selectedVariant.price;
+    } else {
+      price = product.variants?.[0]?.price ?? 0;
+    }
 
-          const specifiesPosition =
-            valueName.includes("front") ||
-            valueName.includes("depan") ||
-            valueName.includes("back") ||
-            valueName.includes("belakang") ||
-            valueName.includes("left") ||
-            valueName.includes("kiri") ||
-            valueName.includes("right") ||
-            valueName.includes("kanan") ||
-            valueName.includes("top") ||
-            valueName.includes("atas") ||
-            valueName.includes("bottom") ||
-            valueName.includes("bawah") ||
-            valueName.includes("samping") ||
-            valueName.includes("side") ||
-            valueName.includes("tutup") ||
-            valueName.includes("lid") ||
-            attrName.includes("posisi") ||
-            attrName.includes("position") ||
-            attrName.includes("sisi") ||
-            attrName.includes("side");
-
-          const customizedSidesCount = Object.keys(customization.zones).length;
-
-          if (isPrintAttr && !specifiesPosition && customizedSidesCount > 0) {
-            // Kalikan modifier harga per sisi dengan jumlah sisi yang dikustomisasi
-            totalModifier += (av.priceModifier ?? 0) * customizedSidesCount;
-            console.log(`Matched generic print fee: ${av.attributeName} = ${av.value}. Adding priceModifier ${av.priceModifier} * ${customizedSidesCount} = ${av.priceModifier * customizedSidesCount}. Running total = ${totalModifier}`);
-          } else {
-            console.log(`Skipped attribute (no match): ${av.attributeName} = ${av.value} (isPrintAttr=${isPrintAttr}, specifiesPosition=${specifiesPosition}, modifier=${av.priceModifier})`);
+    // If Beli Polosan is selected, subtract any print-related attribute price modifiers
+    // that are baked into the selected variant's attributes (for variant-generating attributes)
+    if (!isCustomizing && selectedVariant && selectedVariant.attributes && product.attributeValues) {
+      selectedVariant.attributes.forEach((attr: any) => {
+        const match = product.attributeValues?.find((av: any) => {
+          if (av.attributeValueId && attr.attributeValueId) {
+            return av.attributeValueId === attr.attributeValueId;
+          }
+          const cleanAv = av.value?.split("|")[0]?.toLowerCase().trim();
+          const cleanAttr = attr.value?.split("|")[0]?.toLowerCase().trim();
+          return av.attributeName === attr.name && cleanAv === cleanAttr;
+        });
+        if (match) {
+          const type = match.attributeType || "";
+          const name = match.attributeName || "";
+          if (isPrintRelatedAttribute(type, name)) {
+            price -= (match.priceModifier ?? 0);
+            console.log(`Beli Polosan active: Subtracting print modifier ${match.priceModifier} for attribute ${attr.name}=${attr.value}. New base price = ${price}`);
           }
         }
       });
     }
 
-    console.log("Final computed customOptionsPriceModifier =", totalModifier);
-    console.log("--- END PRICING CALCULATION ---");
-    return totalModifier;
-  }, [isCustomizing, customization, product.attributeValues]);
-
-  const activePrintFeesList = useMemo(() => {
-    if (!isCustomizing || !customization || !customization.zones || !product.attributeValues) {
-      return [];
-    }
-
-    const list: { name: string; modifier: number }[] = [];
-
-    product.attributeValues.forEach((av: any) => {
-      const valueName = av.value?.toLowerCase().trim();
-      const attrName = av.attributeName?.toLowerCase().trim() || "";
-      if (!valueName) return;
-
-      if (
-        valueName.includes("no print") ||
-        valueName.includes("tanpa") ||
-        valueName.includes("polos")
-      ) {
-        return;
-      }
-
-      // 1. Cek kecocokan posisi spesifik
-      const matchingZone = Object.values(customization.zones).find((z: any) => {
-        if (z.printPositionValueId && z.printPositionValueId === av.attributeValueId) {
-          return true;
-        }
-        const label = z.label?.toLowerCase().trim();
-        if (!label) return false;
-        const cleanLabel = label.replace(/[^a-z0-9]/g, "");
-        const cleanVal = valueName.replace(/[^a-z0-9]/g, "");
-
-        const isLabelFront = cleanLabel.includes("front") || cleanLabel.includes("depan");
-        const isValFront = cleanVal.includes("front") || cleanVal.includes("depan");
-        if (isLabelFront && isValFront) return true;
-
-        const isLabelBack = cleanLabel.includes("back") || cleanLabel.includes("belakang");
-        const isValBack = cleanVal.includes("back") || cleanVal.includes("belakang");
-        if (isLabelBack && isValBack) return true;
-
-        return cleanLabel === cleanVal || cleanLabel.includes(cleanVal) || cleanVal.includes(cleanLabel);
-      }) as any;
-
-      if (matchingZone) {
-        if ((av.priceModifier ?? 0) > 0) {
-          list.push({
-            name: `${av.attributeName}: ${av.value}`,
-            modifier: av.priceModifier,
-          });
-        }
-      } else {
-        // 2. Opsi Cetak Logo Generik
-        const isPrintAttr =
-          attrName.includes("print") ||
-          attrName.includes("logo") ||
-          attrName.includes("cetak") ||
-          valueName.includes("print") ||
-          valueName.includes("logo") ||
-          valueName.includes("cetak");
-
-        const specifiesPosition =
-          valueName.includes("front") ||
-          valueName.includes("depan") ||
-          valueName.includes("back") ||
-          valueName.includes("belakang") ||
-          valueName.includes("left") ||
-          valueName.includes("kiri") ||
-          valueName.includes("right") ||
-          valueName.includes("kanan") ||
-          valueName.includes("top") ||
-          valueName.includes("atas") ||
-          valueName.includes("bottom") ||
-          valueName.includes("bawah") ||
-          valueName.includes("samping") ||
-          valueName.includes("side") ||
-          valueName.includes("tutup") ||
-          valueName.includes("lid") ||
-          attrName.includes("posisi") ||
-          attrName.includes("position") ||
-          attrName.includes("sisi") ||
-          attrName.includes("side");
-
-        const customizedSidesCount = Object.keys(customization.zones).length;
-
-        if (isPrintAttr && !specifiesPosition && customizedSidesCount > 0) {
-          if ((av.priceModifier ?? 0) > 0) {
-            list.push({
-              name: `${av.attributeName}: ${av.value}`,
-              modifier: av.priceModifier * customizedSidesCount,
-            });
-          }
-        }
-      }
-    });
-
-    return list;
-  }, [isCustomizing, customization, product.attributeValues]);
-
-  // 5. Kalkulasi Harga Final yang Tepat
-  const basePrice = useMemo(() => {
-    if (activeTiers && activeTiers.length > 0) {
-      const tier = activeTiers[selectedTierIndex];
-      return tier.pricePerPcs ?? 0;
-    }
-    if (selectedVariant?.price != null) {
-      return selectedVariant.price;
-    }
-    return product.variants?.[0]?.price ?? 0;
-  }, [activeTiers, selectedTierIndex, selectedVariant, product]);
+    return price;
+  }, [activeTiers, selectedTierIndex, selectedVariant, product, isCustomizing]);
 
   const finalPrice = basePrice + customOptionsPriceModifier;
 
@@ -592,7 +738,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       }
     });
 
-    return [...currentMedia, ...productMedia];
+    const mergedMedia = [...currentMedia, ...productMedia];
+    const videos = mergedMedia.filter((img) => img.type === "video");
+    const images = mergedMedia.filter((img) => img.type !== "video");
+    return [...videos, ...images];
   }, [selectedVariantId, product, selectedAttributeValueIds]);
 
   const activeGalleryMedia = useMemo(() => {
@@ -600,45 +749,42 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       // Hanya tampilkan gambar yang memiliki area mockup kustom
       return allGalleryMediaForSize.filter((img) => img.mockupAreas && img.mockupAreas.length > 0);
     } else {
-      // Tampilkan semua gambar (seperti semula)
-      return allGalleryMediaForSize;
+      // Tampilkan semua gambar tanpa filter ukuran (polosan type)
+      const currentMedia = (selectedVariantId && product.variants)
+        ? (product.variants.find((v) => v.id === selectedVariantId)?.images || [])
+        : [];
+      const productMedia = product.media || [];
+      const mergedMedia = [...currentMedia, ...productMedia];
+      
+      const videos = mergedMedia.filter((img) => img.type === "video");
+      const images = mergedMedia.filter((img) => img.type !== "video");
+      return [...videos, ...images];
     }
-  }, [allGalleryMediaForSize, isCustomizing]);
+  }, [allGalleryMediaForSize, isCustomizing, product.media, product.variants, selectedVariantId]);
+
+  const customizerMedia = useMemo(() => {
+    if (!isCustomizing) return activeGalleryMedia;
+    return activeGalleryMedia.filter((item: any) => {
+      const posKey = item.printPositionValueId || item.mockupSideName;
+      if (!posKey) return true;
+      return selectedMockupPositions.includes(posKey);
+    });
+  }, [activeGalleryMedia, isCustomizing, selectedMockupPositions]);
 
   const hasMockupAreas = useMemo(() => {
     const result = allGalleryMediaForSize.some((m) => m.mockupAreas && m.mockupAreas.length > 0);
     console.log("DEBUG: hasMockupAreas check on allGalleryMediaForSize =", result);
     return result;
   }, [allGalleryMediaForSize]);
-
-  const doesSizeHaveMockups = useCallback((sizeValue: string) => {
-    let sizeAttrValId: string | null = null;
-    
-    // Cari di variants attributes
-    product.variants?.forEach((v) => {
-      v.attributes?.forEach((attr: any) => {
-        if (attr.value === sizeValue && attr.attributeValueId) {
-          sizeAttrValId = attr.attributeValueId;
-        }
-      });
-    });
-
-    if (!sizeAttrValId) {
-      // Cari di product.attributeValues
-      const match = product.attributeValues?.find((av) => av.value === sizeValue);
-      if (match) {
-        sizeAttrValId = match.attributeValueId;
-      }
+ 
+  useEffect(() => {
+    if (isCustomizing && !hasMockupAreas) {
+      handleCustomizingChange(false);
+      toast.error("Ukuran yang dipilih tidak mendukung kustomisasi cetak logo.");
     }
+  }, [hasMockupAreas, isCustomizing]);
 
-    if (!sizeAttrValId) return false;
 
-    // Cek apakah ada image di parent media yang ditautkan ke sizeAttrValId ini dan memiliki area mockup
-    const hasAreas = product.media?.some(
-      (img) => img.attributeValueId === sizeAttrValId && img.mockupAreas && img.mockupAreas.length > 0
-    );
-    return !!hasAreas;
-  }, [product.variants, product.attributeValues, product.media]);
 
   const resolvedVariantDetails = useMemo(() => {
     if (!selectedVariant) return null;
@@ -696,6 +842,39 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     const variantLength = resolvedVariantDetails ? resolvedVariantDetails.length : (selectedVariant?.length || product.length);
     const variantDimensions = resolvedVariantDetails ? resolvedVariantDetails.dimensions : (selectedVariant?.dimensionsString || product.dimensions);
 
+    const variantAttrNames = new Set(selectedVariant?.attributes?.map((a: any) => a.name) || []);
+    const customOptions = Object.entries(selections)
+      .filter(([name]) => !variantAttrNames.has(name))
+      .reduce((acc, [name, val]) => {
+        acc[name] = val.split("|")[0]; // Store clean value name (e.g. "Engraved")
+        return acc;
+      }, {} as Record<string, string>);
+ 
+    if (isCustomizing) {
+      const selectedCount = selectedMockupPositions.length;
+      const printSideAttr = product.attributeValues?.find((av: any) => av.attributeType === "PRINT_SIDE");
+      if (printSideAttr) {
+        const matchedVal = product.attributeValues?.find((av: any) => av.attributeType === "PRINT_SIDE" && (parseInt(av.value) || 1) === selectedCount);
+        if (matchedVal) {
+          customOptions[printSideAttr.attributeName] = matchedVal.value.split("|")[0];
+        }
+      }
+ 
+      const positionAttr = product.attributeValues?.find((av: any) => av.attributeType === "MOCKUP_SIDE");
+      if (positionAttr) {
+        const matchedNames = selectedMockupPositions.map((posKey) => {
+          const match = product.attributeValues?.find((av: any) => {
+            if (av.attributeType !== "MOCKUP_SIDE") return false;
+            return av.attributeValueId === posKey || av.value === posKey;
+          });
+          return match ? match.value.split("|")[0] : posKey;
+        });
+        if (matchedNames.length > 0) {
+          customOptions[positionAttr.attributeName] = matchedNames.join(", ");
+        }
+      }
+    }
+
     const payload: AddToCartPayload = {
       id: product.id,
       name: product.name,
@@ -712,7 +891,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       width: variantWidth,
       height: variantHeight,
       length: variantLength,
-      customization: customization,
+      customization: customization || Object.keys(customOptions).length > 0 ? {
+        ...(customization || {}),
+        selectedOptions: customOptions,
+      } : null,
     };
 
     await addToCart(payload, quantity, token);
@@ -741,7 +923,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         <div className="flex flex-col gap-4">
           {product.isCustom && isCustomizing ? (
             <ProductCustomizer
-              media={activeGalleryMedia}
+              media={customizerMedia}
               productName={product.name}
               isMultiFace={product.isMultiFace}
               mockupFrontImageId={product.mockupFrontImageId}
@@ -840,10 +1022,70 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             </div>
           )}
 
+          {isCustomizing && availableMockupPositions.length > 0 && (
+            <div className="bg-white border border-stone-200 rounded-md p-4 space-y-3 shadow-xs">
+              <p className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                Pilih Sisi / Posisi Cetak
+              </p>
+              <p className="text-[11px] text-stone-500 leading-normal">
+                Pilih satu atau lebih sisi tempat Anda ingin mencetak logo. Setiap penambahan sisi akan otomatis memperbarui harga.
+              </p>
+              <div className="flex flex-wrap gap-2.5 pt-1">
+                {availableMockupPositions.map((pos) => {
+                  const posKey = pos.printPositionValueId || pos.name;
+                  const isChecked = selectedMockupPositions.includes(posKey);
+                  return (
+                    <button
+                      key={posKey}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMockupPositions((prev) => {
+                          if (prev.includes(posKey)) {
+                            if (prev.length <= 1) {
+                              toast.error("Harap pilih minimal satu posisi cetak!");
+                              return prev;
+                            }
+                            return prev.filter((p) => p !== posKey);
+                          } else {
+                            return [...prev, posKey];
+                          }
+                        });
+                      }}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 ${
+                        isChecked
+                          ? "border-stone-900 bg-stone-900 text-white shadow-xs animate-scaleIn"
+                          : "border-stone-200 bg-white text-stone-700 hover:border-stone-400 hover:bg-stone-50"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${
+                        isChecked ? "bg-white" : "bg-stone-300"
+                      }`} />
+                      {pos.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+ 
           {attributeGroups.length > 0 ? (
             <div className="flex flex-col gap-4">
               {attributeGroups
-                .filter((group) => !group.parentValueId || selectedAttributeValueIds.includes(group.parentValueId))
+                .filter((group) => {
+                  if (group.parentValueId && !selectedAttributeValueIds.includes(group.parentValueId)) {
+                    return false;
+                  }
+                  if (group.type === "MOCKUP_SIDE") {
+                    return false;
+                  }
+                  if (group.type === "PRINT_SIDE") {
+                    return false;
+                  }
+                  if (isPrintRelatedAttribute(group.type, group.name) && !isCustomizing) {
+                    return false;
+                  }
+                  return true;
+                })
                 .map((group) => {
                 const isColorAttr =
                   group.type === "COLOR" ||
@@ -852,17 +1094,20 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
                 if (isColorAttr) {
                   const activeVal = selections[group.name] || "";
-                  const isCustomActive = activeVal.startsWith("#");
+                  const isCustomValSelected = activeVal.toLowerCase().includes("custom") || activeVal.toLowerCase().includes("kustom");
 
                   const activeParsed = parseClientColorValue(activeVal);
                   let activeDisplayName = activeParsed.name || activeParsed.hex;
+                  if (isCustomValSelected) {
+                    activeDisplayName = `${activeParsed.name} (${selectedCustomColor.toUpperCase()})`;
+                  }
 
                   return (
                     <div key={group.name} className="mt-1 space-y-2">
                       <p className="text-sm font-medium text-stone-900">
                         Pilih {group.name}:{" "}
                         <span className="font-bold text-stone-600 capitalize">
-                          {activeVal.startsWith("#") ? "Custom Color" : activeDisplayName}
+                          {activeDisplayName}
                         </span>
                       </p>
 
@@ -872,11 +1117,17 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                           const isDisabled = isOptionDisabled(group.name, val);
 
                           const parsedColor = parseClientColorValue(val);
+                          const isValCustom = val.toLowerCase().includes("custom") || val.toLowerCase().includes("kustom");
+
                           const colorInfo = {
-                            hex: parsedColor.hex,
+                            hex: isValCustom ? selectedCustomColor : parsedColor.hex,
                             cmyk: parsedColor.cmyk,
                             name: parsedColor.name || parsedColor.hex
                           };
+
+                          const bgStyle = isValCustom && !isSelected
+                            ? { backgroundImage: "linear-gradient(to bottom right, #ff7e5f, #feb47b, #86e3ce, #d0e1fd, #e186e3)" }
+                            : { backgroundColor: colorInfo.hex };
 
                           return (
                             <button
@@ -889,7 +1140,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                                   ? "ring-2 ring-stone-950 ring-offset-2 scale-105"
                                   : "hover:scale-105"
                               } ${isDisabled ? "opacity-35 cursor-not-allowed" : "cursor-pointer"}`}
-                              style={{ backgroundColor: colorInfo.hex }}
+                              style={bgStyle}
                               title={`${colorInfo.name} (${colorInfo.cmyk})`}
                             >
                               {isSelected && !isDisabled && (
@@ -902,43 +1153,46 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                             </button>
                           );
                         })}
-
-                        {/* Custom Free-Pick Color Option */}
-                        <div className="relative flex items-center gap-2">
-                          <button
-                            type="button"
-                            className={`relative w-8 h-8 rounded-full border bg-gradient-to-tr from-rose-400 via-emerald-400 to-indigo-400 flex items-center justify-center transition-all duration-200 hover:scale-105 cursor-pointer ${
-                              isCustomActive ? "ring-2 ring-stone-950 ring-offset-2 scale-105" : ""
-                            }`}
-                            onClick={() => {
-                              const picker = document.getElementById(`color-picker-${group.name}`);
-                              picker?.click();
-                            }}
-                            title="Custom Free-Pick Color"
-                          >
-                            {isCustomActive && (
-                              <span className="w-2 h-2 rounded-full bg-white shadow" />
-                            )}
-                          </button>
-
-                          <input
-                            id={`color-picker-${group.name}`}
-                            type="color"
-                            value={isCustomActive ? activeVal : "#3b82f6"}
-                            onChange={(e) => {
-                              const hexVal = e.target.value;
-                              handleSelectOption(group.name, hexVal);
-                            }}
-                            className="absolute opacity-0 w-0 h-0 pointer-events-none"
-                          />
-                        </div>
                       </div>
+
+                      {/* Custom Color Picker Input (only show if Custom Color is selected) */}
+                      {isCustomValSelected && (
+                        <div className="mt-3 p-3 bg-stone-50 border border-stone-200 rounded-sm flex flex-col gap-2 max-w-sm animate-fade-in">
+                          <label className="text-xs font-bold text-stone-700 uppercase tracking-wider">
+                            Pilih Warna Kustom Anda:
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={selectedCustomColor}
+                              onChange={(e) => handleCustomColorChange(e.target.value)}
+                              className="w-10 h-10 rounded border border-stone-300 cursor-pointer p-0 bg-transparent"
+                            />
+                            <div className="flex-1 flex flex-col gap-1">
+                              <input
+                                type="text"
+                                value={selectedCustomColor.toUpperCase()}
+                                onChange={(e) => {
+                                  const hex = e.target.value;
+                                  if (/^#[0-9A-F]{6}$/i.test(hex)) {
+                                    handleCustomColorChange(hex);
+                                  }
+                                }}
+                                className="w-full text-xs px-2.5 py-2 border rounded-sm bg-white text-stone-800 uppercase font-mono font-bold"
+                                placeholder="#FFFFFF"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* CMYK profile display */}
                       {(() => {
                         const parsed = parseClientColorValue(activeVal);
-                        const cmykStr = parsed.cmyk;
-                        const hexDisplay = parsed.hex.toUpperCase();
+                        const cmykStr = isCustomValSelected
+                          ? `C: ${hexToCmyk(selectedCustomColor).c} | M: ${hexToCmyk(selectedCustomColor).m} | Y: ${hexToCmyk(selectedCustomColor).y} | K: ${hexToCmyk(selectedCustomColor).k}`
+                          : parsed.cmyk;
+                        const hexDisplay = isCustomValSelected ? selectedCustomColor.toUpperCase() : parsed.hex.toUpperCase();
 
                         if (!cmykStr) return null;
 
@@ -958,6 +1212,79 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                           </div>
                         );
                       })()}
+                    </div>
+                  );
+                }
+
+                const isModelShapeAttr =
+                  group.type === "MODEL_SHAPE" ||
+                  group.name.toLowerCase() === "model" ||
+                  group.name.toLowerCase() === "shape" ||
+                  group.name.toLowerCase().includes("model") ||
+                  group.name.toLowerCase().includes("shape");
+
+                if (isModelShapeAttr) {
+                  return (
+                    <div key={group.name} className="mt-1">
+                      <p className="text-sm font-medium text-stone-900 mb-2">
+                        Pilih {group.name}:
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        {group.values.map((val) => {
+                          const isSelected = selections[group.name] === val;
+                          let isDisabled = isOptionDisabled(group.name, val);
+
+                          const p = val.split("|");
+                          const mName = p[0] || "";
+                          const mUrl = p[1] || "";
+
+                          return (
+                            <button
+                              key={val}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => handleSelectOption(group.name, val)}
+                              className={`flex flex-col items-center justify-center p-2 border rounded-sm transition-all duration-200 min-w-[70px] ${
+                                isSelected && !isDisabled
+                                  ? "border-stone-850 ring-1 ring-stone-900 bg-stone-50 scale-102"
+                                  : isDisabled
+                                  ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                                  : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer bg-white"
+                              }`}
+                            >
+                              {mUrl ? (
+                                <div className="relative w-12 h-12 rounded-sm overflow-hidden bg-white mb-1 border border-stone-100 flex items-center justify-center group/thumb">
+                                  <img
+                                    src={mUrl}
+                                    alt={mName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setPreviewImage({ url: mUrl, name: mName });
+                                    }}
+                                    className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-150 flex items-center justify-center text-white"
+                                    title="Perbesar gambar"
+                                  >
+                                    <ZoomIn className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="w-12 h-12 rounded-sm bg-stone-100 mb-1 border border-stone-200 flex items-center justify-center text-stone-400 text-xs">
+                                  No Img
+                                </div>
+                              )}
+                              <span className={`text-[11px] px-1 text-center font-semibold tracking-tight ${
+                                isSelected && !isDisabled ? "text-stone-900" : "text-stone-600"
+                              }`}>
+                                {mName}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 }
@@ -991,7 +1318,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                                 : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
                             }`}
                           >
-                            {val}
+                            {val.includes("|") ? val.split("|")[0] : val}
                           </button>
                         );
                       })}
@@ -1010,17 +1337,17 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   {product.variants.map((v) => (
                     <button
                       key={v.id}
-                      disabled={(v.stock ?? 0) <= 0}
+                      disabled={!product.isMadeByOrder && (v.stock ?? 0) <= 0}
                       onClick={() => handleVariantSelect(v.id)}
                       className={`px-4 py-2 border rounded-sm text-sm transition-colors ${
-                        selectedVariantId === v.id && (v.stock ?? 0) > 0
+                        selectedVariantId === v.id
                           ? "border-stone-900 bg-stone-900 text-white cursor-default"
-                          : (v.stock ?? 0) <= 0
+                          : (!product.isMadeByOrder && (v.stock ?? 0) <= 0)
                           ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
                           : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
                       }`}
                     >
-                      {v.name} ({v.stock > 0 ? `${v.stock} pcs` : "Habis"})
+                      {v.name} ({product.isMadeByOrder ? "Pre-Order" : (v.stock > 0 ? `${v.stock} pcs` : "Habis")})
                     </button>
                   ))}
                 </div>
@@ -1031,7 +1358,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           {activeTiers.length > 0 && (
             <div className="mt-1">
               <PriceTierSelector
-                tiers={activeTiers}
+                tiers={activeTiers.map((t) => ({
+                  ...t,
+                  pricePerPcs: (t.pricePerPcs ?? 0) + customOptionsPriceModifier,
+                }))}
                 selectedIndex={selectedTierIndex}
                 onSelect={handleTierSelect}
               />
@@ -1144,6 +1474,38 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           />
         </div>
       </div>
+
+      {previewImage && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div 
+            className="relative bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-4 max-w-lg w-full flex flex-col items-center gap-3 shadow-2xl animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-3 right-3 p-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 dark:bg-stone-800 dark:hover:bg-stone-700 dark:text-stone-300 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            
+            <div className="w-full aspect-square rounded-md overflow-hidden bg-stone-50 flex items-center justify-center border border-stone-100 dark:border-stone-800">
+              <img
+                src={previewImage.url}
+                alt={previewImage.name}
+                className="w-full h-full object-contain"
+              />
+            </div>
+            
+            <p className="text-sm font-bold text-stone-900 dark:text-white capitalize">
+              {previewImage.name}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

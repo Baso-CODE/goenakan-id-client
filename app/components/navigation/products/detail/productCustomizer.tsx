@@ -1,7 +1,7 @@
 "use client";
 
 import { MediaItem, MockupArea } from "@/app/types/productDetail.type";
-import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus } from "lucide-react";
+import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus, Download } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -53,12 +53,10 @@ export function ProductCustomizer({
   const customizableViews = useMemo(() => {
     let views = media.filter(isImageCustomizable);
     if (selectedAttributeValueIds && selectedAttributeValueIds.length > 0) {
-      const matchingViews = views.filter(
-        (item) => item.attributeValueId && selectedAttributeValueIds.includes(item.attributeValueId)
-      );
-      if (matchingViews.length > 0) {
-        views = matchingViews;
-      }
+      const sizeMatched = views.filter((item) => {
+        return !item.attributeValueId || selectedAttributeValueIds.includes(item.attributeValueId);
+      });
+      views = sizeMatched;
     }
     return views;
   }, [media, selectedAttributeValueIds]);
@@ -83,6 +81,7 @@ export function ProductCustomizer({
   const [uploads, setUploads] = useState<Record<string, LogoItem[]>>({});
 
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const canvasRef = useRef<HTMLDivElement>(null);
 
   // Simpan id logo yang aktif dipilih untuk diedit di panel bawah
   const [activeLogoId, setActiveLogoId] = useState<string | null>(null);
@@ -278,6 +277,60 @@ export function ProductCustomizer({
       };
     });
   };
+ 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!activeLogoId) return;
+ 
+      let targetAreaId: string | null = null;
+      let targetLogo: LogoItem | null = null;
+ 
+      for (const areaId of Object.keys(uploads)) {
+        const list = uploads[areaId] || [];
+        const found = list.find((l) => l.id === activeLogoId);
+        if (found) {
+          targetAreaId = areaId;
+          targetLogo = found;
+          break;
+        }
+      }
+ 
+      if (!targetAreaId || !targetLogo) return;
+ 
+      const area = media.flatMap((m) => m.mockupAreas || []).find((a) => a.id === targetAreaId);
+      if (!area) return;
+ 
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA" || activeEl.getAttribute("contenteditable") === "true")) {
+        return;
+      }
+ 
+      const step = e.shiftKey ? 2.0 : 0.5;
+ 
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        const currentX = targetLogo.xOffset ?? area.x;
+        updateTransform(targetAreaId, activeLogoId, "xOffset", currentX - step);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        const currentX = targetLogo.xOffset ?? area.x;
+        updateTransform(targetAreaId, activeLogoId, "xOffset", currentX + step);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const currentY = targetLogo.yOffset ?? area.y;
+        updateTransform(targetAreaId, activeLogoId, "yOffset", currentY - step);
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        const currentY = targetLogo.yOffset ?? area.y;
+        updateTransform(targetAreaId, activeLogoId, "yOffset", currentY + step);
+      }
+    };
+ 
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeLogoId, uploads, media]);
 
   const alignLogo = (
     areaId: string,
@@ -441,6 +494,38 @@ export function ProductCustomizer({
     fileInputRefs.current[areaId]?.click();
   };
 
+  const handleDownloadMockup = async () => {
+    if (!canvasRef.current) return;
+    
+    const toastId = toast.loading("Sedang menyiapkan unduhan mockup...");
+    try {
+      const { toPng } = await import("html-to-image");
+      
+      const dataUrl = await toPng(canvasRef.current, {
+        pixelRatio: 2, // high quality
+        filter: (node: any) => {
+          if (!node.classList) return true;
+          const classList = Array.from(node.classList);
+          const isExclude = 
+            classList.some((c: any) => 
+              c.includes("z-30") || // Alignment floating toolbar
+              c.includes("z-35") // Nudge controls D-Pad
+            );
+          return !isExclude;
+        }
+      });
+      
+      const link = document.createElement("a");
+      link.download = `${productName.toLowerCase().replace(/\s+/g, "-")}-customizer-mockup.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success("Mockup berhasil diunduh!", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Gagal mengunduh mockup. Silakan coba lagi.", { id: toastId });
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       {/* ── Switcher Tab Utama (Front / Back / Customizable Views) ── */}
@@ -478,8 +563,12 @@ export function ProductCustomizer({
         </div>
       )}
 
-      {/* ── Area Preview Utama + Overlay Interaktif ── */}
-      <div className="relative aspect-square w-full bg-stone-50 rounded-sm overflow-hidden border border-stone-200 flex items-center justify-center select-none">
+      {/* Grid Wrapper for Left and Right Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Preview Canvas & Gallery Thumbnails */}
+        <div className="lg:col-span-7 flex flex-col gap-4 w-full">
+          {/* ── Area Preview Utama + Overlay Interaktif ── */}
+          <div ref={canvasRef} className="relative aspect-square w-full bg-stone-50 rounded-sm overflow-hidden border border-stone-200 flex items-center justify-center select-none">
         {activeMedia.type === "video" ? (
           <video
             src={activeMedia.url}
@@ -749,14 +838,143 @@ export function ProductCustomizer({
                 );
               });
             })}
+            {/* Render D-Pad Nudge Controls in the Bottom-Right Corner of the image */}
+            {(() => {
+              let activeLogo: LogoItem | null = null;
+              let activeArea: MockupArea | null = null;
+              if (activeMedia.mockupAreas) {
+                for (const area of activeMedia.mockupAreas) {
+                  const list = uploads[area.id] || [];
+                  const found = list.find((l) => l.id === activeLogoId);
+                  if (found) {
+                    activeLogo = found;
+                    activeArea = area;
+                    break;
+                  }
+                }
+              }
+              if (!activeLogo || !activeArea) return null;
+ 
+              const area = activeArea;
+              const logo = activeLogo;
+ 
+              return (
+                <div 
+                  className="absolute bottom-2.5 right-2.5 z-35 flex flex-col gap-1.5 bg-white/95 border border-stone-200/90 p-2 rounded shadow-md w-24 select-none"
+                  onClick={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <div className="flex justify-between items-center border-b pb-1">
+                    <span className="text-[8px] font-bold uppercase tracking-wider text-stone-500">
+                      Nudge Logo
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-1 w-full justify-items-center">
+                    <div></div>
+                    <button
+                      type="button"
+                      onClick={() => updateTransform(area.id, logo.id, "yOffset", (logo.yOffset ?? area.y) - 0.5)}
+                      className="w-6 h-6 bg-white hover:bg-stone-100 border border-stone-200 rounded flex items-center justify-center text-stone-700 shadow-2xs transition-colors cursor-pointer"
+                      title="Geser Atas"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" /></svg>
+                    </button>
+                    <div></div>
+ 
+                    <button
+                      type="button"
+                      onClick={() => updateTransform(area.id, logo.id, "xOffset", (logo.xOffset ?? area.x) - 0.5)}
+                      className="w-6 h-6 bg-white hover:bg-stone-100 border border-stone-200 rounded flex items-center justify-center text-stone-700 shadow-2xs transition-colors cursor-pointer"
+                      title="Geser Kiri"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div className="w-6 h-6 bg-stone-50 border border-stone-150 rounded flex items-center justify-center text-[8px] font-bold text-stone-400 select-none">
+                      px
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateTransform(area.id, logo.id, "xOffset", (logo.xOffset ?? area.x) + 0.5)}
+                      className="w-6 h-6 bg-white hover:bg-stone-100 border border-stone-200 rounded flex items-center justify-center text-stone-700 shadow-2xs transition-colors cursor-pointer"
+                      title="Geser Kanan"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+ 
+                    <div></div>
+                    <button
+                      type="button"
+                      onClick={() => updateTransform(area.id, logo.id, "yOffset", (logo.yOffset ?? area.y) + 0.5)}
+                      className="w-6 h-6 bg-white hover:bg-stone-100 border border-stone-200 rounded flex items-center justify-center text-stone-700 shadow-2xs transition-colors cursor-pointer"
+                      title="Geser Bawah"
+                    >
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div></div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
-      </div>
+          </div>
 
-      {/* ── Status Kustomisasi (Panel Bawah) ── */}
-      <div className="bg-stone-50 border border-stone-200/80 p-4 rounded-sm">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-stone-800 mb-4 flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5 text-[#C4A48E]" /> LOGO PER AREA
+          {/* ── Gallery Thumbnails ── */}
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {media.map((item, i) => {
+              const isCustomizable = isImageCustomizable(item);
+              return (
+                <button
+                  key={item.id || i}
+                  onClick={() => setActiveIndex(i)}
+                  className={`relative shrink-0 w-20 aspect-square rounded-sm overflow-hidden border transition-all duration-150 ${
+                    activeIndex === i
+                      ? "border-stone-800 ring-1 ring-stone-800"
+                      : "border-stone-200 hover:border-stone-400"
+                  }`}
+                >
+                  {item.type === "video" ? (
+                    <div className="w-full h-full bg-stone-200 flex items-center justify-center">
+                      <span className="text-[9px] font-semibold text-stone-600">Video</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Image
+                        src={item.url}
+                        alt={`${productName} thumbnail ${i + 1}`}
+                        fill
+                        className="object-cover p-1 bg-stone-50"
+                        sizes="80px"
+                      />
+                      {isCustomizable && (
+                        <span className="absolute bottom-0 inset-x-0 bg-stone-900/90 text-[7px] text-white font-bold uppercase py-1 text-center leading-tight tracking-wider px-1 truncate" title={item.mockupSideName || item.mockupAreas?.map((a) => a.label).join(" & ") || ""}>
+                          {item.mockupSideName || item.mockupAreas?.map((a) => a.label).join(" & ") || "Kustom"}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {/* Right Column: Controls Panel / Sidebar */}
+        <div className="lg:col-span-5 flex flex-col gap-4 w-full">
+          {/* ── Status Kustomisasi (Sidebar Panel) ── */}
+          <div className="bg-stone-50 border border-stone-200/80 p-4 rounded-sm">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-stone-800 mb-4 flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#C4A48E]" /> LOGO PER AREA
+          </span>
+          <button
+            type="button"
+            onClick={handleDownloadMockup}
+            className="flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition-colors cursor-pointer uppercase tracking-wider shadow-2xs"
+            title="Unduh mockup hasil kustomisasi"
+          >
+            <Download className="w-3 h-3" /> Unduh Mockup
+          </button>
         </h3>
         {isImageCustomizable(activeMedia) && activeMedia.mockupAreas && activeMedia.mockupAreas.length > 0 ? (
           <div className="flex flex-col gap-4">
@@ -1064,48 +1282,30 @@ export function ProductCustomizer({
                   </div>
                 </div>
               </div>
+
+              {/* Distance Readouts */}
+              <div className="pt-2 flex flex-col gap-1.5 bg-stone-50 border border-stone-200/60 p-3 rounded-sm">
+                <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">
+                  Posisi Logo Presisi
+                </span>
+                <div className="flex flex-col text-[10px] text-stone-500 gap-1.5 pt-0.5">
+                  <div className="flex justify-between border-b pb-1 border-stone-200/65">
+                    <span>Jarak dari Sisi Kiri Area:</span>
+                    <span className="font-bold text-stone-700">{Math.round((logo.xOffset ?? area.x) - area.x)}% ({Math.round((((logo.xOffset ?? area.x) - area.x) / area.width) * (area.physicalWidth || 0) * 10) / 10} {area.unit || "cm"})</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Jarak dari Sisi Bawah Area:</span>
+                    <span className="font-bold text-stone-700">
+                      {Math.round((area.y + area.height) - ((logo.yOffset ?? area.y) + (logo.scale ?? 10) / (logo.aspectRatio || 1.0)))}% ({Math.round((((area.y + area.height) - ((logo.yOffset ?? area.y) + (logo.scale ?? 10) / (logo.aspectRatio || 1.0))) / area.height) * (area.physicalHeight || 0) * 10) / 10} {area.unit || "cm"})
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           );
         })()}
-      </div>
-
-      {/* ── Gallery Thumbnails ── */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {media.map((item, i) => {
-          const isCustomizable = isImageCustomizable(item);
-          return (
-            <button
-              key={item.id || i}
-              onClick={() => setActiveIndex(i)}
-              className={`relative shrink-0 w-20 aspect-square rounded-sm overflow-hidden border transition-all duration-150 ${
-                activeIndex === i
-                  ? "border-stone-800 ring-1 ring-stone-800"
-                  : "border-stone-200 hover:border-stone-400"
-              }`}
-            >
-              {item.type === "video" ? (
-                <div className="w-full h-full bg-stone-200 flex items-center justify-center">
-                  <span className="text-[9px] font-semibold text-stone-600">Video</span>
-                </div>
-              ) : (
-                <>
-                  <Image
-                    src={item.url}
-                    alt={`${productName} thumbnail ${i + 1}`}
-                    fill
-                    className="object-cover p-1 bg-stone-50"
-                    sizes="80px"
-                  />
-                  {isCustomizable && (
-                    <span className="absolute bottom-0 inset-x-0 bg-stone-900/90 text-[7px] text-white font-bold uppercase py-1 text-center leading-tight tracking-wider px-1 truncate" title={item.mockupSideName || item.mockupAreas?.map((a) => a.label).join(" & ") || ""}>
-                      {item.mockupSideName || item.mockupAreas?.map((a) => a.label).join(" & ") || "Kustom"}
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          );
-        })}
+          </div>
+        </div>
       </div>
     </div>
   );

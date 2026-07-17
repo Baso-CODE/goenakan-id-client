@@ -59,8 +59,17 @@ export function ProductImageGallery({
             }`}>
             {item.type === "video" ? (
               // Tampilan Thumbnail Video
-              <div className="w-full h-full bg-stone-200 flex items-center justify-center">
-                <PlayCircle className="text-stone-500 w-8 h-8 z-10" />
+              <div className="relative w-full h-full bg-stone-200 flex items-center justify-center">
+                <video
+                  src={item.url}
+                  className="w-full h-full object-cover"
+                  preload="metadata"
+                  muted
+                  playsInline
+                />
+                <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                  <PlayCircle className="text-white w-6 h-6 z-10 opacity-90" />
+                </div>
               </div>
             ) : (
               // Tampilan Thumbnail Gambar
