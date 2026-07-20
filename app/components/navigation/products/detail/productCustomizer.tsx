@@ -501,8 +501,19 @@ export function ProductCustomizer({
     try {
       const { toPng } = await import("html-to-image");
       
-      const dataUrl = await toPng(canvasRef.current, {
-        pixelRatio: 2, // high quality
+      const sideName = activeMedia.mockupSideName || 
+        (isMultiFace && activeMedia.id === mockupBackImageId ? "Tampak Belakang" : "Tampak Depan");
+
+      // 1. Target all visual overlay elements to manipulate on the live DOM
+      const guides = canvasRef.current.querySelectorAll(".mockup-guide-area");
+      const metricLines = canvasRef.current.querySelectorAll(".z-15");
+      const logoContainers = canvasRef.current.querySelectorAll(".customizer-logo-container");
+      const badgeLabels = canvasRef.current.querySelectorAll(".customizer-logo-container > div");
+
+      const scaleFactor = 3;
+
+      const captureOptions = {
+        pixelRatio: scaleFactor,
         filter: (node: any) => {
           if (!node.classList) return true;
           const classList = Array.from(node.classList);
@@ -513,12 +524,138 @@ export function ProductCustomizer({
             );
           return !isExclude;
         }
+      };
+
+      // 2. Hide active logo selection borders, handles, and labels for BOTH views
+      const originalBorders: string[] = [];
+      const originalShadows: string[] = [];
+      logoContainers.forEach((el: any) => {
+        originalBorders.push(el.style.borderColor || "");
+        originalShadows.push(el.style.boxShadow || "");
+        el.style.setProperty("border-color", "transparent", "important");
+        el.style.setProperty("box-shadow", "none", "important");
       });
-      
+
+      const originalBadgesDisplay: string[] = [];
+      badgeLabels.forEach((el: any) => {
+        originalBadgesDisplay.push(el.style.display || "");
+        if (el.className.includes("bg-blue-600")) {
+          el.style.setProperty("display", "none", "important");
+        }
+      });
+
+      // 3. Capture the Specs view first (with guide boxes and metric lines visible)
+      const specDataUrl = await toPng(canvasRef.current, captureOptions);
+
+      // 4. Hide guides and metric lines to prepare the Clean Visual view
+      const originalGuidesDisplay: string[] = [];
+      guides.forEach((el: any) => {
+        originalGuidesDisplay.push(el.style.display || "");
+        el.style.setProperty("display", "none", "important");
+      });
+
+      const originalMetricsDisplay: string[] = [];
+      metricLines.forEach((el: any) => {
+        originalMetricsDisplay.push(el.style.display || "");
+        el.style.setProperty("display", "none", "important");
+      });
+
+      // Wait a tiny animation frame for browser layout sync
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+
+      // 5. Capture the Clean mockup view
+      const cleanDataUrl = await toPng(canvasRef.current, captureOptions);
+
+      // 6. Restore everything back to original state on the live canvas
+      logoContainers.forEach((el: any, idx) => {
+        el.style.borderColor = originalBorders[idx];
+        el.style.boxShadow = originalShadows[idx];
+      });
+
+      badgeLabels.forEach((el: any, idx) => {
+        el.style.display = originalBadgesDisplay[idx];
+      });
+
+      guides.forEach((el: any, idx) => {
+        el.style.display = originalGuidesDisplay[idx];
+      });
+
+      metricLines.forEach((el: any, idx) => {
+        el.style.display = originalMetricsDisplay[idx];
+      });
+
+      // 7. Draw both captured images side-by-side using an offscreen canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = 1040 * scaleFactor;
+      canvas.height = 627 * scaleFactor; // padding + header + gap + image + padding
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) throw new Error("Could not get 2D context");
+
+      // Enable premium interpolation
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+
+      // Background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Title Header
+      ctx.fillStyle = "#1c1917";
+      ctx.font = `bold ${18 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText(productName.toUpperCase(), 24 * scaleFactor, 40 * scaleFactor);
+
+      // Subtitle
+      ctx.fillStyle = "#78716c";
+      ctx.font = `600 ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText(`SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`, 24 * scaleFactor, 60 * scaleFactor);
+
+      // Branding
+      ctx.fillStyle = "#4f46e5";
+      ctx.font = `bold ${12 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText("GOENAKAN.ID", 920 * scaleFactor, 45 * scaleFactor);
+
+      // Divider Line
+      ctx.strokeStyle = "#f5f5f4";
+      ctx.lineWidth = 2 * scaleFactor;
+      ctx.beginPath();
+      ctx.moveTo(24 * scaleFactor, 75 * scaleFactor);
+      ctx.lineTo(1016 * scaleFactor, 75 * scaleFactor);
+      ctx.stroke();
+
+      // Load image objects asynchronously
+      const specImg = new window.Image();
+      specImg.src = specDataUrl;
+      await new Promise((resolve) => { specImg.onload = resolve; });
+
+      const cleanImg = new window.Image();
+      cleanImg.src = cleanDataUrl;
+      await new Promise((resolve) => { cleanImg.onload = resolve; });
+
+      // Column Titles
+      ctx.fillStyle = "#44403c";
+      ctx.font = `bold ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText("📐 SPESIFIKASI & UKURAN PENEMPATAN", 24 * scaleFactor, 100 * scaleFactor);
+      ctx.fillText("✨ VISUAL PREVIEW PRODUK (MOCKUP)", 528 * scaleFactor, 100 * scaleFactor);
+
+      // Draw Left Image inside a borders box
+      ctx.drawImage(specImg, 24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+      ctx.strokeStyle = "#e7e5e4";
+      ctx.lineWidth = 1 * scaleFactor;
+      ctx.strokeRect(24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+
+      // Draw Right Image inside a borders box
+      ctx.drawImage(cleanImg, 528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+      ctx.strokeRect(528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+
+      // Download the combined canvas
+      const finalDataUrl = canvas.toDataURL("image/png");
+
       const link = document.createElement("a");
-      link.download = `${productName.toLowerCase().replace(/\s+/g, "-")}-customizer-mockup.png`;
-      link.href = dataUrl;
+      link.download = `${productName.toLowerCase().replace(/\s+/g, "-")}-customizer-spec-sheet.png`;
+      link.href = finalDataUrl;
       link.click();
+      
       toast.success("Mockup berhasil diunduh!", { id: toastId });
     } catch (err) {
       console.error(err);
@@ -601,7 +738,7 @@ export function ProductCustomizer({
                     height: `${area.height}%`,
                   }}
                   onClick={() => triggerUpload(area.id)}
-                  className={`border-2 border-dashed flex flex-col items-center justify-center p-1 rounded-sm group transition-colors select-none ${
+                  className={`mockup-guide-area border-2 border-dashed flex flex-col items-center justify-center p-1 rounded-sm group transition-colors select-none ${
                     logoList.length > 0
                       ? "border-green-400/50 bg-green-500/2"
                       : "border-blue-400/60 bg-blue-500/3 hover:bg-blue-500/6 cursor-pointer"
@@ -645,7 +782,7 @@ export function ProductCustomizer({
                       e.stopPropagation();
                       setActiveLogoId(logo.id);
                     }}
-                    className={`absolute group p-0.5 border-2 transition-shadow select-none ${
+                    className={`customizer-logo-container absolute group p-0.5 border-2 transition-shadow select-none ${
                       isActive
                         ? "border-blue-500 shadow-md shadow-blue-500/20"
                         : "border-transparent hover:border-blue-300"
@@ -978,6 +1115,19 @@ export function ProductCustomizer({
         </h3>
         {isImageCustomizable(activeMedia) && activeMedia.mockupAreas && activeMedia.mockupAreas.length > 0 ? (
           <div className="flex flex-col gap-4">
+            {/* Info format terbaik */}
+            <div className="bg-indigo-50/50 border border-indigo-100/80 rounded p-2.5 flex items-start gap-2 text-indigo-950">
+              <span className="text-xs">💡</span>
+              <div className="flex-1 space-y-0.5">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 leading-none">
+                  Format File Terbaik
+                </p>
+                <p className="text-[10px] leading-relaxed text-indigo-900 font-medium">
+                  Gunakan format file <strong>PNG transparan (tanpa background)</strong> atau file vektor resolusi tinggi agar hasil custom cetak logo Anda bersih dan tajam.
+                </p>
+              </div>
+            </div>
+
             {activeMedia.mockupAreas.map((area) => {
               const logoList = uploads[area.id] || [];
               return (

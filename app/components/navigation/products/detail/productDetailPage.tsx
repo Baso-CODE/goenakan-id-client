@@ -715,6 +715,21 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const adminWhatsApp = "6282387902238";
 
+  // Order media: featured video, featured photo, non-featured photos, non-featured videos
+  const sortMediaItems = (items: MediaItem[]): MediaItem[] => {
+    const getMediaScore = (item: MediaItem): number => {
+      const isFeatured = !!item.isFeatured;
+      const isVideo = item.type === "video";
+
+      if (isVideo && isFeatured) return 0;   // 1. Featured video
+      if (!isVideo && isFeatured) return 1;  // 2. Featured photo
+      if (!isVideo && !isFeatured) return 2; // 3. Non-featured photos
+      return 3;                              // 4. Non-featured videos
+    };
+
+    return [...items].sort((a, b) => getMediaScore(a) - getMediaScore(b));
+  };
+
   const allGalleryMediaForSize = useMemo(() => {
     let currentMedia: MediaItem[] = [];
     if (selectedVariantId && product.variants) {
@@ -739,9 +754,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     });
 
     const mergedMedia = [...currentMedia, ...productMedia];
-    const videos = mergedMedia.filter((img) => img.type === "video");
-    const images = mergedMedia.filter((img) => img.type !== "video");
-    return [...videos, ...images];
+    return sortMediaItems(mergedMedia);
   }, [selectedVariantId, product, selectedAttributeValueIds]);
 
   const activeGalleryMedia = useMemo(() => {
@@ -755,10 +768,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         : [];
       const productMedia = product.media || [];
       const mergedMedia = [...currentMedia, ...productMedia];
-      
-      const videos = mergedMedia.filter((img) => img.type === "video");
-      const images = mergedMedia.filter((img) => img.type !== "video");
-      return [...videos, ...images];
+      return sortMediaItems(mergedMedia);
     }
   }, [allGalleryMediaForSize, isCustomizing, product.media, product.variants, selectedVariantId]);
 
@@ -1129,7 +1139,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                             ? { backgroundImage: "linear-gradient(to bottom right, #ff7e5f, #feb47b, #86e3ce, #d0e1fd, #e186e3)" }
                             : { backgroundColor: colorInfo.hex };
 
-                          return (
+                          const colorButton = (
                             <button
                               key={val}
                               type="button"
@@ -1152,6 +1162,19 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                               )}
                             </button>
                           );
+
+                          if (isValCustom) {
+                            return (
+                              <div key={val} className="flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none animate-pulse">
+                                {colorButton}
+                                <span className="text-[9px] font-extrabold text-indigo-700 uppercase tracking-widest leading-none">
+                                  🌈 Bisa Custom Warna
+                                </span>
+                              </div>
+                            );
+                          }
+
+                          return colorButton;
                         })}
                       </div>
 
