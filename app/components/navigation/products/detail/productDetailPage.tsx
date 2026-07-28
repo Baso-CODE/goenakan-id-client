@@ -233,20 +233,23 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const availableMockupPositions = useMemo(() => {
     if (!product.media) return [];
  
-    const selectedSizeVal = product.attributeValues?.find((av: any) => {
-      if (av.attributeType !== "SIZE") return false;
+    const activeSelectedValueIds = product.attributeValues?.filter((av: any) => {
+      const isGenerator = av.attributeType === "SIZE" || av.attributeType === "MODEL_SHAPE";
+      if (!isGenerator) return false;
       const selectVal = selections[av.attributeName];
       if (!selectVal) return false;
       const cleanSelected = selectVal.split("|")[0].toLowerCase().trim();
       const cleanVal = av.value.split("|")[0].toLowerCase().trim();
       return cleanSelected === cleanVal;
-    });
+    }).map((av: any) => av.attributeValueId) || [];
  
-    const sizeId = selectedSizeVal?.attributeValueId || null;
     const mockups = product.media.filter((img: any) => {
       const isMockup = img.mockupSideName || (img.mockupAreas && img.mockupAreas.length > 0);
       if (!isMockup) return false;
-      return !img.attributeValueId || img.attributeValueId === sizeId;
+      if (img.attributeValueId) {
+        return activeSelectedValueIds.includes(img.attributeValueId);
+      }
+      return true;
     });
  
     const uniquePositionsMap: Record<string, { id: string; name: string; printPositionValueId: string | null }> = {};
@@ -281,47 +284,23 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   // 3. Tentukan Varian Default
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
-  // 4. Auto-select first in-stock variant attributes on mount
+  // 4. Do not auto-select variant attributes on mount (unselect all at first)
   useEffect(() => {
     if (product.variants && product.variants.length > 0) {
-      const defaultVariant = product.variants.find((v) => (v.stock ?? 0) > 0) || product.variants[0];
-      if (defaultVariant) {
-        const initialSelections: Record<string, string> = {};
-        defaultVariant.attributes?.forEach((attr) => {
-          if (!isPrintRelatedAttribute(attr.type || "", attr.name)) {
-            initialSelections[attr.name] = attr.value;
-          }
-        });
-        setSelections(initialSelections);
-
-        const variantAttrNames = new Set(product.variants?.[0]?.attributes?.map((a: any) => a.name) || []);
-        const matchingVariants = product.variants?.filter((v) => {
-          return Object.entries(initialSelections)
-            .filter(([name]) => variantAttrNames.has(name))
-            .every(([name, val]) => {
-              const attr = v.attributes?.find((a) => a.name === name);
-              const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
-              const cleanAttrVal = attr?.value?.split("|")[0]?.toLowerCase().trim();
-              return cleanAttrVal === cleanVal;
-            });
-        }) || [];
-
-        const variantMatch = matchingVariants.length > 0
-          ? [...matchingVariants].sort((a, b) => (a.price ?? 0) - (b.price ?? 0))[0]
-          : defaultVariant;
-
-        setSelectedVariantId(variantMatch.id);
-      }
+      setSelections({});
+      setSelectedVariantId(null);
     }
   }, [product.variants]);
 
   const doesSizeHaveMockups = useCallback((sizeValue: string) => {
     let sizeAttrValId: string | null = null;
+    const cleanSizeValue = sizeValue.split("|")[0].toLowerCase().trim();
     
     // Cari di variants attributes
     product.variants?.forEach((v) => {
       v.attributes?.forEach((attr: any) => {
-        if (attr.value === sizeValue && attr.attributeValueId) {
+        const cleanAttrVal = attr.value?.split("|")[0]?.toLowerCase().trim();
+        if (cleanAttrVal === cleanSizeValue && attr.attributeValueId) {
           sizeAttrValId = attr.attributeValueId;
         }
       });
@@ -329,7 +308,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
     if (!sizeAttrValId) {
       // Cari di product.attributeValues
-      const match = product.attributeValues?.find((av) => av.value === sizeValue);
+      const match = product.attributeValues?.find((av) => {
+        const cleanAvVal = av.value?.split("|")[0]?.toLowerCase().trim();
+        return cleanAvVal === cleanSizeValue;
+      });
       if (match) {
         sizeAttrValId = match.attributeValueId;
       }
@@ -348,8 +330,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const isOptionDisabled = (attrName: string, value: string) => {
     const variantAttrNames = new Set(product.variants?.[0]?.attributes?.map((a: any) => a.name) || []);
     
-    const isSizeAttr = attrName.toLowerCase().includes("ukuran") || attrName.toLowerCase().includes("size") || attrName.toLowerCase().includes("kapasitas") || attrName.toLowerCase().includes("capacity");
-    if (isCustomizing && isSizeAttr) {
+    const isCustomizableAttr = 
+      attrName.toLowerCase().includes("ukuran") || 
+      attrName.toLowerCase().includes("size") || 
+      attrName.toLowerCase().includes("kapasitas") || 
+      attrName.toLowerCase().includes("capacity") ||
+      attrName.toLowerCase().includes("model") ||
+      attrName.toLowerCase().includes("shape");
+
+    if (isCustomizing && isCustomizableAttr) {
       const cleanValue = value.split("|")[0];
       if (!doesSizeHaveMockups(cleanValue)) {
         return true;
@@ -766,7 +755,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       const currentMedia = (selectedVariantId && product.variants)
         ? (product.variants.find((v) => v.id === selectedVariantId)?.images || [])
         : [];
-      const productMedia = product.media || [];
+      const productMedia = (product.media || []).filter((img) => !img.attributeValueId);
       const mergedMedia = [...currentMedia, ...productMedia];
       return sortMediaItems(mergedMedia);
     }
@@ -844,7 +833,28 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     };
   }, [selectedVariant, product.attributeValues]);
 
-  const handleAddToCart = async () => {
+  const handleAddToCart = async (): Promise<boolean> => {
+    // Validate that all visible attribute selections are made
+    const visibleGroups = attributeGroups.filter((group) => {
+      if (group.parentValueId && !selectedAttributeValueIds.includes(group.parentValueId)) {
+        return false;
+      }
+      if (group.type === "MOCKUP_SIDE" || group.type === "PRINT_SIDE") {
+        return false;
+      }
+      if (isPrintRelatedAttribute(group.type, group.name) && !isCustomizing) {
+        return false;
+      }
+      return true;
+    });
+
+    for (const group of visibleGroups) {
+      if (!selections[group.name]) {
+        toast.error(`Silakan pilih ${group.name} terlebih dahulu!`);
+        return false;
+      }
+    }
+
     const variantWeight = resolvedVariantDetails ? resolvedVariantDetails.weight : (selectedVariant?.weightString || product.weight);
     const variantRawWeight = resolvedVariantDetails ? resolvedVariantDetails.rawWeight : (selectedVariant?.rawWeight || product.rawWeight);
     const variantWidth = resolvedVariantDetails ? resolvedVariantDetails.width : (selectedVariant?.width || product.width);
@@ -908,11 +918,14 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     };
 
     await addToCart(payload, quantity, token);
+    return true;
   };
 
   const handleOrderNow = async () => {
-    await handleAddToCart();
-    router.push("/checkout");
+    const success = await handleAddToCart();
+    if (success) {
+      router.push("/checkout");
+    }
   };
 
   const displayWeight = resolvedVariantDetails
@@ -1322,8 +1335,8 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                         const isSelected = selections[group.name] === val;
                         let isDisabled = isOptionDisabled(group.name, val);
 
-                        const isSizeGroup = group.name.toLowerCase().includes("size") || group.name.toLowerCase().includes("kapasitas") || group.name.toLowerCase().includes("ukuran");
-                        if (isCustomizing && isSizeGroup && !doesSizeHaveMockups(val)) {
+                        const isCustomizableGroup = group.name.toLowerCase().includes("size") || group.name.toLowerCase().includes("kapasitas") || group.name.toLowerCase().includes("ukuran") || group.name.toLowerCase().includes("model") || group.name.toLowerCase().includes("shape");
+                        if (isCustomizing && isCustomizableGroup && !doesSizeHaveMockups(val)) {
                           isDisabled = true;
                         }
 

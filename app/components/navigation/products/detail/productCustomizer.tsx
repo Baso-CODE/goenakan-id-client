@@ -19,6 +19,99 @@ export interface LogoItem {
   opacity?: number;
 }
 
+function PercentSizeInput({
+  area,
+  logo,
+  maxScale,
+  updateTransform
+}: {
+  area: MockupArea;
+  logo: LogoItem;
+  maxScale: number;
+  updateTransform: (areaId: string, logoId: string, key: any, value: number) => void;
+}) {
+  const roundedPct = Math.round(logo.scale || 5);
+  const [typedVal, setTypedVal] = useState(roundedPct.toString());
+
+  useEffect(() => {
+    setTypedVal(roundedPct.toString());
+  }, [roundedPct]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value;
+    setTypedVal(valStr);
+
+    const valPct = parseInt(valStr);
+    if (!isNaN(valPct) && valPct > 0) {
+      updateTransform(area.id, logo.id, "scale", valPct);
+    }
+  };
+
+  const handleBlur = () => {
+    setTypedVal(roundedPct.toString());
+  };
+
+  return (
+    <div className="flex items-center border border-stone-300 rounded bg-white px-1 shrink-0">
+      <input
+        type="text"
+        value={typedVal}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className="w-10 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
+      />
+      <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">%</span>
+    </div>
+  );
+}
+
+function CmSizeInput({
+  area,
+  logo,
+  updateTransform
+}: {
+  area: MockupArea;
+  logo: LogoItem;
+  updateTransform: (areaId: string, logoId: string, key: any, value: number) => void;
+}) {
+  const currentCmWidth = ((logo.scale || 5) / area.width) * (area.physicalWidth || 0);
+  const roundedCm = Math.round(currentCmWidth * 10) / 10;
+  
+  const [typedVal, setTypedVal] = useState(roundedCm.toString());
+
+  useEffect(() => {
+    setTypedVal(roundedCm.toString());
+  }, [roundedCm]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valStr = e.target.value;
+    setTypedVal(valStr);
+
+    const valCm = parseFloat(valStr);
+    if (!isNaN(valCm) && valCm > 0) {
+      const newScale = (valCm / (area.physicalWidth || 1)) * area.width;
+      updateTransform(area.id, logo.id, "scale", newScale);
+    }
+  };
+
+  const handleBlur = () => {
+    setTypedVal(roundedCm.toString());
+  };
+
+  return (
+    <div className="w-[85px] shrink-0 flex items-center border border-stone-300 rounded bg-white px-1">
+      <input
+        type="text"
+        value={typedVal}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className="w-12 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
+      />
+      <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">{area.unit || "cm"}</span>
+    </div>
+  );
+}
+
 interface ProductCustomizerProps {
   media: MediaItem[];
   productName: string;
@@ -48,6 +141,20 @@ export function ProductCustomizer({
     if (!item.attributeValueId || !attributeValues) return 0;
     const av = attributeValues.find((av: any) => av.attributeValueId === item.attributeValueId);
     return av ? (av.priceModifier ?? 0) : 0;
+  };
+
+  const getMockupBackgroundUrl = (item: MediaItem) => {
+    if (item.attributeValueId && attributeValues) {
+      const av = attributeValues.find((av: any) => av.attributeValueId === item.attributeValueId);
+      if (av && av.value) {
+        const parts = av.value.split("|");
+        const sizeImageUrl = parts[1];
+        if (sizeImageUrl) {
+          return sizeImageUrl;
+        }
+      }
+    }
+    return item.url;
   };
 
   const customizableViews = useMemo(() => {
@@ -708,7 +815,7 @@ export function ProductCustomizer({
           <div ref={canvasRef} className="relative aspect-square w-full bg-stone-50 rounded-sm overflow-hidden border border-stone-200 flex items-center justify-center select-none">
         {activeMedia.type === "video" ? (
           <video
-            src={activeMedia.url}
+            src={getMockupBackgroundUrl(activeMedia)}
             controls
             className="w-full h-full object-contain"
           />
@@ -716,7 +823,7 @@ export function ProductCustomizer({
           <div className="relative w-full h-full">
             {/* Gambar Produk Dasar */}
             <Image
-              src={activeMedia.url}
+              src={getMockupBackgroundUrl(activeMedia)}
               alt={`${productName} - view`}
               fill
               className="object-contain p-2"
@@ -1078,7 +1185,7 @@ export function ProductCustomizer({
                   ) : (
                     <>
                       <Image
-                        src={item.url}
+                        src={getMockupBackgroundUrl(item)}
                         alt={`${productName} thumbnail ${i + 1}`}
                         fill
                         className="object-cover p-1 bg-stone-50"
@@ -1302,37 +1409,20 @@ export function ProductCustomizer({
                       onChange={(e) => updateTransform(area.id, logo.id, "scale", parseFloat(e.target.value))}
                       className="flex-1 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-stone-700"
                     />
-                    <div className="flex items-center border border-stone-300 rounded bg-white px-1 shrink-0">
-                      <input
-                        type="number"
-                        min="5"
-                        max={Math.round(maxScale)}
-                        value={Math.round(logo.scale || 5)}
-                        onChange={(e) => {
-                          const pct = parseFloat(e.target.value) || 5;
-                          updateTransform(area.id, logo.id, "scale", pct);
-                        }}
-                        className="w-10 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
-                      />
-                      <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">%</span>
-                    </div>
+                    <PercentSizeInput
+                      area={area}
+                      logo={logo}
+                      maxScale={maxScale}
+                      updateTransform={updateTransform}
+                    />
                   </div>
  
                   {area.physicalWidth && (
-                    <div className="w-[85px] shrink-0 flex items-center border border-stone-300 rounded bg-white px-1">
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={Math.round(currentCmWidth * 10) / 10}
-                        onChange={(e) => {
-                          const valCm = parseFloat(e.target.value) || 0;
-                          const newScale = (valCm / (area.physicalWidth || 1)) * area.width;
-                          updateTransform(area.id, logo.id, "scale", newScale);
-                        }}
-                        className="w-12 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
-                      />
-                      <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">{area.unit || "cm"}</span>
-                    </div>
+                    <CmSizeInput
+                      area={area}
+                      logo={logo}
+                      updateTransform={updateTransform}
+                    />
                   )}
                 </div>
               </div>
