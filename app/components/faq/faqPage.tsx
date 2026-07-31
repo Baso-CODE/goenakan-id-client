@@ -7,6 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 export interface FaqPageProps {
@@ -20,6 +21,10 @@ export function FaqPage({
 }: FaqPageProps) {
   const [activeId, setActiveId] = useState<string>("");
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const locale = useLocale();
+  const t = useTranslations("Faq");
+
   useEffect(() => {
     const handleScroll = () => {
       let current = "";
@@ -44,11 +49,10 @@ export function FaqPage({
     }
   };
 
-  // Jika tidak ada data, tampilkan state kosong
   if (!faqs || faqs.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50">
-        <p className="text-stone-500">Belum ada FAQ yang tersedia.</p>
+        <p className="text-stone-500">No FAQ available.</p>
       </div>
     );
   }
@@ -62,58 +66,78 @@ export function FaqPage({
               Quick Nav.
             </p>
             <ol className="flex flex-col gap-2">
-              {faqs.map((faq, index) => (
-                <li key={faq.id}>
-                  <button
-                    onClick={() => scrollToFaq(faq.id)}
-                    className={`text-left text-sm leading-snug transition-colors hover:text-stone-800 ${
-                      activeId === faq.id
-                        ? "text-stone-800 font-medium"
-                        : "text-stone-400"
-                    }`}>
-                    {index + 1}. {faq.question}
-                  </button>
-                </li>
-              ))}
+              {faqs.map((faq, index) => {
+                const question =
+                  locale === "id"
+                    ? faq.questionId || faq.questionEn
+                    : faq.questionEn || faq.questionId;
+
+                return (
+                  <li key={faq.id}>
+                    <button
+                      onClick={() => scrollToFaq(faq.id)}
+                      className={`text-left text-sm leading-snug transition-colors hover:text-stone-800 ${
+                        activeId === faq.id
+                          ? "text-stone-800 font-medium"
+                          : "text-stone-400"
+                      }`}>
+                      {index + 1}. {question}
+                    </button>
+                  </li>
+                );
+              })}
             </ol>
           </aside>
 
           {/* ── Right: Content ── */}
           <div className="flex flex-col gap-3">
             <h1 className="text-2xl font-semibold text-stone-800 mb-4">
-              {title}
+              {title || t("title")}
             </h1>
 
             <Accordion
               type="single"
               collapsible
               className="flex flex-col gap-3">
-              {faqs.map((faq) => (
-                <div
-                  key={faq.id}
-                  ref={(el) => {
-                    itemRefs.current[faq.id] = el;
-                  }}
-                  id={faq.id}>
-                  <AccordionItem
-                    value={faq.id}
-                    className={`bg-[#463b34] rounded-sm border px-5 transition-all duration-200 ${
-                      activeId === faq.id
-                        ? "border-blue-400"
-                        : "border-transparent"
-                    }`}>
-                    <AccordionTrigger className="text-left text-sm font-semibold text-white hover:no-underline py-4">
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-5 text-white">
-                      <div
-                        className="[&>ol]:list-decimal [&>ol]:ml-6 [&>ul]:list-disc [&>ul]:ml-6 space-y-2"
-                        dangerouslySetInnerHTML={{ __html: faq.answer }}
-                      />
-                    </AccordionContent>
-                  </AccordionItem>
-                </div>
-              ))}
+              {faqs.map((faq) => {
+                const question =
+                  locale === "id"
+                    ? faq.questionId || faq.questionEn
+                    : faq.questionEn || faq.questionId;
+                const answer =
+                  locale === "id"
+                    ? faq.answerId || faq.answerEn || ""
+                    : faq.answerEn || faq.answerId || "";
+
+                return (
+                  <div
+                    key={faq.id}
+                    ref={(el) => {
+                      itemRefs.current[faq.id] = el;
+                    }}
+                    id={faq.id}>
+                    <AccordionItem
+                      value={faq.id}
+                      className={`bg-[#463b34] rounded-sm border px-5 transition-all duration-200 ${
+                        activeId === faq.id
+                          ? "border-blue-400"
+                          : "border-transparent"
+                      }`}>
+                      <AccordionTrigger className="text-left text-sm font-semibold text-white hover:no-underline py-4">
+                        {question}
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-5 text-white">
+                        <div
+                          className="[&>ol]:list-decimal [&>ol]:ml-6 [&>ul]:list-disc [&>ul]:ml-6 space-y-2"
+                          dangerouslySetInnerHTML={{
+                            __html: answer,
+                          }}
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  </div>
+                );
+              })}
             </Accordion>
           </div>
         </div>

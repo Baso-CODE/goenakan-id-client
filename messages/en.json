@@ -261,7 +261,13 @@
       "serverError": "Server error. Please try again later",
       "networkError": "Network error. Please check your connection"
     }
+  },
+
+  "Faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about our products and services."
   }
+  
 }
 
 

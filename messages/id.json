@@ -259,6 +259,10 @@
       "serverError": "Kesalahan server. Silakan coba lagi nanti.",
       "networkError": "Kesalahan jaringan. Silakan periksa koneksi Anda."
     }
+  },
+  "Faq": {
+    "title": "Pertanyaan yang Sering Diajukan",
+    "subtitle": "Semua yang perlu Anda ketahui tentang produk dan layanan kami."
   }
 
 }
