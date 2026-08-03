@@ -192,6 +192,7 @@ export function ProductCustomizer({
 
   // Simpan id logo yang aktif dipilih untuk diedit di panel bawah
   const [activeLogoId, setActiveLogoId] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Jika active index tidak valid, default ke media pertama
   const activeMedia = media[activeIndex] || media[0];
@@ -602,23 +603,13 @@ export function ProductCustomizer({
   };
 
   const handleDownloadMockup = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || customizableViews.length === 0) return;
     
     const toastId = toast.loading("Sedang menyiapkan unduhan mockup...");
     try {
       const { toPng } = await import("html-to-image");
-      
-      const sideName = activeMedia.mockupSideName || 
-        (isMultiFace && activeMedia.id === mockupBackImageId ? "Tampak Belakang" : "Tampak Depan");
-
-      // 1. Target all visual overlay elements to manipulate on the live DOM
-      const guides = canvasRef.current.querySelectorAll(".mockup-guide-area");
-      const metricLines = canvasRef.current.querySelectorAll(".z-15");
-      const logoContainers = canvasRef.current.querySelectorAll(".customizer-logo-container");
-      const badgeLabels = canvasRef.current.querySelectorAll(".customizer-logo-container > div");
-
       const scaleFactor = 3;
-
+      
       const captureOptions = {
         pixelRatio: scaleFactor,
         filter: (node: any) => {
@@ -633,139 +624,168 @@ export function ProductCustomizer({
         }
       };
 
-      // 2. Hide active logo selection borders, handles, and labels for BOTH views
-      const originalBorders: string[] = [];
-      const originalShadows: string[] = [];
-      logoContainers.forEach((el: any) => {
-        originalBorders.push(el.style.borderColor || "");
-        originalShadows.push(el.style.boxShadow || "");
-        el.style.setProperty("border-color", "transparent", "important");
-        el.style.setProperty("box-shadow", "none", "important");
-      });
+      // Store current tab index to restore afterwards
+      const originalActiveIndex = activeIndex;
+      setIsDownloading(true);
 
-      const originalBadgesDisplay: string[] = [];
-      badgeLabels.forEach((el: any) => {
-        originalBadgesDisplay.push(el.style.display || "");
-        if (el.className.includes("bg-blue-600")) {
+      // Loop and download all available custom mockup views
+      for (let i = 0; i < customizableViews.length; i++) {
+        const view = customizableViews[i];
+        const mediaIdx = media.findIndex((m) => m.id === view.id);
+        if (mediaIdx === -1) continue;
+
+        // Switch to the target view to render it on screen
+        setActiveIndex(mediaIdx);
+        
+        // Wait for React rendering and layout cycle
+        await new Promise((resolve) => setTimeout(resolve, 350));
+
+        const sideName = view.mockupSideName || 
+          (isMultiFace && view.id === mockupBackImageId ? "Tampak Belakang" : "Tampak Depan");
+
+        // Target visual overlay elements on the current canvas DOM
+        const guides = canvasRef.current.querySelectorAll(".mockup-guide-area");
+        const metricLines = canvasRef.current.querySelectorAll(".z-15");
+        const logoContainers = canvasRef.current.querySelectorAll(".customizer-logo-container");
+        const badgeLabels = canvasRef.current.querySelectorAll(".customizer-logo-container > div");
+
+        // 1. Hide active logo selection borders, handles, and labels for Spec sheet view
+        const originalBorders: string[] = [];
+        const originalShadows: string[] = [];
+        logoContainers.forEach((el: any) => {
+          originalBorders.push(el.style.borderColor || "");
+          originalShadows.push(el.style.boxShadow || "");
+          el.style.setProperty("border-color", "transparent", "important");
+          el.style.setProperty("box-shadow", "none", "important");
+        });
+
+        const originalBadgesDisplay: string[] = [];
+        badgeLabels.forEach((el: any) => {
+          originalBadgesDisplay.push(el.style.display || "");
+          if (el.className.includes("bg-blue-600")) {
+            el.style.setProperty("display", "none", "important");
+          }
+        });
+
+        // Capture Spec View
+        const specDataUrl = await toPng(canvasRef.current, captureOptions);
+
+        // 2. Hide guides and metric lines to prepare the Clean Visual view
+        const originalGuidesDisplay: string[] = [];
+        guides.forEach((el: any) => {
+          originalGuidesDisplay.push(el.style.display || "");
           el.style.setProperty("display", "none", "important");
-        }
-      });
+        });
 
-      // 3. Capture the Specs view first (with guide boxes and metric lines visible)
-      const specDataUrl = await toPng(canvasRef.current, captureOptions);
+        const originalMetricsDisplay: string[] = [];
+        metricLines.forEach((el: any) => {
+          originalMetricsDisplay.push(el.style.display || "");
+          el.style.setProperty("display", "none", "important");
+        });
 
-      // 4. Hide guides and metric lines to prepare the Clean Visual view
-      const originalGuidesDisplay: string[] = [];
-      guides.forEach((el: any) => {
-        originalGuidesDisplay.push(el.style.display || "");
-        el.style.setProperty("display", "none", "important");
-      });
+        // Wait a tiny frame
+        await new Promise((resolve) => requestAnimationFrame(resolve));
 
-      const originalMetricsDisplay: string[] = [];
-      metricLines.forEach((el: any) => {
-        originalMetricsDisplay.push(el.style.display || "");
-        el.style.setProperty("display", "none", "important");
-      });
+        // Capture Clean View
+        const cleanDataUrl = await toPng(canvasRef.current, captureOptions);
 
-      // Wait a tiny animation frame for browser layout sync
-      await new Promise((resolve) => requestAnimationFrame(resolve));
+        // Restore canvas elements back for visual fidelity
+        logoContainers.forEach((el: any, idx) => {
+          el.style.borderColor = originalBorders[idx];
+          el.style.boxShadow = originalShadows[idx];
+        });
 
-      // 5. Capture the Clean mockup view
-      const cleanDataUrl = await toPng(canvasRef.current, captureOptions);
+        badgeLabels.forEach((el: any, idx) => {
+          el.style.display = originalBadgesDisplay[idx];
+        });
 
-      // 6. Restore everything back to original state on the live canvas
-      logoContainers.forEach((el: any, idx) => {
-        el.style.borderColor = originalBorders[idx];
-        el.style.boxShadow = originalShadows[idx];
-      });
+        guides.forEach((el: any, idx) => {
+          el.style.display = originalGuidesDisplay[idx];
+        });
 
-      badgeLabels.forEach((el: any, idx) => {
-        el.style.display = originalBadgesDisplay[idx];
-      });
+        metricLines.forEach((el: any, idx) => {
+          el.style.display = originalMetricsDisplay[idx];
+        });
 
-      guides.forEach((el: any, idx) => {
-        el.style.display = originalGuidesDisplay[idx];
-      });
+        // Draw side-by-side spec sheet using offscreen canvas
+        const canvas = document.createElement("canvas");
+        canvas.width = 1040 * scaleFactor;
+        canvas.height = 627 * scaleFactor;
+        const ctx = canvas.getContext("2d");
 
-      metricLines.forEach((el: any, idx) => {
-        el.style.display = originalMetricsDisplay[idx];
-      });
+        if (!ctx) throw new Error("Could not get 2D context");
 
-      // 7. Draw both captured images side-by-side using an offscreen canvas
-      const canvas = document.createElement("canvas");
-      canvas.width = 1040 * scaleFactor;
-      canvas.height = 627 * scaleFactor; // padding + header + gap + image + padding
-      const ctx = canvas.getContext("2d");
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
 
-      if (!ctx) throw new Error("Could not get 2D context");
+        // White background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Enable premium interpolation
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
+        // Header Title
+        ctx.fillStyle = "#1c1917";
+        ctx.font = `bold ${18 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+        ctx.fillText(productName.toUpperCase(), 24 * scaleFactor, 40 * scaleFactor);
 
-      // Background
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Subtitle
+        ctx.fillStyle = "#78716c";
+        ctx.font = `600 ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+        ctx.fillText(`SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`, 24 * scaleFactor, 60 * scaleFactor);
 
-      // Title Header
-      ctx.fillStyle = "#1c1917";
-      ctx.font = `bold ${18 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText(productName.toUpperCase(), 24 * scaleFactor, 40 * scaleFactor);
+        // Branding
+        ctx.fillStyle = "#4f46e5";
+        ctx.font = `bold ${12 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+        ctx.fillText("GOENAKAN.ID", 920 * scaleFactor, 45 * scaleFactor);
 
-      // Subtitle
-      ctx.fillStyle = "#78716c";
-      ctx.font = `600 ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText(`SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`, 24 * scaleFactor, 60 * scaleFactor);
+        // Divider
+        ctx.strokeStyle = "#f5f5f4";
+        ctx.lineWidth = 2 * scaleFactor;
+        ctx.beginPath();
+        ctx.moveTo(24 * scaleFactor, 75 * scaleFactor);
+        ctx.lineTo(1016 * scaleFactor, 75 * scaleFactor);
+        ctx.stroke();
 
-      // Branding
-      ctx.fillStyle = "#4f46e5";
-      ctx.font = `bold ${12 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText("GOENAKAN.ID", 920 * scaleFactor, 45 * scaleFactor);
+        // Load images
+        const specImg = new window.Image();
+        specImg.src = specDataUrl;
+        await new Promise((resolve) => { specImg.onload = resolve; });
 
-      // Divider Line
-      ctx.strokeStyle = "#f5f5f4";
-      ctx.lineWidth = 2 * scaleFactor;
-      ctx.beginPath();
-      ctx.moveTo(24 * scaleFactor, 75 * scaleFactor);
-      ctx.lineTo(1016 * scaleFactor, 75 * scaleFactor);
-      ctx.stroke();
+        const cleanImg = new window.Image();
+        cleanImg.src = cleanDataUrl;
+        await new Promise((resolve) => { cleanImg.onload = resolve; });
 
-      // Load image objects asynchronously
-      const specImg = new window.Image();
-      specImg.src = specDataUrl;
-      await new Promise((resolve) => { specImg.onload = resolve; });
+        // Column Labels
+        ctx.fillStyle = "#44403c";
+        ctx.font = `bold ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+        ctx.fillText("📐 SPESIFIKASI & UKURAN PENEMPATAN", 24 * scaleFactor, 100 * scaleFactor);
+        ctx.fillText("✨ VISUAL PREVIEW PRODUK (MOCKUP)", 528 * scaleFactor, 100 * scaleFactor);
 
-      const cleanImg = new window.Image();
-      cleanImg.src = cleanDataUrl;
-      await new Promise((resolve) => { cleanImg.onload = resolve; });
+        // Draw Left Spec View
+        ctx.drawImage(specImg, 24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+        ctx.strokeStyle = "#e7e5e4";
+        ctx.lineWidth = 1 * scaleFactor;
+        ctx.strokeRect(24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
 
-      // Column Titles
-      ctx.fillStyle = "#44403c";
-      ctx.font = `bold ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText("📐 SPESIFIKASI & UKURAN PENEMPATAN", 24 * scaleFactor, 100 * scaleFactor);
-      ctx.fillText("✨ VISUAL PREVIEW PRODUK (MOCKUP)", 528 * scaleFactor, 100 * scaleFactor);
+        // Draw Right Clean Preview
+        ctx.drawImage(cleanImg, 528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+        ctx.strokeRect(528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
 
-      // Draw Left Image inside a borders box
-      ctx.drawImage(specImg, 24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
-      ctx.strokeStyle = "#e7e5e4";
-      ctx.lineWidth = 1 * scaleFactor;
-      ctx.strokeRect(24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+        // Trigger Download
+        const finalDataUrl = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = `${productName.toLowerCase().replace(/\s+/g, "-")}-${sideName.toLowerCase().replace(/\s+/g, "-")}-spec-sheet.png`;
+        link.href = finalDataUrl;
+        link.click();
+      }
 
-      // Draw Right Image inside a borders box
-      ctx.drawImage(cleanImg, 528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
-      ctx.strokeRect(528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
-
-      // Download the combined canvas
-      const finalDataUrl = canvas.toDataURL("image/png");
-
-      const link = document.createElement("a");
-      link.download = `${productName.toLowerCase().replace(/\s+/g, "-")}-customizer-spec-sheet.png`;
-      link.href = finalDataUrl;
-      link.click();
+      // Restore original active view
+      setActiveIndex(originalActiveIndex);
+      setIsDownloading(false);
       
-      toast.success("Mockup berhasil diunduh!", { id: toastId });
+      toast.success(`Berhasil mengunduh semua mockup (${customizableViews.length} sisi)!`, { id: toastId });
     } catch (err) {
       console.error(err);
+      setIsDownloading(false);
       toast.error("Gagal mengunduh mockup. Silakan coba lagi.", { id: toastId });
     }
   };
@@ -987,7 +1007,7 @@ export function ProductCustomizer({
             {isImageCustomizable(activeMedia) && activeMedia.mockupAreas?.map((area) => {
               const logoList = uploads[area.id] || [];
               return logoList.map((logo) => {
-                const isActive = activeLogoId === logo.id;
+                const isActive = activeLogoId === logo.id || isDownloading;
                 if (!isActive) return null;
 
                 const scale = logo.scale ?? 10;
