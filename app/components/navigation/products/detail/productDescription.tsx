@@ -19,7 +19,6 @@ export function ProductDescription({
   const specs = [
     { label: "Weight", value: weight },
     { label: "Dimensions", value: dimensions },
-    { label: "Acc", value: formattedAccessories },
   ];
 
   return (

@@ -86,7 +86,7 @@ export const useCartStore = create<CartState>((set, get) => ({
                 productId: item.productId,
                 variantId: item.variantId,
                 name: item.product.name,
-                price: item.variant
+                price: item.variant && item.variant.price !== null && item.variant.price !== undefined && Number(item.variant.price) > 0
                   ? Number(item.variant.price)
                   : Number(item.product.basePrice),
                 quantity: item.quantity,
