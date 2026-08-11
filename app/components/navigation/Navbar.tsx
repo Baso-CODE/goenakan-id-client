@@ -1,6 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -27,6 +33,11 @@ import { Link, usePathname, useRouter } from "@/i18n/routing";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
+
+  // ✨ State untuk fitur Search
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+
   const cartItems = useCartStore((state) => state.cartItems);
   const totalItems = cartItems.reduce(
     (total, item) => total + item.quantity,
@@ -54,9 +65,21 @@ export default function Navbar() {
     { name: t("article"), href: "/article" },
   ];
 
-  // ✨ 4. Fungsi untuk mengubah bahasa
   const switchLanguage = (newLocale: "id" | "en") => {
     router.replace(pathname, { locale: newLocale });
+  };
+
+  // ✨ Fungsi untuk menangani saat pencarian disubmit
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+
+    // Arahkan ke halaman products dengan membawa parameter pencarian
+    router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
+
+    // Tutup popover dan reset nilai input setelah mencari
+    setIsSearchOpen(false);
+    setSearchQuery("");
   };
 
   return (
@@ -107,7 +130,7 @@ export default function Navbar() {
 
           {/* --- 4. UTILITIES --- */}
           <div className="flex items-center justify-end gap-1 md:gap-2">
-            {/* 🔄 5. TOMBOL BAHASA DESKTOP */}
+            {/* TOMBOL BAHASA DESKTOP */}
             <div className="hidden sm:flex items-center gap-2 mr-2 md:mr-4 text-sm font-medium">
               <button
                 onClick={() => switchLanguage("id")}
@@ -141,9 +164,34 @@ export default function Navbar() {
               </Button>
             </Link>
 
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <Search className="h-5 w-5 text-gray-800" />
-            </Button>
+            {/* ✨ KOTAK PENCARIAN SHADCN (POPOVER) ✨ */}
+            <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Search className="h-5 w-5 text-gray-800" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-72 mt-2 p-3">
+                <form
+                  onSubmit={handleSearchSubmit}
+                  className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Search product..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-9 text-xs focus-visible:ring-1 focus-visible:ring-stone-400"
+                    autoFocus
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-[#b5956a] hover:bg-[#a07d55] text-white h-9 px-3">
+                    <Search className="w-4 h-4" />
+                  </Button>
+                </form>
+              </PopoverContent>
+            </Popover>
 
             <div className="flex items-center gap-2">
               <Link href="/cart">
@@ -164,6 +212,7 @@ export default function Navbar() {
 
             {/* --- BURGER MENU (MOBILE) --- */}
             <div className="md:hidden ml-1">
+              {/* Kode Sheet/Burger Menu milikmu tetap sama */}
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
@@ -210,7 +259,6 @@ export default function Navbar() {
                       <span>{t("profile")}</span>
                     </Link>
 
-                    {/* 🔄 6. TOMBOL BAHASA MOBILE */}
                     <div className="flex items-center justify-between text-sm font-medium text-gray-500 px-1">
                       <div className="flex items-center gap-2">
                         <Globe className="w-4 h-4" />

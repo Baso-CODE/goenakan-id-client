@@ -1,13 +1,15 @@
 import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
-// ✨ 1. Tambahkan parameter lang
 export async function getPublicCategories(
   lang: string = "id",
 ): Promise<CategoryPublic[]> {
   try {
     const res = await fetch(`${apiUrl}/product-categories/public`, {
-      next: { revalidate: 3600 },
+      next: {
+        revalidate: 3600,
+        tags: [`categories-${lang}`],
+      },
       headers: {
         "x-language": lang,
       },

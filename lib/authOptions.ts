@@ -1,3 +1,4 @@
+import { apiUrl } from "@/app/utils/ApiUrl";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { sign } from "jsonwebtoken";
 import { NextAuthOptions, User } from "next-auth";
@@ -35,19 +36,16 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                email: credentials.email,
-                password: credentials.password,
-              }),
+          const response = await fetch(`${apiUrl}/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
             },
-          );
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          });
 
           // ❌ Handle error dari backend (termasuk rate limit 429)
           if (!response.ok) {

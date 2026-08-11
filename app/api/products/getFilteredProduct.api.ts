@@ -4,6 +4,7 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 export async function getFilteredProductsAPI(
   filters: FilterState,
   page: number = 1,
+  searchQuery: string = "",
 ) {
   try {
     const params = new URLSearchParams({
@@ -11,16 +12,18 @@ export async function getFilteredProductsAPI(
       take: "6",
     });
 
+    if (searchQuery) {
+      params.append("search", searchQuery);
+    }
+
     if (filters.category && filters.category !== "all") {
       params.append("category", filters.category);
     }
 
-    // ✨ 2. Filter Item Category (Anak)
     if (filters.itemCategory && filters.itemCategory !== "all") {
       params.append("itemCategory", filters.itemCategory);
     }
 
-    // ✨ 3. Filter Item Name (Cucu)
     if (filters.itemName && filters.itemName !== "all") {
       params.append("itemName", filters.itemName);
     }
@@ -34,7 +37,6 @@ export async function getFilteredProductsAPI(
 
     if (filters.sort) params.append("sort", filters.sort);
 
-    // ✨ 4. UBAH JSON ATTRIBUTES KE STRING LALU KIRIM
     if (filters.attributes && Object.keys(filters.attributes).length > 0) {
       params.append("attributes", JSON.stringify(filters.attributes));
     }
@@ -48,16 +50,15 @@ export async function getFilteredProductsAPI(
   }
 }
 
-export async function getFilterOptionsAPI() {
+export async function getFilterOptionsAPI(lang: string = "id") {
   try {
-    const res = await fetch(`${apiUrl}/products/public/filters`);
+    const res = await fetch(`${apiUrl}/products/public/filters?lang=${lang}`);
     if (!res.ok) throw new Error("Failed to fetch filter options");
 
     const result = await res.json();
     return result.data || result;
   } catch (error) {
     console.error("Fetch filter options error:", error);
-    // ✨ Ubah fallback return agar sesuai dengan tipe data baru
     return { categories: [], attributes: [] };
   }
 }
