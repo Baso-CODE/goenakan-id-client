@@ -125,6 +125,7 @@ export default function FilterProduct() {
       nextPage,
       searchParam,
       userCountry,
+      locale,
     );
 
     setProducts((prev) => [...prev, ...result.data]);

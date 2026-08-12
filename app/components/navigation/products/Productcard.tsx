@@ -27,7 +27,7 @@ function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const t = useTranslations("Product-Cart");
+  const t = useTranslations("Product-Card");
   const currency = product.currencyCode || "IDR";
 
   return (

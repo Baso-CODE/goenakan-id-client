@@ -6,10 +6,6 @@ export default async function middleware(request: NextRequest) {
   let country = "ID";
   const countryCookie = request.cookies.get("USER_COUNTRY")?.value;
 
-  // ✨ 1. LOG DEBUGGING AWAL
-  console.log("=== DEBUG MIDDLEWARE DIMULAI ===");
-  console.log("Cookie USER_COUNTRY saat ini:", countryCookie || "Belum ada");
-
   if (countryCookie) {
     country = countryCookie;
     console.log("Menggunakan negara dari cookie:", country);
@@ -17,11 +13,6 @@ export default async function middleware(request: NextRequest) {
     const forwardedFor = request.headers.get("x-forwarded-for");
     const realIp = request.headers.get("x-real-ip");
     const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : realIp;
-
-    // ✨ 2. LOG DEBUGGING IP
-    console.log("Header x-forwarded-for:", forwardedFor);
-    console.log("Header x-real-ip:", realIp);
-    console.log("IP yang akan dicek:", ip);
 
     if (ip && ip !== "::1" && ip !== "127.0.0.1") {
       try {
@@ -48,8 +39,6 @@ export default async function middleware(request: NextRequest) {
   }
 
   const dynamicDefaultLocale = country === "ID" ? "id" : "en";
-  console.log("Bahasa yang diputuskan:", dynamicDefaultLocale);
-  console.log("=== DEBUG MIDDLEWARE SELESAI ===\n");
 
   const handleI18nRouting = createMiddleware({
     ...routing,
