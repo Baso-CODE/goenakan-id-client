@@ -1,36 +1,47 @@
 "use client";
 
-// ✨ 1. DEFINISIKAN INTERFACE DENGAN JELAS DAN KETAT
 interface FlexiblePriceTier {
   label?: string;
   subtitle?: string;
   badge?: string | null;
 
-  // Properti dari struktur Frontend Display
   pricePerPcs?: number;
   minQty?: number;
   maxQty?: number | null;
 
-  // Properti dari struktur mentah Database (Prisma)
   price?: number | string;
   minQuantity?: number;
   maxQuantity?: number | null;
 }
 
 interface PriceTierSelectorProps {
-  tiers: FlexiblePriceTier[]; // ✨ Menggunakan interface, bukan any[]
+  tiers: FlexiblePriceTier[];
   selectedIndex: number;
   onSelect: (index: number) => void;
+  currencyCode?: string;
 }
 
-function formatRupiah(amount: number): string {
-  return "Rp " + amount.toLocaleString("id-ID");
+// ✨ Fungsi Format Mata Uang Dinamis (Mendukung IDR, USD, EUR, JPY, dll)
+function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
+  let locale = "id-ID";
+  if (currencyCode === "USD") locale = "en-US";
+  else if (currencyCode === "EUR") locale = "de-DE";
+  else if (currencyCode === "JPY") locale = "ja-JP";
+  else if (currencyCode === "MYR") locale = "ms-MY";
+
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currencyCode,
+    minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+    maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+  }).format(amount);
 }
 
 export function PriceTierSelector({
   tiers,
   selectedIndex,
   onSelect,
+  currencyCode = "IDR", // ✨ Default ke IDR jika kosong
 }: PriceTierSelectorProps) {
   const BADGE_H = "h-7";
 
@@ -41,11 +52,9 @@ export function PriceTierSelector({
       {tiers.map((tier, index) => {
         const isSelected = selectedIndex === index;
 
-        // ✨ Aman dari error karena TypeScript sudah tahu tipe datanya
         const min = tier.minQty ?? tier.minQuantity ?? 1;
         const max = tier.maxQty ?? tier.maxQuantity ?? null;
 
-        // Konversi otomatis seandainya tipe 'price' dari DB berupa string Decimal
         const rawPrice = tier.pricePerPcs ?? tier.price ?? 0;
         const price =
           typeof rawPrice === "string" ? parseFloat(rawPrice) : rawPrice;
@@ -88,7 +97,8 @@ export function PriceTierSelector({
 
               <div className="mt-3">
                 <p className="font-bold text-stone-900 text-sm sm:text-base leading-none">
-                  {formatRupiah(price)}
+                  {formatCurrency(price, currencyCode)}{" "}
+                  {/* ✨ Menggunakan format dinamis */}
                 </p>
                 <p className="text-stone-700 text-[10px] sm:text-[11px] mt-1 font-medium">
                   {min.toLocaleString("id-ID")}

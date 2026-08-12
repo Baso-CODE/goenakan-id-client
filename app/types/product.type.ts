@@ -5,6 +5,7 @@ export interface Product {
   name: string;
   regularPrice: number;
   bulkPrice: number;
+  currencyCode?: string;
   minOrder: number;
   sold: number;
   slug: string;
@@ -33,7 +34,7 @@ export interface FilterOption {
 }
 
 // ==========================================
-// ✨ INTERFACE BARU: Struktur Hierarki Kategori
+// ✨ STRUKTUR HIERARKI KATEGORI
 // ==========================================
 export interface ItemNameOption extends FilterOption {
   id: string;

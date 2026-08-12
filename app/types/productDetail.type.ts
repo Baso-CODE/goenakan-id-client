@@ -69,6 +69,7 @@ export interface ProductDetail {
   category: string;
   name: string;
   basePrice: number;
+  currencyCode?: string;
   sold: number;
   media: MediaItem[];
   variants?: ProductVariantDisplay[];

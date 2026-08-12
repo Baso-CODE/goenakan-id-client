@@ -5,12 +5,18 @@ export async function getFilteredProductsAPI(
   filters: FilterState,
   page: number = 1,
   searchQuery: string = "",
+  country: string = "ID",
+  lang: string = "id",
 ) {
   try {
     const params = new URLSearchParams({
       page: page.toString(),
       take: "6",
+      country: country,
+      lang: lang,
     });
+
+    params.append("country", country);
 
     if (searchQuery) {
       params.append("search", searchQuery);
@@ -50,6 +56,7 @@ export async function getFilteredProductsAPI(
   }
 }
 
+// Fungsi getFilterOptionsAPI di bawahnya biarkan saja seperti aslinya
 export async function getFilterOptionsAPI(lang: string = "id") {
   try {
     const res = await fetch(`${apiUrl}/products/public/filters?lang=${lang}`);

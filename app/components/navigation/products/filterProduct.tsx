@@ -1,4 +1,3 @@
-// Di dalam file FilterProduct.tsx
 "use client";
 
 import {
@@ -11,7 +10,7 @@ import {
   Product,
 } from "@/app/types/product.type";
 import { useLocale } from "next-intl";
-import { useSearchParams } from "next/navigation"; // ✨ Import useSearchParams untuk baca URL
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FilterBar } from "./Filterbar";
 import { LoadMoreButton } from "./Loadmorebutton";
@@ -29,11 +28,17 @@ const DEFAULT_FILTERS: FilterState = {
   attributes: {},
 };
 
+const getUserCountryFromCookie = (): string => {
+  if (typeof document === "undefined") return "ID";
+
+  const match = document.cookie.match(/(^|;)\s*USER_COUNTRY\s*=\s*([^;]+)/);
+  return match ? match[2] : "ID";
+};
+
 export default function FilterProduct() {
   const locale = useLocale();
   const searchParams = useSearchParams();
   const categoryParam = searchParams.get("category");
-
   const searchParam = searchParams.get("search") || "";
 
   const [filters, setFilters] = useState<FilterState>(() => ({
@@ -63,8 +68,17 @@ export default function FilterProduct() {
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsLoading(true);
-      // Kirim searchParam ke fungsi API
-      const result = await getFilteredProductsAPI(filters, 1, searchParam);
+
+      const userCountry = getUserCountryFromCookie();
+
+      const result = await getFilteredProductsAPI(
+        filters,
+        1,
+        searchParam,
+        userCountry,
+        locale,
+      );
+
       setProducts(result.data);
       setHasMore(result.meta.hasNext);
       setPage(1);
@@ -72,7 +86,7 @@ export default function FilterProduct() {
     };
 
     fetchInitialData();
-  }, [filters, searchParam]);
+  }, [filters, searchParam, locale]);
 
   const handleFilterChange = (
     keyOrObj: keyof FilterState | Partial<FilterState>,
@@ -103,7 +117,16 @@ export default function FilterProduct() {
   const handleLoadMore = async () => {
     setIsLoadingMore(true);
     const nextPage = page + 1;
-    const result = await getFilteredProductsAPI(filters, nextPage, searchParam);
+
+    const userCountry = getUserCountryFromCookie();
+
+    const result = await getFilteredProductsAPI(
+      filters,
+      nextPage,
+      searchParam,
+      userCountry,
+    );
+
     setProducts((prev) => [...prev, ...result.data]);
     setHasMore(result.meta.hasNext);
     setPage(nextPage);

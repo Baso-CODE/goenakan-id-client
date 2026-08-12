@@ -1,23 +1,33 @@
 import { ProductDetail } from "@/app/types/productDetail.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
+import { getUserCountryFromCookie } from "@/lib/getUserCountryFromCookie";
 
 export async function getProductBySlugAPI(
   slug: string,
+  locale: string = "id",
+  country: string = "ID",
 ): Promise<ProductDetail | null> {
   try {
-    const res = await fetch(`${apiUrl}/products/public/${slug}`, {
-      cache: "no-store",
+    const userCountry =
+      typeof window !== "undefined" ? getUserCountryFromCookie() : country;
+
+    const params = new URLSearchParams({
+      country: userCountry,
+      lang: locale,
     });
 
-    if (!res.ok) {
-      if (res.status === 404) return null;
-      throw new Error(`Failed to fetch product details: ${res.status}`);
-    }
+    const res = await fetch(
+      `${apiUrl}/products/public/${slug}?${params.toString()}`,
+      {
+        cache: "no-store",
+      },
+    );
 
+    if (!res.ok) return null;
     const json = await res.json();
     return json.data;
   } catch (error) {
-    console.error("Fetch Product Error:", error);
+    console.error("Error:", error);
     return null;
   }
 }

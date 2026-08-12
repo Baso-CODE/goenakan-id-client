@@ -263,8 +263,11 @@
   "Faq": {
     "title": "Pertanyaan yang Sering Diajukan",
     "subtitle": "Semua yang perlu Anda ketahui tentang produk dan layanan kami."
-  }
+  },
 
+  "Product": {
+    "sold": "Terjual"
+  }
 }
 
 
