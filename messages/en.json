@@ -70,6 +70,7 @@
     "terms": "I have read and understood the Privacy and Cookie Policy and agree to receive personalized commercial communications from Goenakan Indonesia via email.",
     "button": "Sign Up"
   },
+
   "HowItWorks": {
     "headline": "HOW CUSTOM WORKS",
     "subheadline": "A process that feels clear from the start.",
@@ -82,6 +83,7 @@
     "step4Title": "Delivery",
     "step4Desc": "Products are shipped to the required destination."
   },
+
   "ServiceFeatures": {
     "headline": "Custom doesn’t have to feel complicated.",
     "subheadline": "From finding the right materials to refining the details, the process can get overwhelming. At Goenakan Indonesia, everything is made simpler, so you can move from idea to finished product with ease.",
@@ -98,9 +100,12 @@
     "f6Title": "Free Shipping Across Indonesia",
     "f6Desc": "Free shipping is available for orders that meet a certain value, making the process even more convenient."
   },
+
   "ProductCategory": {
     "title": "Product Category"
   },  
+
+
   "BestSeller": {
     "title": "Best Seller Products",
     "min": "min.",
@@ -109,6 +114,7 @@
     "emptyState": "No products available yet.",
     "viewAll": "View All"
   },
+
   "Occasions": {
     "title": "Custom products made for different occasions.",
     "description": "Each project has its own purpose, and each product we make reflects that. Goenakan Indonesia crafts custom products designed to meet your specific needs, whether personal or business.",
@@ -148,8 +154,6 @@
       "checkout": "Proceed to Checkout"
     }
   },
-
-
 
     "UnderConstruction": {
     "title": "Under Construction",
@@ -214,6 +218,7 @@
       }
     }
   },
+
   "CoreValues": {
     "heading": "How Every Project\nIs Approached",
     "subheading": "",
@@ -261,6 +266,15 @@
       "serverError": "Server error. Please try again later",
       "networkError": "Network error. Please check your connection"
     }
+  },
+
+  "Faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "Everything you need to know about our products and services."
+  },
+  
+  "Product-Card": {
+    "sold": "Sold"
   }
 }
 

@@ -9,13 +9,14 @@ import {
   FilterState,
   Product,
 } from "@/app/types/product.type";
+import { useLocale } from "next-intl";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FilterBar } from "./Filterbar";
 import { LoadMoreButton } from "./Loadmorebutton";
 import { PageHeader } from "./Pageheader";
 import { ProductGrid } from "./Productgrid";
 
-// ✨ Tambahkan inisialisasi awal untuk anak dan cucu kategori
 const DEFAULT_FILTERS: FilterState = {
   category: "all",
   itemCategory: "all",
@@ -27,10 +28,25 @@ const DEFAULT_FILTERS: FilterState = {
   attributes: {},
 };
 
-export default function FilterProduct() {
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [products, setProducts] = useState<Product[]>([]);
+const getUserCountryFromCookie = (): string => {
+  if (typeof document === "undefined") return "ID";
 
+  const match = document.cookie.match(/(^|;)\s*USER_COUNTRY\s*=\s*([^;]+)/);
+  return match ? match[2] : "ID";
+};
+
+export default function FilterProduct() {
+  const locale = useLocale();
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams.get("category");
+  const searchParam = searchParams.get("search") || "";
+
+  const [filters, setFilters] = useState<FilterState>(() => ({
+    ...DEFAULT_FILTERS,
+    category: categoryParam || "all",
+  }));
+
+  const [products, setProducts] = useState<Product[]>([]);
   const [filterOptions, setFilterOptions] = useState<DynamicFilterOptions>({
     categories: [],
     attributes: [],
@@ -43,16 +59,26 @@ export default function FilterProduct() {
 
   useEffect(() => {
     const fetchOptions = async () => {
-      const options = await getFilterOptionsAPI();
+      const options = await getFilterOptionsAPI(locale);
       setFilterOptions(options);
     };
     fetchOptions();
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
       setIsLoading(true);
-      const result = await getFilteredProductsAPI(filters, 1);
+
+      const userCountry = getUserCountryFromCookie();
+
+      const result = await getFilteredProductsAPI(
+        filters,
+        1,
+        searchParam,
+        userCountry,
+        locale,
+      );
+
       setProducts(result.data);
       setHasMore(result.meta.hasNext);
       setPage(1);
@@ -60,7 +86,7 @@ export default function FilterProduct() {
     };
 
     fetchInitialData();
-  }, [filters]);
+  }, [filters, searchParam, locale]);
 
   const handleFilterChange = (
     keyOrObj: keyof FilterState | Partial<FilterState>,
@@ -75,13 +101,10 @@ export default function FilterProduct() {
           [keyOrObj as keyof FilterState]: value || "",
         };
 
-        // ✨ LOGIKA RESET CASCADING:
-        // Jika Category (Induk) diganti, reset anak dan cucunya
         if (keyOrObj === "category") {
           newState.itemCategory = "all";
           newState.itemName = "all";
         }
-        // Jika Item Category (Anak) diganti, reset cucunya
         if (keyOrObj === "itemCategory") {
           newState.itemName = "all";
         }
@@ -94,7 +117,17 @@ export default function FilterProduct() {
   const handleLoadMore = async () => {
     setIsLoadingMore(true);
     const nextPage = page + 1;
-    const result = await getFilteredProductsAPI(filters, nextPage);
+
+    const userCountry = getUserCountryFromCookie();
+
+    const result = await getFilteredProductsAPI(
+      filters,
+      nextPage,
+      searchParam,
+      userCountry,
+      locale,
+    );
+
     setProducts((prev) => [...prev, ...result.data]);
     setHasMore(result.meta.hasNext);
     setPage(nextPage);

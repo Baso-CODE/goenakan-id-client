@@ -29,7 +29,7 @@ export default async function ProductCategory() {
           {categories.map((category) => (
             <Link
               key={category.id}
-              href={`/products/category/${category.slug}`}
+              href={`/products?category=${category.slug}`}
               className="group relative block w-full aspect-square overflow-hidden rounded-sm">
               <div className="relative w-full h-full bg-stone-300 flex items-center justify-center transition-all duration-500 ease-out transform group-hover:scale-110 cursor-pointer">
                 {category.image ? (

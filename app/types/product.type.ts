@@ -5,20 +5,19 @@ export interface Product {
   name: string;
   regularPrice: number;
   bulkPrice: number;
+  currencyCode?: string;
   minOrder: number;
   sold: number;
   slug: string;
   image: string;
   category: string;
   availability: "in_stock" | "out_of_stock";
-  // ✨ OPSIONAL: Jika kamu butuh menampilkan nama turunannya di UI card produk
   itemCategoryName?: string | null;
   itemNameString?: string | null;
 }
 
 export interface FilterState {
   category: string;
-  // ✨ TAMBAHAN BARU: Menampung nilai filter untuk anak dan cucu kategori
   itemCategory?: string;
   itemName?: string;
 
@@ -35,7 +34,7 @@ export interface FilterOption {
 }
 
 // ==========================================
-// ✨ INTERFACE BARU: Struktur Hierarki Kategori
+// ✨ STRUKTUR HIERARKI KATEGORI
 // ==========================================
 export interface ItemNameOption extends FilterOption {
   id: string;
@@ -53,7 +52,6 @@ export interface CategoryOption extends FilterOption {
 // ==========================================
 
 export interface DynamicFilterOptions {
-  // ✨ PERBAIKAN: Menggunakan interface CategoryOption agar mendeteksi anak-anaknya (itemCategories & itemNames)
   categories: CategoryOption[];
   attributes: {
     name: string;
