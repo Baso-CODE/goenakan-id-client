@@ -985,38 +985,44 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         ? product.variants.every((v) => (v.stock ?? 0) <= 0)
         : (Number(product.stock) || 0) <= 0;
 
+    const parts: string[] = [];
+    attributeGroups.forEach((group) => {
+      if (group.parentValueId && !selectedAttributeValueIds.includes(group.parentValueId)) {
+        return;
+      }
+      const val = selections[group.name];
+      if (val) {
+        const cleanVal = val.split("|")[0].trim();
+        if (cleanVal) {
+          parts.push(cleanVal);
+        }
+      }
+    });
+    const selectedAttributesText = parts.join(" • ");
+
     if (product.isMadeByOrder) {
       return {
         title: "Pemesanan Pre-Order / Made by Order",
-        description:
-          "Produk/varian ini memerlukan waktu pembuatan khusus (made by order). Silakan hubungi admin kami via WhatsApp untuk detail estimasi waktu pengerjaan dan pemesanan.",
-        text: `Halo Admin Goenakan.id, saya tertarik untuk melakukan pemesanan Pre-Order/Made by Order untuk produk: ${product.name}${selectedVariant ? ` (Varian: ${selectedVariant.name})` : ""}`,
+        description: "Produk/varian ini memerlukan waktu pembuatan khusus (made by order). Silakan hubungi admin kami via WhatsApp untuk detail estimasi waktu pengerjaan dan pemesanan.",
+        text: `Halo Admin Goenakan.id, saya tertarik untuk melakukan pemesanan Pre-Order/Made by Order untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ''}`
       };
     }
 
     if (isOutOfStockCheck) {
       return {
         title: "Pemesanan Produk Habis",
-        description:
-          "Stok untuk produk/varian ini sedang habis di website. Silakan hubungi admin kami via WhatsApp untuk menanyakan ketersediaan kembali atau melakukan pemesanan khusus.",
-        text: `Halo Admin Goenakan.id, saya ingin menanyakan ketersediaan / memesan produk yang sedang habis: ${product.name}${selectedVariant ? ` (Varian: ${selectedVariant.name})` : ""}`,
+        description: "Stok untuk produk/varian ini sedang habis di website. Silakan hubungi admin kami via WhatsApp untuk menanyakan ketersediaan kembali atau melakukan pemesanan khusus.",
+        text: `Halo Admin Goenakan.id, saya ingin menanyakan ketersediaan / memesan produk yang sedang habis: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ''}`
       };
     }
 
     return {
       title: "Custom Cetak Logo via WhatsApp",
-      description:
-        "Kustomisasi cetak logo untuk produk/ukuran ini belum dikonfigurasi pada sistem editor kami. Namun, Anda tetap dapat memesan secara custom secara manual dengan menghubungi admin kami langsung melalui WhatsApp.",
-      text: `Halo Admin Goenakan.id, saya ingin melakukan pemesanan custom cetak logo untuk produk: ${product.name}${selectedVariant ? ` (Varian: ${selectedVariant.name})` : ""}`,
+      description: "Kustomisasi cetak logo untuk produk/ukuran ini belum dikonfigurasi pada sistem editor kami. Namun, Anda tetap dapat memesan secara custom secara manual dengan menghubungi admin kami langsung melalui WhatsApp.",
+      text: `Halo Admin Goenakan.id, saya ingin melakukan pemesanan custom cetak logo untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ''}`
     };
-  }, [
-    product.isMadeByOrder,
-    product.name,
-    selectedVariant,
-    product.variants,
-    product.stock,
-  ]);
-
+  }, [product.isMadeByOrder, product.name, selectedVariant, product.variants, product.stock, selections, attributeGroups, selectedAttributeValueIds]);
+ 
   const hasAnyMockupAreas = useMemo(() => {
     return (
       product.media?.some((m) => m.mockupAreas && m.mockupAreas.length > 0) ||
@@ -1917,16 +1923,14 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               </div>
             </>
           ) : (
-            <div className="bg-amber-50/50 border border-amber-200/80 rounded-md p-5 space-y-4 my-2">
+            <div className="bg-stone-50 border border-stone-200 rounded-md p-5 space-y-4 my-2">
               <div className="flex gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center text-stone-700 shrink-0">
                   <MessageCircle className="w-5 h-5 fill-current" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-amber-900">
-                    {waBoxContent.title}
-                  </p>
-                  <p className="text-xs text-amber-700 leading-relaxed font-normal">
+                  <p className="text-sm font-bold text-stone-900">{waBoxContent.title}</p>
+                  <p className="text-xs text-stone-500 leading-relaxed font-normal">
                     {waBoxContent.description}
                   </p>
                 </div>
@@ -1935,21 +1939,22 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                 href={`https://wa.me/${adminWhatsApp}?text=${encodeURIComponent(waBoxContent.text)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba5a] text-white text-sm font-bold py-3 px-4 rounded-sm transition-colors cursor-pointer w-full text-center shadow-xs">
+                className="flex items-center justify-center gap-2 bg-stone-900 hover:bg-stone-800 text-white text-sm font-semibold py-3 px-4 rounded-sm transition-colors cursor-pointer w-full text-center shadow-xs"
+              >
                 <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.488 1.449 5.412 1.451 5.466 0 9.911-4.441 9.914-9.907.001-2.648-1.03-5.138-2.902-7.013C17.2 1.81 14.717.78 12.01.78 6.544.78 2.099 5.22 2.096 10.687c-.001 1.97.51 3.889 1.482 5.518l-1.03 3.757 3.864-.997.245.146z" />
                 </svg>
-                {locale === "en"
-                  ? "Contact via WhatsApp"
-                  : "Hubungi via WhatsApp"}
+                Request via WhatsApp
               </a>
             </div>
           )}
 
-          <WhatsAppBanner
-            whatsappNumber={adminWhatsApp}
-            productName={product.name}
-          />
+          {!isWaOnly && (
+            <WhatsAppBanner
+              whatsappNumber={adminWhatsApp}
+              productName={product.name}
+            />
+          )}
 
           <ProductDescription
             description={product.description}
