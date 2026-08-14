@@ -603,7 +603,7 @@ export function ProductCustomizer({
   };
 
   const handleDownloadMockup = async () => {
-    if (!canvasRef.current || customizableViews.length === 0) return;
+    if (!canvasRef.current || !media[activeIndex]) return;
     
     const toastId = toast.loading("Sedang menyiapkan unduhan mockup...");
     try {
@@ -624,165 +624,148 @@ export function ProductCustomizer({
         }
       };
 
-      // Store current tab index to restore afterwards
-      const originalActiveIndex = activeIndex;
       setIsDownloading(true);
 
-      // Loop and download all available custom mockup views
-      for (let i = 0; i < customizableViews.length; i++) {
-        const view = customizableViews[i];
-        const mediaIdx = media.findIndex((m) => m.id === view.id);
-        if (mediaIdx === -1) continue;
+      const view = media[activeIndex];
+      const sideName = view.mockupSideName || 
+        (isMultiFace && view.id === mockupBackImageId ? "Tampak Belakang" : "Tampak Depan");
 
-        // Switch to the target view to render it on screen
-        setActiveIndex(mediaIdx);
-        
-        // Wait for React rendering and layout cycle
-        await new Promise((resolve) => setTimeout(resolve, 350));
+      // Target visual overlay elements on the current canvas DOM
+      const guides = canvasRef.current.querySelectorAll(".mockup-guide-area");
+      const metricLines = canvasRef.current.querySelectorAll(".z-15");
+      const logoContainers = canvasRef.current.querySelectorAll(".customizer-logo-container");
+      const badgeLabels = canvasRef.current.querySelectorAll(".customizer-logo-container > div");
 
-        const sideName = view.mockupSideName || 
-          (isMultiFace && view.id === mockupBackImageId ? "Tampak Belakang" : "Tampak Depan");
+      // 1. Hide active logo selection borders, handles, and labels for Spec sheet view
+      const originalBorders: string[] = [];
+      const originalShadows: string[] = [];
+      logoContainers.forEach((el: any) => {
+        originalBorders.push(el.style.borderColor || "");
+        originalShadows.push(el.style.boxShadow || "");
+        el.style.setProperty("border-color", "transparent", "important");
+        el.style.setProperty("box-shadow", "none", "important");
+      });
 
-        // Target visual overlay elements on the current canvas DOM
-        const guides = canvasRef.current.querySelectorAll(".mockup-guide-area");
-        const metricLines = canvasRef.current.querySelectorAll(".z-15");
-        const logoContainers = canvasRef.current.querySelectorAll(".customizer-logo-container");
-        const badgeLabels = canvasRef.current.querySelectorAll(".customizer-logo-container > div");
-
-        // 1. Hide active logo selection borders, handles, and labels for Spec sheet view
-        const originalBorders: string[] = [];
-        const originalShadows: string[] = [];
-        logoContainers.forEach((el: any) => {
-          originalBorders.push(el.style.borderColor || "");
-          originalShadows.push(el.style.boxShadow || "");
-          el.style.setProperty("border-color", "transparent", "important");
-          el.style.setProperty("box-shadow", "none", "important");
-        });
-
-        const originalBadgesDisplay: string[] = [];
-        badgeLabels.forEach((el: any) => {
-          originalBadgesDisplay.push(el.style.display || "");
-          if (el.className.includes("bg-blue-600")) {
-            el.style.setProperty("display", "none", "important");
-          }
-        });
-
-        // Capture Spec View
-        const specDataUrl = await toPng(canvasRef.current, captureOptions);
-
-        // 2. Hide guides and metric lines to prepare the Clean Visual view
-        const originalGuidesDisplay: string[] = [];
-        guides.forEach((el: any) => {
-          originalGuidesDisplay.push(el.style.display || "");
+      const originalBadgesDisplay: string[] = [];
+      badgeLabels.forEach((el: any) => {
+        originalBadgesDisplay.push(el.style.display || "");
+        if (el.className.includes("bg-blue-600")) {
           el.style.setProperty("display", "none", "important");
-        });
+        }
+      });
 
-        const originalMetricsDisplay: string[] = [];
-        metricLines.forEach((el: any) => {
-          originalMetricsDisplay.push(el.style.display || "");
-          el.style.setProperty("display", "none", "important");
-        });
+      // Capture Spec View
+      const specDataUrl = await toPng(canvasRef.current, captureOptions);
 
-        // Wait a tiny frame
-        await new Promise((resolve) => requestAnimationFrame(resolve));
+      // 2. Hide guides and metric lines to prepare the Clean Visual view
+      const originalGuidesDisplay: string[] = [];
+      guides.forEach((el: any) => {
+        originalGuidesDisplay.push(el.style.display || "");
+        el.style.setProperty("display", "none", "important");
+      });
 
-        // Capture Clean View
-        const cleanDataUrl = await toPng(canvasRef.current, captureOptions);
+      const originalMetricsDisplay: string[] = [];
+      metricLines.forEach((el: any) => {
+        originalMetricsDisplay.push(el.style.display || "");
+        el.style.setProperty("display", "none", "important");
+      });
 
-        // Restore canvas elements back for visual fidelity
-        logoContainers.forEach((el: any, idx) => {
-          el.style.borderColor = originalBorders[idx];
-          el.style.boxShadow = originalShadows[idx];
-        });
+      // Wait a tiny frame
+      await new Promise((resolve) => requestAnimationFrame(resolve));
 
-        badgeLabels.forEach((el: any, idx) => {
-          el.style.display = originalBadgesDisplay[idx];
-        });
+      // Capture Clean View
+      const cleanDataUrl = await toPng(canvasRef.current, captureOptions);
 
-        guides.forEach((el: any, idx) => {
-          el.style.display = originalGuidesDisplay[idx];
-        });
+      // Restore canvas elements back for visual fidelity
+      logoContainers.forEach((el: any, idx) => {
+        el.style.borderColor = originalBorders[idx];
+        el.style.boxShadow = originalShadows[idx];
+      });
 
-        metricLines.forEach((el: any, idx) => {
-          el.style.display = originalMetricsDisplay[idx];
-        });
+      badgeLabels.forEach((el: any, idx) => {
+        el.style.display = originalBadgesDisplay[idx];
+      });
 
-        // Draw side-by-side spec sheet using offscreen canvas
-        const canvas = document.createElement("canvas");
-        canvas.width = 1040 * scaleFactor;
-        canvas.height = 627 * scaleFactor;
-        const ctx = canvas.getContext("2d");
+      guides.forEach((el: any, idx) => {
+        el.style.display = originalGuidesDisplay[idx];
+      });
 
-        if (!ctx) throw new Error("Could not get 2D context");
+      metricLines.forEach((el: any, idx) => {
+        el.style.display = originalMetricsDisplay[idx];
+      });
 
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
+      // Draw side-by-side spec sheet using offscreen canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = 1040 * scaleFactor;
+      canvas.height = 627 * scaleFactor;
+      const ctx = canvas.getContext("2d");
 
-        // White background
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (!ctx) throw new Error("Could not get 2D context");
 
-        // Header Title
-        ctx.fillStyle = "#1c1917";
-        ctx.font = `bold ${18 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-        ctx.fillText(productName.toUpperCase(), 24 * scaleFactor, 40 * scaleFactor);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
 
-        // Subtitle
-        ctx.fillStyle = "#78716c";
-        ctx.font = `600 ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-        ctx.fillText(`SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`, 24 * scaleFactor, 60 * scaleFactor);
+      // White background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Branding
-        ctx.fillStyle = "#4f46e5";
-        ctx.font = `bold ${12 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-        ctx.fillText("GOENAKAN.ID", 920 * scaleFactor, 45 * scaleFactor);
+      // Header Title
+      ctx.fillStyle = "#1c1917";
+      ctx.font = `bold ${18 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText(productName.toUpperCase(), 24 * scaleFactor, 40 * scaleFactor);
 
-        // Divider
-        ctx.strokeStyle = "#f5f5f4";
-        ctx.lineWidth = 2 * scaleFactor;
-        ctx.beginPath();
-        ctx.moveTo(24 * scaleFactor, 75 * scaleFactor);
-        ctx.lineTo(1016 * scaleFactor, 75 * scaleFactor);
-        ctx.stroke();
+      // Subtitle
+      ctx.fillStyle = "#78716c";
+      ctx.font = `600 ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText(`SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`, 24 * scaleFactor, 60 * scaleFactor);
 
-        // Load images
-        const specImg = new window.Image();
-        specImg.src = specDataUrl;
-        await new Promise((resolve) => { specImg.onload = resolve; });
+      // Branding
+      ctx.fillStyle = "#4f46e5";
+      ctx.font = `bold ${12 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText("GOENAKAN.ID", 920 * scaleFactor, 45 * scaleFactor);
 
-        const cleanImg = new window.Image();
-        cleanImg.src = cleanDataUrl;
-        await new Promise((resolve) => { cleanImg.onload = resolve; });
+      // Divider
+      ctx.strokeStyle = "#f5f5f4";
+      ctx.lineWidth = 2 * scaleFactor;
+      ctx.beginPath();
+      ctx.moveTo(24 * scaleFactor, 75 * scaleFactor);
+      ctx.lineTo(1016 * scaleFactor, 75 * scaleFactor);
+      ctx.stroke();
 
-        // Column Labels
-        ctx.fillStyle = "#44403c";
-        ctx.font = `bold ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-        ctx.fillText("📐 SPESIFIKASI & UKURAN PENEMPATAN", 24 * scaleFactor, 100 * scaleFactor);
-        ctx.fillText("✨ VISUAL PREVIEW PRODUK (MOCKUP)", 528 * scaleFactor, 100 * scaleFactor);
+      // Load images
+      const specImg = new window.Image();
+      specImg.src = specDataUrl;
+      await new Promise((resolve) => { specImg.onload = resolve; });
 
-        // Draw Left Spec View
-        ctx.drawImage(specImg, 24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
-        ctx.strokeStyle = "#e7e5e4";
-        ctx.lineWidth = 1 * scaleFactor;
-        ctx.strokeRect(24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+      const cleanImg = new window.Image();
+      cleanImg.src = cleanDataUrl;
+      await new Promise((resolve) => { cleanImg.onload = resolve; });
 
-        // Draw Right Clean Preview
-        ctx.drawImage(cleanImg, 528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
-        ctx.strokeRect(528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+      // Column Labels
+      ctx.fillStyle = "#44403c";
+      ctx.font = `bold ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      ctx.fillText("📐 SPESIFIKASI & UKURAN PENEMPATAN", 24 * scaleFactor, 100 * scaleFactor);
+      ctx.fillText("✨ VISUAL PREVIEW PRODUK (MOCKUP)", 528 * scaleFactor, 100 * scaleFactor);
 
-        // Trigger Download
-        const finalDataUrl = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.download = `${productName.toLowerCase().replace(/\s+/g, "-")}-${sideName.toLowerCase().replace(/\s+/g, "-")}-spec-sheet.png`;
-        link.href = finalDataUrl;
-        link.click();
-      }
+      // Draw Left Spec View
+      ctx.drawImage(specImg, 24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+      ctx.strokeStyle = "#e7e5e4";
+      ctx.lineWidth = 1 * scaleFactor;
+      ctx.strokeRect(24 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
 
-      // Restore original active view
-      setActiveIndex(originalActiveIndex);
+      // Draw Right Clean Preview
+      ctx.drawImage(cleanImg, 528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+      ctx.strokeRect(528 * scaleFactor, 115 * scaleFactor, 488 * scaleFactor, 488 * scaleFactor);
+
+      // Trigger Download
+      const finalDataUrl = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.download = `${productName.toLowerCase().replace(/\s+/g, "-")}-${sideName.toLowerCase().replace(/\s+/g, "-")}-spec-sheet.png`;
+      link.href = finalDataUrl;
+      link.click();
+
       setIsDownloading(false);
-      
-      toast.success(`Berhasil mengunduh semua mockup (${customizableViews.length} sisi)!`, { id: toastId });
+      toast.success(`Berhasil mengunduh mockup (${sideName})!`, { id: toastId });
     } catch (err) {
       console.error(err);
       setIsDownloading(false);
@@ -1549,15 +1532,47 @@ export function ProductCustomizer({
                   Posisi Logo Presisi
                 </span>
                 <div className="flex flex-col text-[10px] text-stone-500 gap-1.5 pt-0.5">
-                  <div className="flex justify-between border-b pb-1 border-stone-200/65">
-                    <span>Jarak dari Sisi Kiri Area:</span>
-                    <span className="font-bold text-stone-700">{Math.round((logo.xOffset ?? area.x) - area.x)}% ({Math.round((((logo.xOffset ?? area.x) - area.x) / area.width) * (area.physicalWidth || 0) * 10) / 10} {area.unit || "cm"})</span>
+                  <div className="flex items-center justify-between border-b pb-2 border-stone-200/65">
+                    <span className="font-medium">Jarak dari Sisi Kiri:</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max={(area.physicalWidth || 0).toString()}
+                        value={Math.round((((logo.xOffset ?? area.x) - area.x) / area.width) * (area.physicalWidth || 0) * 10) / 10}
+                        onChange={(e) => {
+                          const valCm = parseFloat(e.target.value) || 0;
+                          const maxCm = (area.physicalWidth || 0) * (1 - (logo.scale || 10) / area.width);
+                          const clampedCm = Math.max(0, Math.min(valCm, maxCm));
+                          const newXOffset = area.x + (clampedCm / (area.physicalWidth || 1)) * area.width;
+                          updateTransform(area.id, logo.id, "xOffset", newXOffset);
+                        }}
+                        className="w-14 h-6 text-right px-1.5 border border-stone-300 rounded text-[10px] font-bold font-mono focus:ring-1 focus:ring-stone-500 focus:outline-none bg-white text-stone-800"
+                      />
+                      <span className="font-bold text-stone-500">{area.unit || "cm"}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Jarak dari Sisi Bawah Area:</span>
-                    <span className="font-bold text-stone-700">
-                      {Math.round((area.y + area.height) - ((logo.yOffset ?? area.y) + (logo.scale ?? 10) / (logo.aspectRatio || 1.0)))}% ({Math.round((((area.y + area.height) - ((logo.yOffset ?? area.y) + (logo.scale ?? 10) / (logo.aspectRatio || 1.0))) / area.height) * (area.physicalHeight || 0) * 10) / 10} {area.unit || "cm"})
-                    </span>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="font-medium">Jarak dari Sisi Bawah:</span>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        max={(area.physicalHeight || 0).toString()}
+                        value={Math.round((((area.y + area.height) - ((logo.yOffset ?? area.y) + (logo.scale ?? 10) / (logo.aspectRatio || 1.0))) / area.height) * (area.physicalHeight || 0) * 10) / 10}
+                        onChange={(e) => {
+                          const valCm = parseFloat(e.target.value) || 0;
+                          const maxCm = (area.physicalHeight || 0) * (1 - ((logo.scale || 10) / (logo.aspectRatio || 1.0)) / area.height);
+                          const clampedCm = Math.max(0, Math.min(valCm, maxCm));
+                          const newYOffset = (area.y + area.height) - (clampedCm / (area.physicalHeight || 1)) * area.height - (logo.scale ?? 10) / (logo.aspectRatio || 1.0);
+                          updateTransform(area.id, logo.id, "yOffset", newYOffset);
+                        }}
+                        className="w-14 h-6 text-right px-1.5 border border-stone-300 rounded text-[10px] font-bold font-mono focus:ring-1 focus:ring-stone-500 focus:outline-none bg-white text-stone-800"
+                      />
+                      <span className="font-bold text-stone-500">{area.unit || "cm"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
