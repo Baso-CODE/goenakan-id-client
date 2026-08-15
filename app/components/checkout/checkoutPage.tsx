@@ -726,6 +726,15 @@ export default function CheckoutPage() {
                     className="w-full bg-[#463b34] hover:bg-stone-800 text-white text-xs font-bold tracking-[0.2em] rounded-none py-6 transition-all">
                     {isProcessing ? "PROCESSING..." : "CONFIRM ORDER"}
                   </Button>
+
+                  <div className="bg-blue-50/50 p-3 mt-4 border border-blue-100 rounded-sm">
+                    <p className="text-[10px] text-blue-700 leading-relaxed italic text-center">
+                      *Please note: All transactions are securely processed in
+                      Indonesian Rupiah (IDR). Your credit card provider will
+                      automatically convert the final amount to your local
+                      currency.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

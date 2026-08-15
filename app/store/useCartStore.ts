@@ -1,14 +1,15 @@
 // src/app/store/useCartStore.ts
 import { apiUrl } from "@/app/utils/ApiUrl";
+import { getUserCountryFromCookie } from "@/lib/getUserCountryFromCookie";
 import { toast } from "sonner";
 import { create } from "zustand";
 import { AddToCartPayload } from "../types/itemCart/addToCartPayload.type";
-import { ApiCartItem } from "../types/itemCart/apiCartItem.type";
 import { CartItemUI } from "../types/itemCart/cartItemUI.type";
 
 interface CartState {
   cartItems: CartItemUI[];
   loading: boolean;
+  currencyCode: string; // Menyimpan mata uang aktif dari backend
 
   fetchCart: (token?: string) => Promise<void>;
   addToCart: (
@@ -28,10 +29,14 @@ interface CartState {
 export const useCartStore = create<CartState>((set, get) => ({
   cartItems: [],
   loading: false,
+  currencyCode: "IDR", // Default awal
 
   // === 1. FETCH CART ===
   fetchCart: async (token) => {
     set({ loading: true });
+
+    // Ambil kode negara user dari cookie (Contoh: "ID", "US", "NL")
+    const userCountry = getUserCountryFromCookie();
 
     if (token) {
       // Logic jika Login: Sinkronisasi Guest Cart -> DB
@@ -53,6 +58,7 @@ export const useCartStore = create<CartState>((set, get) => ({
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
+              "x-country": userCountry, // Kirim kode negara ke backend
             },
             body: JSON.stringify(payload),
           });
@@ -62,58 +68,70 @@ export const useCartStore = create<CartState>((set, get) => ({
         }
       }
 
-      // Load data DB terbaru
+      // Load data DB terbaru dari backend
       try {
         const res = await fetch(`${apiUrl}/cart`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "x-country": userCountry, // Kirim kode negara ke backend
+          },
         });
         const json = await res.json();
 
-        if (json.success && json.data?.items) {
-          const formattedItems: CartItemUI[] = json.data.items.map(
-            (item: ApiCartItem) => {
-              // ✨ BUAT STRING DIMENSI & BERAT UNTUK UI
-              const dimParts = [
-                item.product.length,
-                item.product.width,
-                item.product.height,
-              ].filter((val) => val !== null && val !== undefined);
-              const dimString =
-                dimParts.length > 0 ? `${dimParts.join(" x ")} cm` : undefined;
+        if (json.success && json.data) {
+          // ✨ Tangkap mata uang hasil terjemahan backend (misal: "EUR", "USD", "IDR")
+          if (json.data.currencyCode) {
+            set({ currencyCode: json.data.currencyCode });
+          }
 
-              return {
-                id: item.id,
-                productId: item.productId,
-                variantId: item.variantId,
-                name: item.product.name,
-                price: item.variant && item.variant.price !== null && item.variant.price !== undefined && Number(item.variant.price) > 0
-                  ? Number(item.variant.price)
-                  : Number(item.product.basePrice),
-                quantity: item.quantity,
-                image:
-                  item.product.images?.[0]?.url ||
-                  "/images/products/demo-products.png",
+          if (json.data.items) {
+            const formattedItems: CartItemUI[] = json.data.items.map(
+              (item: any) => {
+                const dimParts = [
+                  item.product.length,
+                  item.product.width,
+                  item.product.height,
+                ].filter((val) => val !== null && val !== undefined);
+                const dimString =
+                  dimParts.length > 0
+                    ? `${dimParts.join(" x ")} cm`
+                    : undefined;
 
-                materialType: item.product.materialType?.name,
-                dimensions: dimString,
-                weight: item.product.weight
-                  ? `${item.product.weight} gram`
-                  : undefined,
-                rawWeight: item.product.weight,
-                width: item.product.width,
-                height: item.product.height,
-                length: item.product.length,
-                customization: item.customization,
-              };
-            },
-          );
+                return {
+                  id: item.id,
+                  productId: item.productId,
+                  variantId: item.variantId,
+                  // Menggunakan nama produk (sudah di-handle bilingual oleh backend jika diperlukan)
+                  name: item.product.name,
+                  // Harga sudah dihitung & dikonversi ke mata uang target oleh backend
+                  price: item.price,
+                  quantity: item.quantity,
+                  image:
+                    item.product.images?.[0]?.url ||
+                    "/images/products/demo-products.png",
 
-          set({ cartItems: formattedItems });
+                  materialType: item.product.materialType?.name,
+                  dimensions: dimString,
+                  weight: item.product.weight
+                    ? `${item.product.weight} gram`
+                    : undefined,
+                  rawWeight: item.product.weight,
+                  width: item.product.width,
+                  height: item.product.height,
+                  length: item.product.length,
+                  customization: item.customization,
+                };
+              },
+            );
+
+            set({ cartItems: formattedItems });
+          }
         }
       } catch (e) {
         console.error("Fetch DB cart error:", e);
       }
     } else {
+      // Jika user belum login (Guest)
       const localCart = localStorage.getItem("guest_cart");
       if (localCart) {
         set({ cartItems: JSON.parse(localCart) });
@@ -127,6 +145,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   // === 2. ADD TO CART ===
   addToCart: async (product, quantity, token) => {
     const { cartItems, fetchCart } = get();
+    const userCountry = getUserCountryFromCookie();
 
     if (token) {
       try {
@@ -135,6 +154,7 @@ export const useCartStore = create<CartState>((set, get) => ({
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "x-country": userCountry,
           },
           body: JSON.stringify({
             productId: product.id,
@@ -181,7 +201,6 @@ export const useCartStore = create<CartState>((set, get) => ({
             price: product.price,
             quantity: quantity,
             image: product.image || "/images/products/demo-products.png",
-
             materialType: product.materialType,
             dimensions: product.dimensions,
             weight: product.weight,
@@ -202,7 +221,8 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   // === 3. UPDATE QUANTITY ===
   updateQty: async (id, delta, token) => {
-    const { cartItems } = get();
+    const { cartItems, fetchCart } = get();
+    const userCountry = getUserCountryFromCookie();
     const item = cartItems.find((i) => i.id === id);
     if (!item) return;
 
@@ -221,9 +241,12 @@ export const useCartStore = create<CartState>((set, get) => ({
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
+            "x-country": userCountry,
           },
           body: JSON.stringify({ quantity: newQty }),
         });
+        // Segarkan data keranjang dari backend untuk memastikan harga tetap sinkron
+        await fetchCart(token);
       } catch (e) {
         console.error("Failed to update qty to DB", e);
       }
@@ -236,6 +259,7 @@ export const useCartStore = create<CartState>((set, get) => ({
   // === 4. REMOVE ITEM ===
   removeItem: async (id, token) => {
     const { cartItems } = get();
+    const userCountry = getUserCountryFromCookie();
     const newCart = cartItems.filter((i) => i.id !== id);
     set({ cartItems: newCart });
 
@@ -243,7 +267,10 @@ export const useCartStore = create<CartState>((set, get) => ({
       try {
         await fetch(`${apiUrl}/cart/${id}`, {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "x-country": userCountry,
+          },
         });
         toast.success("Barang dihapus.");
       } catch (e) {
@@ -255,10 +282,9 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
   },
 
-  // === 5. CLEAR CART (Update agar Support DB) ===
+  // === 5. CLEAR CART ===
   clearCart: async (token?: string) => {
     set({ cartItems: [] });
-
     localStorage.removeItem("guest_cart");
 
     if (token) {

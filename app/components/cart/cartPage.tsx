@@ -12,8 +12,15 @@ import Image from "next/image";
 import { useEffect } from "react";
 import { OrderTracking } from "./orderTracking";
 
-function formatRupiah(amount: number) {
-  return `Rp ${amount.toLocaleString("id-ID")}`;
+// ✨ FUNGSI FORMAT MATA UANG DINAMIS (Menyesuaikan mata uang dari backend) ✨
+function formatCurrency(amount: number, currencyCode: string = "IDR") {
+  const locale = currencyCode === "IDR" ? "id-ID" : "en-US";
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currencyCode,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 interface CustomizationZone {
@@ -23,10 +30,15 @@ interface CustomizationZone {
   logoCount?: number;
 }
 
-function getCustomizationDetails(customization: any): CustomizationZone[] | null {
+function getCustomizationDetails(
+  customization: any,
+): CustomizationZone[] | null {
   if (!customization) return null;
   try {
-    const data = typeof customization === "string" ? JSON.parse(customization) : customization;
+    const data =
+      typeof customization === "string"
+        ? JSON.parse(customization)
+        : customization;
     if (data && data.zones) {
       return Object.values(data.zones) as CustomizationZone[];
     }
@@ -41,7 +53,8 @@ export default function CartPage() {
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
 
-  const { cartItems, loading, fetchCart, updateQty, removeItem } =
+  // ✨ Ambil currencyCode dari Zustand store
+  const { cartItems, loading, fetchCart, updateQty, removeItem, currencyCode } =
     useCartStore();
 
   useEffect(() => {
@@ -99,122 +112,168 @@ export default function CartPage() {
                 </p>
 
                 <div className="flex flex-col">
-                  {cartItems.map((item, i) => (
-                    <div key={item.id}>
-                      <div className="flex gap-5 py-6">
-                        <div className="relative w-28 h-28 shrink-0 bg-stone-100 rounded-sm overflow-hidden border border-stone-200">
-                          <Image
-                            src={item.image}
-                            alt={item.name}
-                            fill
-                            className="object-cover p-1"
-                            sizes="112px"
-                          />
-                        </div>
+                  {cartItems.map((item, i) => {
+                    const customData =
+                      typeof item.customization === "string"
+                        ? JSON.parse(item.customization)
+                        : item.customization;
 
-                        <div className="flex flex-col justify-between flex-1 min-w-0">
-                          <div>
-                            <p className="text-sm font-semibold text-stone-800">
-                              {item.name}
-                            </p>
+                    return (
+                      <div key={item.id}>
+                        <div className="flex gap-5 py-6">
+                          <div className="relative w-28 h-28 shrink-0 bg-stone-100 rounded-sm overflow-hidden border border-stone-200">
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              fill
+                              className="object-cover p-1"
+                              sizes="112px"
+                            />
+                          </div>
 
-                            <div className="mt-1.5 flex flex-col gap-0.5 text-[11px] text-stone-500">
-                              {item.materialType && (
-                                <p>
-                                  <span className="font-medium text-stone-600">
-                                    {t("table.material")}:
-                                  </span>{" "}
-                                  {item.materialType}
-                                </p>
-                              )}
-                              {item.dimensions && (
-                                <p>
-                                  <span className="font-medium text-stone-600">
-                                    {t("table.dimensions")}:
-                                  </span>{" "}
-                                  {item.dimensions}
-                                </p>
-                              )}
-                              {item.weight && (
-                                <p>
-                                  <span className="font-medium text-stone-600">
-                                    {t("table.weight")}:
-                                  </span>{" "}
-                                  {item.weight}
-                                </p>
-                              )}
-                            </div>
+                          <div className="flex flex-col justify-between flex-1 min-w-0">
+                            <div>
+                              <p className="text-sm font-semibold text-stone-800">
+                                {item.name}
+                              </p>
 
-                            <p className="text-sm font-bold text-stone-800 mt-3">
-                              {formatRupiah(item.price)}
-                            </p>
+                              <div className="mt-1.5 flex flex-col gap-0.5 text-[11px] text-stone-500">
+                                {item.materialType && (
+                                  <p>
+                                    <span className="font-medium text-stone-600">
+                                      {t("table.material")}:
+                                    </span>{" "}
+                                    {item.materialType}
+                                  </p>
+                                )}
+                                {item.dimensions && (
+                                  <p>
+                                    <span className="font-medium text-stone-600">
+                                      {t("table.dimensions")}:
+                                    </span>{" "}
+                                    {item.dimensions}
+                                  </p>
+                                )}
+                                {item.weight && (
+                                  <p>
+                                    <span className="font-medium text-stone-600">
+                                      {t("table.weight")}:
+                                    </span>{" "}
+                                    {item.weight}
+                                  </p>
+                                )}
 
-                            {getCustomizationDetails(item.customization) && (
-                              <div className="mt-3 p-2.5 bg-stone-100 rounded-sm border border-stone-200 self-start max-w-sm">
-                                <p className="text-[9px] font-bold text-stone-600 uppercase tracking-widest mb-1.5">
-                                  Logo Kustom:
-                                </p>
-                                <div className="flex flex-col gap-1.5">
-                                  {getCustomizationDetails(item.customization)!.map((zone, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-[10px] text-stone-600">
-                                      <div className="relative w-6 h-6 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
-                                        <img src={zone.image} alt={zone.label} className="w-full h-full object-contain" />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <span className="font-semibold text-stone-800 block leading-tight">
-                                          {zone.label} {zone.logoCount && zone.logoCount > 1 ? `(x${zone.logoCount})` : ""}
+                                {/* ✨ Tampilkan Atribut Tambahan / Modifier jika ada */}
+                                {customData?.resolvedAttributes?.map(
+                                  (attr: any, idx: number) => (
+                                    <p key={idx}>
+                                      <span className="font-medium text-stone-600">
+                                        Pilihan:
+                                      </span>{" "}
+                                      {attr.name}
+                                      {attr.modifier > 0 && (
+                                        <span className="text-emerald-600 ml-1">
+                                          (+
+                                          {formatCurrency(
+                                            attr.modifier,
+                                            currencyCode,
+                                          )}
+                                          )
                                         </span>
-                                        <span className="text-stone-400 text-[9px] truncate block max-w-[150px]">{zone.fileName}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+                                      )}
+                                    </p>
+                                  ),
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </div>
 
-                        <div className="flex flex-col items-end justify-between shrink-0">
-                          <div className="flex flex-col items-end gap-2">
-                            <p className="text-xs text-stone-500 font-medium uppercase tracking-wider">
-                              {t("table.qty")}
-                            </p>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="w-6 h-6 rounded-sm border-stone-300"
-                                onClick={() => updateQty(item.id, -1, token)}
-                                disabled={item.quantity <= 1}>
-                                <Minus className="w-3 h-3" />
-                              </Button>
-                              <span className="text-sm w-8 text-center font-medium text-stone-800">
-                                {item.quantity}
-                              </span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className="w-6 h-6 rounded-sm border-stone-300"
-                                onClick={() => updateQty(item.id, 1, token)}>
-                                <Plus className="w-3 h-3" />
-                              </Button>
+                              {/* ✨ Gunakan formatCurrency dinamis */}
+                              <p className="text-sm font-bold text-stone-800 mt-3">
+                                {formatCurrency(item.price, currencyCode)}
+                              </p>
+
+                              {getCustomizationDetails(item.customization) && (
+                                <div className="mt-3 p-2.5 bg-stone-100 rounded-sm border border-stone-200 self-start max-w-sm">
+                                  <p className="text-[9px] font-bold text-stone-600 uppercase tracking-widest mb-1.5">
+                                    Logo Kustom:
+                                  </p>
+                                  <div className="flex flex-col gap-1.5">
+                                    {getCustomizationDetails(
+                                      item.customization,
+                                    )!.map((zone, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="flex items-center gap-2 text-[10px] text-stone-600">
+                                        <div className="relative w-6 h-6 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
+                                          <Image
+                                            src={zone.image}
+                                            alt={zone.label}
+                                            width={100}
+                                            height={100}
+                                            className="w-full h-full object-contain"
+                                          />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <span className="font-semibold text-stone-800 block leading-tight">
+                                            {zone.label}{" "}
+                                            {zone.logoCount &&
+                                            zone.logoCount > 1
+                                              ? `(x${zone.logoCount})`
+                                              : ""}
+                                          </span>
+                                          <span className="text-stone-400 text-[9px] truncate block max-w-37.5">
+                                            {zone.fileName}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
 
-                          <Button
-                            variant="link"
-                            onClick={() => removeItem(item.id, token)}
-                            className="text-[11px] text-stone-500 p-0 h-auto hover:text-red-600 uppercase tracking-wider transition-colors">
-                            {t("table.remove")}
-                          </Button>
-                        </div>
-                      </div>
+                          <div className="flex flex-col items-end justify-between shrink-0">
+                            <div className="flex flex-col items-end gap-2">
+                              <p className="text-xs text-stone-500 font-medium uppercase tracking-wider">
+                                {t("table.qty")}
+                              </p>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="w-6 h-6 rounded-sm border-stone-300"
+                                  onClick={() => updateQty(item.id, -1, token)}
+                                  disabled={item.quantity <= 1}>
+                                  <Minus className="w-3 h-3" />
+                                </Button>
+                                <span className="text-sm w-8 text-center font-medium text-stone-800">
+                                  {item.quantity}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="w-6 h-6 rounded-sm border-stone-300"
+                                  onClick={() => updateQty(item.id, 1, token)}>
+                                  <Plus className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
 
-                      {i < cartItems.length - 1 && (
-                        <Separator className="bg-stone-200" />
-                      )}
-                    </div>
-                  ))}
+                            <Button
+                              variant="link"
+                              onClick={() => removeItem(item.id, token)}
+                              className="text-[11px] text-stone-500 p-0 h-auto hover:text-red-600 uppercase tracking-wider transition-colors">
+                              {t("table.remove")}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {i < cartItems.length - 1 && (
+                          <Separator className="bg-stone-200" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 <div className="flex flex-col items-end mt-4 gap-4 bg-stone-100/50 p-6 rounded-sm border border-stone-200">
@@ -222,8 +281,9 @@ export default function CartPage() {
                     <p className="text-xs text-stone-500 uppercase tracking-widest">
                       {t("summary.subtotal", { count: totalItems })}
                     </p>
+                    {/* ✨ Gunakan formatCurrency dinamis untuk subtotal */}
                     <p className="text-xl font-bold text-stone-900">
-                      {formatRupiah(totalPrice)}
+                      {formatCurrency(totalPrice, currencyCode)}
                     </p>
                   </div>
                   <p className="text-[10px] text-stone-400 w-full max-w-sm text-right">
