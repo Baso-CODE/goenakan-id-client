@@ -55,8 +55,10 @@ function OrderStatusContent() {
             className="px-6 py-2 border border-[#463b34] text-[#463b34] rounded-md hover:bg-stone-50 transition-colors">
             Belanja Lagi
           </Link>
+
+          {/* ✨ PERBAIKAN: Disamakan rutenya ke /profile/order/[id] */}
           <Link
-            href={`/order-detail/${orderId}`}
+            href={`/profile/order/${orderId}`}
             className="px-6 py-2 bg-[#463b34] text-white rounded-md hover:bg-[#342b26] transition-colors">
             Lihat Pesanan
           </Link>

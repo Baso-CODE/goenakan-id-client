@@ -12,7 +12,6 @@ import Image from "next/image";
 import { useEffect } from "react";
 import { OrderTracking } from "./orderTracking";
 
-// ✨ FUNGSI FORMAT MATA UANG DINAMIS (Menyesuaikan mata uang dari backend) ✨
 function formatCurrency(amount: number, currencyCode: string = "IDR") {
   const locale = currencyCode === "IDR" ? "id-ID" : "en-US";
   return new Intl.NumberFormat(locale, {

@@ -6,7 +6,7 @@ export async function getFilteredProductsAPI(
   page: number = 1,
   searchQuery: string = "",
   country: string = "ID",
-  lang: string = "id", // ✨ Parameter bahasa
+  lang: string = "id",
 ) {
   try {
     const params = new URLSearchParams({

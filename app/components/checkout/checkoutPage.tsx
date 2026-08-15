@@ -43,8 +43,20 @@ interface CustomerAddress {
   isDefault: boolean;
 }
 
-function formatRupiah(amount: number) {
-  return `Rp ${amount.toLocaleString("id-ID")}`;
+// ✨ PERBAIKAN 1: Gunakan formatCurrency dinamis, hapus formatRupiah
+function formatCurrency(amount: number, currencyCode: string = "IDR") {
+  // Tentukan locale berdasarkan mata uang agar format titik/komanya sesuai
+  let locale = "en-US";
+  if (currencyCode === "IDR") locale = "id-ID";
+  else if (currencyCode === "EUR") locale = "de-DE";
+  else if (currencyCode === "CNY" || currencyCode === "RMB") locale = "zh-CN";
+
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currencyCode === "RMB" ? "CNY" : currencyCode, // API standar pakai CNY untuk RMB
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 interface CustomizationZone {
@@ -76,13 +88,15 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
-  const { cartItems, fetchCart, clearCart } = useCartStore();
+
+  // ✨ PERBAIKAN 2: Panggil currencyCode dari Zustand store
+  const { cartItems, fetchCart, clearCart, currencyCode } = useCartStore();
+
   const [addNote, setAddNote] = useState(false);
   const [note, setNote] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const [userAddresses, setUserAddresses] = useState<CustomerAddress[]>([]);
-
   const [showAddressModal, setShowAddressModal] = useState(false);
 
   const [form, setForm] = useState({
@@ -634,9 +648,12 @@ export default function CheckoutPage() {
                         <p className="text-[10px] text-stone-400 italic">
                           {item.materialType}
                         </p>
+
+                        {/* ✨ PERBAIKAN 3: Ganti formatRupiah jadi formatCurrency dinamis */}
                         <p className="text-xs font-bold text-stone-800 mt-1">
-                          {formatRupiah(item.price)}
+                          {formatCurrency(item.price, currencyCode)}
                         </p>
+
                         {getCustomizationDetails(item.customization) && (
                           <div className="mt-1.5 p-1.5 bg-stone-100 rounded-sm border border-stone-200 self-start max-w-full">
                             <p className="text-[8px] font-bold text-stone-600 uppercase tracking-widest mb-1">
@@ -709,15 +726,20 @@ export default function CheckoutPage() {
                     <span className="text-stone-500">
                       Subtotal ({totalQty} items)
                     </span>
+
+                    {/* ✨ PERBAIKAN 4: Ganti formatRupiah jadi formatCurrency dinamis */}
                     <span className="font-bold text-stone-800">
-                      {formatRupiah(subtotal)}
+                      {formatCurrency(subtotal, currencyCode)}
                     </span>
                   </div>
-                  {/* Bagian Flat Shipping dihapus dari sini */}
                   <Separator />
                   <div className="flex justify-between items-center py-2 font-bold uppercase tracking-widest text-stone-900">
                     <span className="text-sm">Total</span>
-                    <span className="text-base">{formatRupiah(total)}</span>
+
+                    {/* ✨ PERBAIKAN 5: Ganti formatRupiah jadi formatCurrency dinamis */}
+                    <span className="text-base">
+                      {formatCurrency(total, currencyCode)}
+                    </span>
                   </div>
 
                   <Button
