@@ -32,10 +32,13 @@ function PercentSizeInput({
 }) {
   const roundedPct = Math.round(logo.scale || 5);
   const [typedVal, setTypedVal] = useState(roundedPct.toString());
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    setTypedVal(roundedPct.toString());
-  }, [roundedPct]);
+    if (!isFocused) {
+      setTypedVal(roundedPct.toString());
+    }
+  }, [roundedPct, isFocused]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valStr = e.target.value;
@@ -48,7 +51,12 @@ function PercentSizeInput({
   };
 
   const handleBlur = () => {
+    setIsFocused(false);
     setTypedVal(roundedPct.toString());
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
   };
 
   return (
@@ -57,6 +65,7 @@ function PercentSizeInput({
         type="text"
         value={typedVal}
         onChange={handleChange}
+        onFocus={handleFocus}
         onBlur={handleBlur}
         className="w-10 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
       />
@@ -78,10 +87,13 @@ function CmSizeInput({
   const roundedCm = Math.round(currentCmWidth * 10) / 10;
   
   const [typedVal, setTypedVal] = useState(roundedCm.toString());
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    setTypedVal(roundedCm.toString());
-  }, [roundedCm]);
+    if (!isFocused) {
+      setTypedVal(roundedCm.toString());
+    }
+  }, [roundedCm, isFocused]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const valStr = e.target.value;
@@ -95,7 +107,12 @@ function CmSizeInput({
   };
 
   const handleBlur = () => {
+    setIsFocused(false);
     setTypedVal(roundedCm.toString());
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
   };
 
   return (
@@ -104,6 +121,7 @@ function CmSizeInput({
         type="text"
         value={typedVal}
         onChange={handleChange}
+        onFocus={handleFocus}
         onBlur={handleBlur}
         className="w-12 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
       />
@@ -612,6 +630,7 @@ export function ProductCustomizer({
       
       const captureOptions = {
         pixelRatio: scaleFactor,
+        cacheBust: true,
         filter: (node: any) => {
           if (!node.classList) return true;
           const classList = Array.from(node.classList);
@@ -654,8 +673,11 @@ export function ProductCustomizer({
         }
       });
 
+      // Wait a tiny frame for browser repaint
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
       // Capture Spec View
-      const specDataUrl = await toPng(canvasRef.current, captureOptions);
+      const specDataUrl = await toPng(canvasRef.current, { ...captureOptions, cacheBust: true });
 
       // 2. Hide guides and metric lines to prepare the Clean Visual view
       const originalGuidesDisplay: string[] = [];
@@ -670,11 +692,11 @@ export function ProductCustomizer({
         el.style.setProperty("display", "none", "important");
       });
 
-      // Wait a tiny frame
-      await new Promise((resolve) => requestAnimationFrame(resolve));
+      // Wait another frame for browser repaint
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       // Capture Clean View
-      const cleanDataUrl = await toPng(canvasRef.current, captureOptions);
+      const cleanDataUrl = await toPng(canvasRef.current, { ...captureOptions, cacheBust: true });
 
       // Restore canvas elements back for visual fidelity
       logoContainers.forEach((el: any, idx) => {
@@ -825,13 +847,10 @@ export function ProductCustomizer({
         ) : (
           <div className="relative w-full h-full">
             {/* Gambar Produk Dasar */}
-            <Image
+            <img
               src={getMockupBackgroundUrl(activeMedia)}
               alt={`${productName} - view`}
-              fill
-              className="object-contain p-2"
-              sizes="(max-width: 768px) 100vw, 40vw"
-              priority
+              className="w-full h-full object-contain p-2 select-none pointer-events-none"
             />
 
             {/* Render Overlay Mockup Area Guides */}
@@ -855,6 +874,33 @@ export function ProductCustomizer({
                   }`}
                   title={logoList.length > 0 ? `Klik untuk tambah logo ke area: ${activeMedia.mockupSideName || area.label}` : `Klik untuk unggah logo ke area: ${activeMedia.mockupSideName || area.label}`}
                 >
+                  {/* Bounding box dimension labels (inside top-center and inside right-center) */}
+                  {area.physicalWidth && area.physicalHeight && (
+                    <>
+                      {/* Width Label (Top Center Inside) */}
+                      <div 
+                        className={`absolute top-0.5 left-1/2 -translate-x-1/2 text-[5.5px] font-bold tracking-wider px-1 py-0.5 rounded-xs select-none pointer-events-none z-15 border leading-none ${
+                          logoList.length > 0
+                            ? "bg-green-50/90 text-green-600 border-green-200/60"
+                            : "bg-blue-50/90 text-blue-600 border-blue-200/60"
+                        }`}
+                      >
+                        {area.physicalWidth} {area.unit || "cm"}
+                      </div>
+
+                      {/* Height Label (Right Center Inside) */}
+                      <div 
+                        className={`absolute right-0.5 top-1/2 -translate-y-1/2 text-[5.5px] font-bold tracking-wider px-1 py-0.5 rounded-xs select-none pointer-events-none z-15 border leading-none ${
+                          logoList.length > 0
+                            ? "bg-green-50/90 text-green-600 border-green-200/60"
+                            : "bg-blue-50/90 text-blue-600 border-blue-200/60"
+                        }`}
+                      >
+                        {area.physicalHeight} {area.unit || "cm"}
+                      </div>
+                    </>
+                  )}
+
                   {logoList.length === 0 && (
                     <>
                       <Plus className="w-3.5 h-3.5 text-blue-500/60 group-hover:text-blue-600 transition-colors" />
@@ -1491,37 +1537,70 @@ export function ProductCustomizer({
               </div>
  
               {/* Offset X & Y Sliders */}
-              <div className="grid grid-cols-2 gap-4 pt-1">
+              <div className="space-y-3 pt-1">
                 {/* Geser X */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">Geser X (Horiz)</label>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2.5 items-center">
                     <input
                       type="range"
                       min={area.x}
-                      max={area.x + area.width - (logo.scale || 10)}
+                      max={Math.max(area.x, area.x + area.width - (logo.scale || 10))}
                       step="0.5"
                       value={logo.xOffset || area.x}
                       onChange={(e) => updateTransform(area.id, logo.id, "xOffset", parseFloat(e.target.value))}
                       className="flex-1 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-stone-700"
                     />
-                    <span className="text-[10px] font-bold text-stone-600 w-10 text-right shrink-0">{Math.round(logo.xOffset || area.x)}%</span>
+                    <div className="w-16 flex items-center border border-stone-300 rounded bg-white px-1 shrink-0">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min={area.x}
+                        max={area.x + area.width}
+                        value={Math.round((logo.xOffset || area.x) * 10) / 10}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || area.x;
+                          const maxVal = area.x + area.width - (logo.scale || 10);
+                          const clamped = Math.max(area.x, Math.min(val, maxVal));
+                          updateTransform(area.id, logo.id, "xOffset", clamped);
+                        }}
+                        className="w-8 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
+                      />
+                      <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">%</span>
+                    </div>
                   </div>
                 </div>
+
                 {/* Geser Y */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] text-stone-500 font-bold uppercase tracking-wide">Geser Y (Vert)</label>
-                  <div className="flex gap-2 items-center">
+                  <div className="flex gap-2.5 items-center">
                     <input
                       type="range"
                       min={area.y}
-                      max={area.y + area.height - ((logo.scale || 10) / (logo.aspectRatio || 1.0))}
+                      max={Math.max(area.y, area.y + area.height - ((logo.scale || 10) / (logo.aspectRatio || 1.0)))}
                       step="0.5"
                       value={logo.yOffset || area.y}
                       onChange={(e) => updateTransform(area.id, logo.id, "yOffset", parseFloat(e.target.value))}
                       className="flex-1 h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-stone-700"
                     />
-                    <span className="text-[10px] font-bold text-stone-600 w-10 text-right shrink-0">{Math.round(logo.yOffset || area.y)}%</span>
+                    <div className="w-16 flex items-center border border-stone-300 rounded bg-white px-1 shrink-0">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min={area.y}
+                        max={area.y + area.height}
+                        value={Math.round((logo.yOffset || area.y) * 10) / 10}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value) || area.y;
+                          const maxVal = area.y + area.height - ((logo.scale || 10) / (logo.aspectRatio || 1.0));
+                          const clamped = Math.max(area.y, Math.min(val, maxVal));
+                          updateTransform(area.id, logo.id, "yOffset", clamped);
+                        }}
+                        className="w-8 text-[10px] text-center border-none p-0.5 focus:ring-0 focus:outline-none font-semibold text-stone-700"
+                      />
+                      <span className="text-[9px] font-bold text-stone-400 border-l pl-1 ml-0.5">%</span>
+                    </div>
                   </div>
                 </div>
               </div>

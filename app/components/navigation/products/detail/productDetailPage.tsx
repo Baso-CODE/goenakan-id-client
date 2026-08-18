@@ -416,40 +416,99 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   // 5. Availability matrix checker
   const isOptionDisabled = (attrName: string, value: string) => {
-    const variantAttrNames = new Set(
-      product.variants?.[0]?.attributes?.map((a: any) => a.name) || [],
-    );
+    if (!product.variants || product.variants.length === 0) return false;
 
-    const isCustomizableAttr =
-      attrName.toLowerCase().includes("ukuran") ||
-      attrName.toLowerCase().includes("size") ||
-      attrName.toLowerCase().includes("kapasitas") ||
-      attrName.toLowerCase().includes("capacity") ||
-      attrName.toLowerCase().includes("model") ||
-      attrName.toLowerCase().includes("shape");
+    // Get variant generator attribute names in their rendering order (from attributeGroups)
+    const variantAttrNames = attributeGroups
+      .map((g) => g.name)
+      .filter((name) => product.variants![0].attributes?.some((a: any) => a.name === name));
 
-    if (variantAttrNames.size > 0 && !variantAttrNames.has(attrName)) {
-      return false; // Custom options (non-variant-generating attributes) are never disabled
+    const attrIndex = variantAttrNames.indexOf(attrName);
+    if (attrIndex === -1) return false;
+
+    // Only check against selections of attributes that are rendered BEFORE the current attribute.
+    // This prevents locking (e.g. Type B stays clickable even when Color 1 is selected).
+    const precedingSelections: Record<string, string> = {};
+    for (let i = 0; i < attrIndex; i++) {
+      const prevName = variantAttrNames[i];
+      if (selections[prevName]) {
+        precedingSelections[prevName] = selections[prevName];
+      }
     }
 
-    const simulated = { ...selections, [attrName]: value };
-    const match = product.variants?.some((variant) => {
-      const matchesAll = Object.entries(simulated)
-        .filter(([name]) => variantAttrNames.has(name))
-        .every(([name, val]) => {
-          const attr = variant.attributes?.find((a) => a.name === name);
-          const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
-          const cleanAttrVal = attr?.value?.split("|")[0]?.toLowerCase().trim();
-          return cleanAttrVal === cleanVal;
-        });
-      return matchesAll && (product.isMadeByOrder || (variant.stock ?? 0) > 0);
+    const cleanCheckVal = value.split("|")[0].toLowerCase().trim();
+
+    const hasMatchingVariant = product.variants.some((v) => {
+      // Must match the candidate value for this attribute
+      const targetAttr = v.attributes?.find((a) => a.name === attrName);
+      if (!targetAttr) return false;
+      const cleanTargetVal = targetAttr.value.split("|")[0].toLowerCase().trim();
+      if (cleanTargetVal !== cleanCheckVal) return false;
+
+      // Must match all preceding selections
+      const matchesPreceding = Object.entries(precedingSelections).every(([name, val]) => {
+        const attr = v.attributes?.find((a) => a.name === name);
+        if (!attr) return false;
+        const cleanSelVal = val.split("|")[0].toLowerCase().trim();
+        const cleanAttrVal = attr.value.split("|")[0].toLowerCase().trim();
+        return cleanAttrVal === cleanSelVal;
+      });
+
+      return matchesPreceding;
     });
-    return !match;
+
+    return !hasMatchingVariant;
   };
 
   // 6. Click handler
   const handleSelectOption = (attrName: string, value: string) => {
-    const nextSelections = { ...selections, [attrName]: value };
+    let nextSelections = { ...selections };
+    const isTogglingOff = selections[attrName] === value;
+
+    if (isTogglingOff) {
+      delete nextSelections[attrName];
+    } else {
+      nextSelections[attrName] = value;
+
+      // Clear any subsequent selections that become incompatible with the new selection
+      const variantAttrNames = attributeGroups
+        .map((g) => g.name)
+        .filter((name) => product.variants?.[0]?.attributes?.some((a: any) => a.name === name));
+
+      const attrIndex = variantAttrNames.indexOf(attrName);
+      if (attrIndex !== -1) {
+        for (let i = attrIndex + 1; i < variantAttrNames.length; i++) {
+          const postAttrName = variantAttrNames[i];
+          const postAttrVal = nextSelections[postAttrName];
+          if (postAttrVal) {
+            // Check compatibility of selections up to index i
+            const currentCheckSelections: Record<string, string> = {};
+            for (let j = 0; j <= i; j++) {
+              const name = variantAttrNames[j];
+              if (nextSelections[name]) {
+                currentCheckSelections[name] = nextSelections[name];
+              }
+            }
+
+            const hasMatch = product.variants?.some((v) => {
+              const matchesAll = Object.entries(currentCheckSelections).every(([name, val]) => {
+                const attr = v.attributes?.find((a) => a.name === name);
+                if (!attr) return false;
+                const cleanSelVal = val.split("|")[0].toLowerCase().trim();
+                const cleanAttrVal = attr.value.split("|")[0].toLowerCase().trim();
+                return cleanAttrVal === cleanSelVal;
+              });
+              return matchesAll;
+            });
+
+            if (!hasMatch) {
+              delete nextSelections[postAttrName];
+            }
+          }
+        }
+      }
+    }
+
     setSelections(nextSelections);
 
     // If they chose a Custom Color, make sure customization gets updated with the color
@@ -457,10 +516,19 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       value.toLowerCase().includes("custom") ||
       value.toLowerCase().includes("kustom");
     if (isCustomVal) {
-      setCustomization((prev: any) => ({
-        ...(prev || {}),
-        customColor: selectedCustomColor,
-      }));
+      if (isTogglingOff) {
+        setCustomization((prev: any) => {
+          if (!prev) return null;
+          const next = { ...prev };
+          delete next.customColor;
+          return Object.keys(next).length > 0 ? next : null;
+        });
+      } else {
+        setCustomization((prev: any) => ({
+          ...(prev || {}),
+          customColor: selectedCustomColor
+        }));
+      }
     } else {
       // If they chose a non-custom color, remove customColor from customization
       setCustomization((prev: any) => {
@@ -472,23 +540,22 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
 
     // Find corresponding variant
-    const variantAttrNames = new Set(
-      product.variants?.[0]?.attributes?.map((a: any) => a.name) || [],
-    );
-    const matchingVariants =
-      product.variants?.filter((v) => {
-        return Object.entries(nextSelections)
-          .filter(([name]) => variantAttrNames.has(name))
-          .every(([name, val]) => {
-            const attr = v.attributes?.find((a) => a.name === name);
-            const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
-            const cleanAttrVal = attr?.value
-              ?.split("|")[0]
-              ?.toLowerCase()
-              .trim();
-            return cleanAttrVal === cleanVal;
-          });
-      }) || [];
+    const variantAttrNames = attributeGroups
+      .map((g) => g.name)
+      .filter((name) => product.variants?.[0]?.attributes?.some((a: any) => a.name === name));
+
+    const matchingVariants = product.variants?.filter((v) => {
+      const allVariantNames = new Set(variantAttrNames);
+      const matchesVariant = Object.entries(nextSelections)
+        .filter(([name]) => allVariantNames.has(name))
+        .every(([name, val]) => {
+          const attr = v.attributes?.find((a) => a.name === name);
+          const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
+          const cleanAttrVal = attr?.value?.split("|")[0]?.toLowerCase().trim();
+          return cleanAttrVal === cleanVal;
+        });
+      return matchesVariant;
+    }) || [];
 
     const variantMatch =
       matchingVariants.length > 0
@@ -499,6 +566,8 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
     if (variantMatch) {
       handleVariantSelect(variantMatch.id);
+    } else {
+      setSelectedVariantId(null);
     }
   };
 
@@ -1222,6 +1291,255 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const minAllowedQty =
     activeTiers.length > 0 ? (activeTiers[0].minQty ?? 1) : 1;
 
+  const renderAttributeGroup = (group: any) => {
+    const isColorAttr =
+      group.type === "COLOR" ||
+      group.name.toLowerCase() === "warna" ||
+      group.name.toLowerCase() === "color";
+
+    if (isColorAttr) {
+      const activeVal = selections[group.name] || "";
+      const isCustomValSelected = activeVal.toLowerCase().includes("custom") || activeVal.toLowerCase().includes("kustom");
+
+      const activeParsed = parseClientColorValue(activeVal);
+      let activeDisplayName = activeParsed.name || activeParsed.hex;
+      if (isCustomValSelected) {
+        activeDisplayName = `${activeParsed.name} (${selectedCustomColor.toUpperCase()})`;
+      }
+
+      return (
+        <div key={group.name} className="mt-1 space-y-2">
+          <p className="text-sm font-medium text-stone-900">
+            Pilih {group.name}:{" "}
+            <span className="font-bold text-stone-600 capitalize">
+              {activeDisplayName}
+            </span>
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {group.values.map((val: string) => {
+              const isSelected = selections[group.name] === val;
+              const isDisabled = isOptionDisabled(group.name, val) || disableVariantSelectors;
+
+              const parsedColor = parseClientColorValue(val);
+              const isValCustom = val.toLowerCase().includes("custom") || val.toLowerCase().includes("kustom");
+
+              const colorInfo = {
+                hex: isValCustom ? selectedCustomColor : parsedColor.hex,
+                cmyk: parsedColor.cmyk,
+                name: parsedColor.name || parsedColor.hex
+              };
+
+              const bgStyle = isValCustom && !isSelected
+                ? { backgroundImage: "linear-gradient(to bottom right, #ff7e5f, #feb47b, #86e3ce, #d0e1fd, #e186e3)" }
+                : { backgroundColor: colorInfo.hex };
+
+              const colorButton = (
+                <button
+                  key={val}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => handleSelectOption(group.name, val)}
+                  className={`relative w-8 h-8 rounded-full border transition-all duration-200 flex items-center justify-center ${
+                    isSelected && !isDisabled
+                      ? "ring-2 ring-stone-950 ring-offset-2 scale-105"
+                      : "hover:scale-105"
+                  } ${isDisabled ? "opacity-35 cursor-not-allowed" : "cursor-pointer"}`}
+                  style={bgStyle}
+                  title={`${colorInfo.name} (${colorInfo.cmyk})`}
+                >
+                  {isSelected && !isDisabled && (
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        colorInfo.hex.toLowerCase() === "#ffffff" ? "bg-black" : "bg-white"
+                      }`}
+                    />
+                  )}
+                </button>
+              );
+
+              if (isValCustom) {
+                return (
+                  <div key={val} className="flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none animate-pulse">
+                    {colorButton}
+                    <span className="text-[9px] font-extrabold text-indigo-700 uppercase tracking-widest leading-none">
+                      🌈 Bisa Custom Warna
+                    </span>
+                  </div>
+                );
+              }
+
+              return colorButton;
+            })}
+          </div>
+
+          {/* Custom Color Picker Input (only show if Custom Color is selected) */}
+          {isCustomValSelected && (
+            <div className="mt-3 p-3 bg-stone-50 border border-stone-200 rounded-sm flex flex-col gap-2 max-w-sm animate-fade-in">
+              <label className="text-xs font-bold text-stone-700 uppercase tracking-wider">
+                Pilih Warna Kustom Anda:
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={selectedCustomColor}
+                  onChange={(e) => handleCustomColorChange(e.target.value)}
+                  className="w-10 h-10 rounded border border-stone-300 cursor-pointer p-0 bg-transparent"
+                />
+                <div className="flex-1 flex flex-col gap-1">
+                  <input
+                    type="text"
+                    value={selectedCustomColor.toUpperCase()}
+                    onChange={(e) => {
+                      const hex = e.target.value;
+                      if (/^#[0-9A-F]{6}$/i.test(hex)) {
+                        handleCustomColorChange(hex);
+                      }
+                    }}
+                    className="w-full text-xs px-2.5 py-2 border rounded-sm bg-white text-stone-800 uppercase font-mono font-bold"
+                    placeholder="#FFFFFF"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* CMYK profile display */}
+          {(() => {
+            const parsed = parseClientColorValue(activeVal);
+            const cmykStr = isCustomValSelected
+              ? `C: ${hexToCmyk(selectedCustomColor).c} | M: ${hexToCmyk(selectedCustomColor).m} | Y: ${hexToCmyk(selectedCustomColor).y} | K: ${hexToCmyk(selectedCustomColor).k}`
+              : parsed.cmyk;
+            const hexDisplay = isCustomValSelected ? selectedCustomColor.toUpperCase() : parsed.hex.toUpperCase();
+
+            if (!cmykStr) return null;
+
+            return (
+              <div className="bg-stone-50 border border-stone-200/85 p-2 px-3 rounded-sm flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-stone-700 animate-fade-in gap-1.5 max-w-sm">
+                <span className="font-bold text-[10px] text-stone-400 uppercase tracking-wider">
+                  Profil Cetak:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-sm">
+                    {cmykStr}
+                  </span>
+                  <span className="bg-stone-200/80 text-stone-700 font-mono font-bold px-1.5 py-0.5 rounded-sm">
+                    {hexDisplay}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      );
+    }
+
+    const isModelShapeAttr =
+      group.type === "MODEL_SHAPE" ||
+      group.name.toLowerCase() === "model" ||
+      group.name.toLowerCase() === "shape" ||
+      group.name.toLowerCase().includes("model") ||
+      group.name.toLowerCase().includes("shape");
+
+    if (isModelShapeAttr) {
+      return (
+        <div key={group.name} className="mt-1">
+          <p className="text-sm font-medium text-stone-900 mb-2">
+            Pilih {group.name}:
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {group.values.map((val: string) => {
+              const isSelected = selections[group.name] === val;
+              let isDisabled = isOptionDisabled(group.name, val) || disableVariantSelectors;
+
+              const p = val.split("|");
+              const mName = p[0] || "";
+              const mUrl = p[1] || "";
+
+              return (
+                <button
+                  key={val}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => handleSelectOption(group.name, val)}
+                  className={`flex flex-col items-center justify-center p-2 border rounded-sm transition-all duration-200 min-w-[70px] ${
+                    isSelected && !isDisabled
+                      ? "border-stone-850 ring-1 ring-stone-900 bg-stone-50 scale-102"
+                      : isDisabled
+                      ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                      : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer bg-white"
+                  }`}
+                >
+                  {mUrl ? (
+                    <div className="relative w-12 h-12 rounded-sm overflow-hidden bg-white mb-1 border border-stone-100 flex items-center justify-center group/thumb">
+                      <img
+                        src={mUrl}
+                        alt={mName}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPreviewImage({ url: mUrl, name: mName });
+                        }}
+                        className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-150 flex items-center justify-center text-white"
+                        title="Perbesar gambar"
+                      >
+                        <ZoomIn className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-sm bg-stone-100 mb-1 border border-stone-200 flex items-center justify-center text-stone-400 text-xs">
+                      No Img
+                    </div>
+                  )}
+                  <span className={`text-[11px] px-1 text-center font-semibold tracking-tight ${
+                    isSelected && !isDisabled ? "text-stone-900" : "text-stone-600"
+                  }`}>
+                    {mName}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div key={group.name} className="mt-1">
+        <p className="text-sm font-medium text-stone-900 mb-2">
+          Pilih {group.name}:
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {group.values.map((val: string) => {
+            const isSelected = selections[group.name] === val;
+            let isDisabled = isOptionDisabled(group.name, val) || disableVariantSelectors;
+
+            return (
+              <button
+                key={val}
+                type="button"
+                disabled={isDisabled}
+                onClick={() => handleSelectOption(group.name, val)}
+                className={`px-4 py-2 border rounded-sm text-sm transition-all duration-200 ${
+                  isSelected && !isDisabled
+                    ? "border-stone-900 bg-stone-900 text-white cursor-default"
+                    : isDisabled
+                    ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                    : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
+                }`}
+              >
+                {val.includes("|") ? val.split("|")[0] : val}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
@@ -1262,7 +1580,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             </p>
           </div>
 
-          {/* ── Customization Type Selector ── */}
+          {/* ── 1. Customization Type Selector (Pilih Tipe Pembelian) ── */}
           {product.isCustom && (
             <div className="bg-stone-50 border border-stone-200/80 rounded-md p-4 space-y-3">
               <p className="text-xs font-bold uppercase tracking-wider text-stone-700">
@@ -1359,8 +1677,59 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             </div>
           )}
 
+          {/* ── 2. General Attributes (Size, Color, Material) ── */}
+          {attributeGroups.length > 0 ? (
+            <div className="flex flex-col gap-4">
+              {attributeGroups
+                .filter((group) => {
+                  if (group.parentValueId && !selectedAttributeValueIds.includes(group.parentValueId)) {
+                    return false;
+                  }
+                  if (group.type === "MOCKUP_SIDE") {
+                    return false;
+                  }
+                  if (group.type === "PRINT_SIDE") {
+                    return false;
+                  }
+                  // Filter out print-related attributes
+                  if (isPrintRelatedAttribute(group.type, group.name)) {
+                    return false;
+                  }
+                  return true;
+                })
+                .map((group) => renderAttributeGroup(group))}
+            </div>
+          ) : (
+            product.variants && product.variants.length > 0 && (
+              <div className="mt-1">
+                <p className="text-sm font-medium text-stone-900 mb-2">
+                  Pilih Varian:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {product.variants.map((v) => (
+                    <button
+                      key={v.id}
+                      disabled={(!product.isMadeByOrder && (v.stock ?? 0) <= 0) || disableVariantSelectors}
+                      onClick={() => handleVariantSelect(v.id)}
+                      className={`px-4 py-2 border rounded-sm text-sm transition-colors ${
+                        selectedVariantId === v.id && !disableVariantSelectors
+                          ? "border-stone-900 bg-stone-900 text-white cursor-default"
+                          : ((!product.isMadeByOrder && (v.stock ?? 0) <= 0) || disableVariantSelectors)
+                          ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                          : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
+                      }`}
+                    >
+                      {v.name} ({product.isMadeByOrder ? "Pre-Order" : (v.stock > 0 ? `${v.stock} pcs` : "Habis")})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+
+          {/* ── 3. Pilih Sisi / Posisi Cetak (Only for Custom Cetak) ── */}
           {isCustomizing && availableMockupPositions.length > 0 && (
-            <div className="bg-white border border-stone-200 rounded-md p-4 space-y-3 shadow-xs">
+            <div className="bg-white border border-stone-200 rounded-md p-4 space-y-3 shadow-xs animate-scaleIn">
               <p className="text-xs font-bold uppercase tracking-wider text-stone-700">
                 {locale === "en"
                   ? "Select Print Side / Position"
@@ -1398,7 +1767,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                       }}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 ${
                         isChecked
-                          ? "border-stone-900 bg-stone-900 text-white shadow-xs animate-scaleIn"
+                          ? "border-stone-900 bg-stone-900 text-white shadow-xs"
                           : "border-stone-200 bg-white text-stone-700 hover:border-stone-400 hover:bg-stone-50"
                       }`}>
                       <span
@@ -1412,8 +1781,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             </div>
           )}
 
-          {attributeGroups.length > 0 ? (
-            <div className="flex flex-col gap-4">
+          {/* ── 4. Print-Related Attributes (Metode Cetak, Warna Cetak, etc. - Only for Custom Cetak) ── */}
+          {isCustomizing && attributeGroups.length > 0 && attributeGroups.some((group) => isPrintRelatedAttribute(group.type, group.name)) && (
+            <div className="flex flex-col gap-4 border-t border-stone-100 pt-3 animate-fade-in">
               {attributeGroups
                 .filter((group) => {
                   if (
@@ -1428,340 +1798,20 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   ) {
                     return false;
                   }
-                  if (
-                    isPrintRelatedAttribute(group.type, group.name) &&
-                    !isCustomizing
-                  ) {
+                  if (group.type === "PRINT_SIDE") {
+                    return false;
+                  }
+                  // Only show print-related attributes
+                  if (!isPrintRelatedAttribute(group.type, group.name)) {
                     return false;
                   }
                   return true;
                 })
-                .map((group) => {
-                  const isColorAttr =
-                    group.type === "COLOR" ||
-                    group.name.toLowerCase() === "warna" ||
-                    group.name.toLowerCase() === "color";
-
-                  if (isColorAttr) {
-                    const activeVal = selections[group.name] || "";
-                    const isCustomValSelected =
-                      activeVal.toLowerCase().includes("custom") ||
-                      activeVal.toLowerCase().includes("kustom");
-
-                    const activeParsed = parseClientColorValue(activeVal);
-                    let activeDisplayName =
-                      activeParsed.name || activeParsed.hex;
-                    if (isCustomValSelected) {
-                      activeDisplayName = `${activeParsed.name} (${selectedCustomColor.toUpperCase()})`;
-                    }
-
-                    return (
-                      <div key={group.name} className="mt-1 space-y-2">
-                        <p className="text-sm font-medium text-stone-900">
-                          {locale === "en"
-                            ? `Select ${group.name}:`
-                            : `Pilih ${group.name}:`}{" "}
-                          <span className="font-bold text-stone-600 capitalize">
-                            {activeDisplayName}
-                          </span>
-                        </p>
-
-                        <div className="flex flex-wrap items-center gap-3">
-                          {group.values.map((val) => {
-                            const isSelected = selections[group.name] === val;
-                            const isDisabled =
-                              isOptionDisabled(group.name, val) ||
-                              disableVariantSelectors;
-                            const parsedColor = parseClientColorValue(val);
-                            const isValCustom =
-                              val.toLowerCase().includes("custom") ||
-                              val.toLowerCase().includes("kustom");
-
-                            const colorInfo = {
-                              hex: isValCustom
-                                ? selectedCustomColor
-                                : parsedColor.hex,
-                              cmyk: parsedColor.cmyk,
-                              name: parsedColor.name || parsedColor.hex,
-                            };
-
-                            const bgStyle =
-                              isValCustom && !isSelected
-                                ? {
-                                    backgroundImage:
-                                      "linear-gradient(to bottom right, #ff7e5f, #feb47b, #86e3ce, #d0e1fd, #e186e3)",
-                                  }
-                                : { backgroundColor: colorInfo.hex };
-
-                            const colorButton = (
-                              <button
-                                key={val}
-                                type="button"
-                                disabled={isDisabled}
-                                onClick={() =>
-                                  handleSelectOption(group.name, val)
-                                }
-                                className={`relative w-8 h-8 rounded-full border transition-all duration-200 flex items-center justify-center ${
-                                  isSelected && !isDisabled
-                                    ? "ring-2 ring-stone-950 ring-offset-2 scale-105"
-                                    : "hover:scale-105"
-                                } ${isDisabled ? "opacity-35 cursor-not-allowed" : "cursor-pointer"}`}
-                                style={bgStyle}
-                                title={`${colorInfo.name} (${colorInfo.cmyk})`}>
-                                {isSelected && !isDisabled && (
-                                  <span
-                                    className={`w-2 h-2 rounded-full ${colorInfo.hex.toLowerCase() === "#ffffff" ? "bg-black" : "bg-white"}`}
-                                  />
-                                )}
-                              </button>
-                            );
-
-                            if (isValCustom) {
-                              return (
-                                <div
-                                  key={val}
-                                  className="flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none animate-pulse">
-                                  {colorButton}
-                                  <span className="text-[9px] font-extrabold text-indigo-700 uppercase tracking-widest leading-none">
-                                    {locale === "en"
-                                      ? "🌈 Custom Color Available"
-                                      : "🌈 Bisa Custom Warna"}
-                                  </span>
-                                </div>
-                              );
-                            }
-                            return colorButton;
-                          })}
-                        </div>
-
-                        {isCustomValSelected && (
-                          <div className="mt-3 p-3 bg-stone-50 border border-stone-200 rounded-sm flex flex-col gap-2 max-w-sm animate-fade-in">
-                            <label className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                              {locale === "en"
-                                ? "Select Your Custom Color:"
-                                : "Pilih Warna Kustom Anda:"}
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="color"
-                                value={selectedCustomColor}
-                                onChange={(e) =>
-                                  handleCustomColorChange(e.target.value)
-                                }
-                                className="w-10 h-10 rounded border border-stone-300 cursor-pointer p-0 bg-transparent"
-                              />
-                              <div className="flex-1 flex flex-col gap-1">
-                                <input
-                                  type="text"
-                                  value={selectedCustomColor.toUpperCase()}
-                                  onChange={(e) => {
-                                    const hex = e.target.value;
-                                    if (/^#[0-9A-F]{6}$/i.test(hex)) {
-                                      handleCustomColorChange(hex);
-                                    }
-                                  }}
-                                  className="w-full text-xs px-2.5 py-2 border rounded-sm bg-white text-stone-800 uppercase font-mono font-bold"
-                                  placeholder="#FFFFFF"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {(() => {
-                          const parsed = parseClientColorValue(activeVal);
-                          const cmykStr = isCustomValSelected
-                            ? `C: ${hexToCmyk(selectedCustomColor).c} | M: ${hexToCmyk(selectedCustomColor).m} | Y: ${hexToCmyk(selectedCustomColor).y} | K: ${hexToCmyk(selectedCustomColor).k}`
-                            : parsed.cmyk;
-                          const hexDisplay = isCustomValSelected
-                            ? selectedCustomColor.toUpperCase()
-                            : parsed.hex.toUpperCase();
-
-                          if (!cmykStr) return null;
-
-                          return (
-                            <div className="bg-stone-50 border border-stone-200/85 p-2 px-3 rounded-sm flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-stone-700 animate-fade-in gap-1.5 max-w-sm">
-                              <span className="font-bold text-[10px] text-stone-400 uppercase tracking-wider">
-                                {locale === "en"
-                                  ? "Print Profile:"
-                                  : "Profil Cetak:"}
-                              </span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-sm">
-                                  {cmykStr}
-                                </span>
-                                <span className="bg-stone-200/80 text-stone-700 font-mono font-bold px-1.5 py-0.5 rounded-sm">
-                                  {hexDisplay}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </div>
-                    );
-                  }
-
-                  const isModelShapeAttr =
-                    group.type === "MODEL_SHAPE" ||
-                    group.name.toLowerCase() === "model" ||
-                    group.name.toLowerCase() === "shape" ||
-                    group.name.toLowerCase().includes("model") ||
-                    group.name.toLowerCase().includes("shape");
-
-                  if (isModelShapeAttr) {
-                    return (
-                      <div key={group.name} className="mt-1">
-                        <p className="text-sm font-medium text-stone-900 mb-2">
-                          {locale === "en"
-                            ? `Select ${group.name}:`
-                            : `Pilih ${group.name}:`}
-                        </p>
-                        <div className="flex flex-wrap gap-3">
-                          {group.values.map((val) => {
-                            const isSelected = selections[group.name] === val;
-                            let isDisabled =
-                              isOptionDisabled(group.name, val) ||
-                              disableVariantSelectors;
-                            const p = val.split("|");
-                            const mName = p[0] || "";
-                            const mUrl = p[1] || "";
-
-                            return (
-                              <button
-                                key={val}
-                                type="button"
-                                disabled={isDisabled}
-                                onClick={() =>
-                                  handleSelectOption(group.name, val)
-                                }
-                                className={`flex flex-col items-center justify-center p-2 border rounded-sm transition-all duration-200 min-w-[70px] ${
-                                  isSelected && !isDisabled
-                                    ? "border-stone-850 ring-1 ring-stone-900 bg-stone-50 scale-102"
-                                    : isDisabled
-                                      ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
-                                      : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer bg-white"
-                                }`}>
-                                {mUrl ? (
-                                  <div className="relative w-12 h-12 rounded-sm overflow-hidden bg-white mb-1 border border-stone-100 flex items-center justify-center group/thumb">
-                                    <img
-                                      src={mUrl}
-                                      alt={mName}
-                                      className="w-full h-full object-cover"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setPreviewImage({
-                                          url: mUrl,
-                                          name: mName,
-                                        });
-                                      }}
-                                      className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-150 flex items-center justify-center text-white"
-                                      title={
-                                        locale === "en"
-                                          ? "Zoom image"
-                                          : "Perbesar gambar"
-                                      }>
-                                      <ZoomIn className="w-4 h-4" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="w-12 h-12 rounded-sm bg-stone-100 mb-1 border border-stone-200 flex items-center justify-center text-stone-400 text-xs">
-                                    No Img
-                                  </div>
-                                )}
-                                <span
-                                  className={`text-[11px] px-1 text-center font-semibold tracking-tight ${isSelected && !isDisabled ? "text-stone-900" : "text-stone-600"}`}>
-                                  {mName}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div key={group.name} className="mt-1">
-                      <p className="text-sm font-medium text-stone-900 mb-2">
-                        {locale === "en"
-                          ? `Select ${group.name}:`
-                          : `Pilih ${group.name}:`}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {group.values.map((val) => {
-                          const isSelected = selections[group.name] === val;
-                          let isDisabled =
-                            isOptionDisabled(group.name, val) ||
-                            disableVariantSelectors;
-
-                          return (
-                            <button
-                              key={val}
-                              type="button"
-                              disabled={isDisabled}
-                              onClick={() =>
-                                handleSelectOption(group.name, val)
-                              }
-                              className={`px-4 py-2 border rounded-sm text-sm transition-all duration-200 ${
-                                isSelected && !isDisabled
-                                  ? "border-stone-900 bg-stone-900 text-white cursor-default"
-                                  : isDisabled
-                                    ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
-                                    : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
-                              }`}>
-                              {val.includes("|") ? val.split("|")[0] : val}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+                .map((group) => renderAttributeGroup(group))}
             </div>
-          ) : (
-            product.variants &&
-            product.variants.length > 0 && (
-              <div className="mt-1">
-                <p className="text-sm font-medium text-stone-900 mb-2">
-                  {locale === "en" ? "Select Variant:" : "Pilih Varian:"}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {product.variants.map((v) => (
-                    <button
-                      key={v.id}
-                      disabled={
-                        (!product.isMadeByOrder && (v.stock ?? 0) <= 0) ||
-                        disableVariantSelectors
-                      }
-                      onClick={() => handleVariantSelect(v.id)}
-                      className={`px-4 py-2 border rounded-sm text-sm transition-colors ${
-                        selectedVariantId === v.id && !disableVariantSelectors
-                          ? "border-stone-900 bg-stone-900 text-white cursor-default"
-                          : (!product.isMadeByOrder && (v.stock ?? 0) <= 0) ||
-                              disableVariantSelectors
-                            ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
-                            : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
-                      }`}>
-                      {v.name} (
-                      {product.isMadeByOrder
-                        ? locale === "en"
-                          ? "Pre-Order"
-                          : "Pre-Order"
-                        : v.stock > 0
-                          ? `${v.stock} pcs`
-                          : locale === "en"
-                            ? "Out of Stock"
-                            : "Habis"}
-                      )
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )
           )}
+ 
+
 
           {activeTiers.length > 0 && (
             <div className="mt-1">
