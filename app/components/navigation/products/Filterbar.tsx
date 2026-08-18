@@ -56,14 +56,11 @@ export function FilterBar({
   onFilterChange,
   dynamicOptions,
 }: FilterBarProps) {
-  // ✨ LOGIKA BERJENJANG UNTUK KATEGORI
-  // 1. Ambil list Parent Category
   const categoryOptions = [
     { label: "All Categories", value: "all" },
     ...(dynamicOptions.categories || []),
   ];
 
-  // 2. Cari objek kategori yang sedang dipilih untuk mengambil anak-anaknya (Item Categories)
   const selectedCategoryObj = dynamicOptions.categories?.find(
     (c) => c.value === filters.category,
   );

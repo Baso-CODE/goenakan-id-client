@@ -1,7 +1,9 @@
 export interface FaqItem {
   id: string;
-  question: string;
-  answer: string;
+  questionId: string;
+  questionEn: string;
+  answerId: string;
+  answerEn: string;
   displayOrder: number;
   isFeatured: boolean;
   isActive: boolean;

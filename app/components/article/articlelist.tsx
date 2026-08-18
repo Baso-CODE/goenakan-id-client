@@ -1,6 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { ArticleApiItem } from "@/app/types/articles/articleApiItem.type";
 import { Article } from "@/app/types/articles/articleList.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -49,9 +49,13 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
         const data = await res.json();
 
         const categoryArray = data.data || data;
+
         const categoryNames = categoryArray.map(
-          (cat: { id: string; name: string }) => cat.name,
+          (cat: { id: string; name_id: string; name_en: string | null }) => {
+            return locale === "en" && cat.name_en ? cat.name_en : cat.name_id;
+          },
         );
+
         setCategories([allPostsText, ...categoryNames]);
       } catch (error) {
         console.error("Error fetching categories:", error);
@@ -81,14 +85,20 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
       if (!res.ok) throw new Error("Gagal mengambil data artikel");
 
       const json = await res.json();
-      console.log("Response API:", json);
-      const formatted: Article[] = json.data.map((item: ArticleApiItem) => {
+
+      const formatted: Article[] = json.data.map((item: any) => {
         const mappedTitle =
           locale === "en" && item.title_en ? item.title_en : item.title_id;
         const mappedContent =
           locale === "en" && item.content_en
             ? item.content_en
             : item.content_id;
+
+        // ✨ PERBAIKAN: Menyesuaikan label kategori pada artikel
+        const categoryName =
+          locale === "en" && item.category?.name_en
+            ? item.category.name_en
+            : item.category?.name_id || "Uncategorized";
 
         const plainText = stripHtml(mappedContent || "");
 
@@ -100,8 +110,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
               ? plainText.substring(0, 100) + "..."
               : plainText,
           image: item.coverImage || "/images/articles/article-placeholder.jpg",
-          category: item.category?.name || "Uncategorized",
-
+          category: categoryName,
           date: new Date(item.publishedAt || item.createdAt).toLocaleDateString(
             locale === "en" ? "en-US" : "id-ID",
             { month: "long", day: "numeric", year: "numeric" },
@@ -126,7 +135,6 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
   useEffect(() => {
     setPage(1);
     fetchArticles(1, activeCategory, sort);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCategory, sort]);
 
   const handleLoadMore = () => {

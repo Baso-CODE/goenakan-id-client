@@ -5,24 +5,31 @@ import Image from "next/image";
 import { Product } from "@/app/types/product.type";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 
 interface ProductCardProps {
   product: Product;
 }
 
-function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
+function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
+  let locale = "id-ID";
+  if (currencyCode === "USD") locale = "en-US";
+  else if (currencyCode === "EUR") locale = "de-DE";
+  else if (currencyCode === "JPY") locale = "ja-JP";
+  else if (currencyCode === "MYR") locale = "ms-MY";
+
+  return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })
-    .format(amount)
-    .replace("IDR", "Rp")
-    .trim();
+    currency: currencyCode,
+    minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+    maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+  }).format(amount);
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const t = useTranslations("Product-Card");
+  const currency = product.currencyCode || "IDR";
+
   return (
     <Link href={`/products/${product.slug}`} className="group block">
       <div className="relative flex flex-col bg-white border border-stone-100 rounded-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
@@ -44,10 +51,10 @@ export function ProductCard({ product }: ProductCardProps) {
           </h3>
           <div className="flex flex-col gap-0.5">
             <p className="text-stone-400 text-xs line-through">
-              {formatRupiah(product.regularPrice)}/pcs
+              {formatCurrency(product.regularPrice, currency)}/pcs
             </p>
             <p className="text-stone-800 text-sm font-medium">
-              {formatRupiah(product.bulkPrice)}/pcs{" "}
+              {formatCurrency(product.bulkPrice, currency)}/pcs{" "}
               <span className="text-stone-400 font-normal">
                 min. {product.minOrder} pcs
               </span>
@@ -57,7 +64,7 @@ export function ProductCard({ product }: ProductCardProps) {
             <Badge
               variant="secondary"
               className="text-xs text-stone-400 bg-stone-50 border-0 px-0 font-normal">
-              {product.sold.toLocaleString("id-ID")} Sold
+              {product.sold.toLocaleString("id-ID")} {t("sold")}
             </Badge>
           </div>
         </div>
