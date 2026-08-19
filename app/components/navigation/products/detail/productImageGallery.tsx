@@ -3,18 +3,33 @@
 import { MediaItem } from "@/app/types/productDetail.type";
 import { PlayCircle } from "lucide-react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ProductImageGalleryProps {
   media: MediaItem[];
   productName: string;
+  customColor?: string;
+  isColorPickerActive?: boolean;
 }
 
 export function ProductImageGallery({
   media,
   productName,
+  customColor,
+  isColorPickerActive,
 }: ProductImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (!media || media.length === 0) return;
+    // Auto-select the first image that is color customizable when media list changes
+    const customIndex = media.findIndex((item) => item.isColorCustomizable);
+    if (customIndex !== -1) {
+      setActiveIndex(customIndex);
+    } else {
+      setActiveIndex(0);
+    }
+  }, [media]);
 
   // Jika tidak ada media, jangan render apa-apa
   if (!media || media.length === 0) return null;
@@ -35,14 +50,43 @@ export function ProductImageGallery({
             className="w-full h-full object-contain"
           />
         ) : (
-          <Image
-            src={activeMedia.url}
-            alt={`${productName} - media ${activeIndex + 1}`}
-            fill
-            className="object-contain p-6"
-            sizes="(max-width: 768px) 100vw, 40vw"
-            priority
-          />
+          isColorPickerActive && customColor && activeMedia.isColorCustomizable ? (
+            <div className="relative w-full h-full">
+              <Image
+                src={activeMedia.url}
+                alt={`${productName} - base`}
+                fill
+                className="object-contain p-6"
+                sizes="(max-width: 768px) 100vw, 40vw"
+                priority
+              />
+              <div
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{
+                  backgroundColor: customColor,
+                  mixBlendMode: "multiply",
+                  maskImage: `url(${activeMedia.url})`,
+                  maskSize: "contain",
+                  maskRepeat: "no-repeat",
+                  maskPosition: "center",
+                  WebkitMaskImage: `url(${activeMedia.url})`,
+                  WebkitMaskSize: "contain",
+                  WebkitMaskRepeat: "no-repeat",
+                  WebkitMaskPosition: "center",
+                  padding: "24px",
+                }}
+              />
+            </div>
+          ) : (
+            <Image
+              src={activeMedia.url}
+              alt={`${productName} - media ${activeIndex + 1}`}
+              fill
+              className="object-contain p-6"
+              sizes="(max-width: 768px) 100vw, 40vw"
+              priority
+            />
+          )
         )}
       </div>
 
@@ -72,14 +116,41 @@ export function ProductImageGallery({
                 </div>
               </div>
             ) : (
-              // Tampilan Thumbnail Gambar
-              <Image
-                src={item.url}
-                alt={`${productName} thumbnail ${i + 1}`}
-                fill
-                className="object-cover p-1 bg-stone-50"
-                sizes="80px"
-              />
+              isColorPickerActive && customColor && item.isColorCustomizable ? (
+                <div className="relative w-full h-full aspect-square">
+                  <Image
+                    src={item.url}
+                    alt={`${productName} thumbnail - base`}
+                    fill
+                    className="object-cover p-1 bg-stone-50"
+                    sizes="80px"
+                  />
+                  <div
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    style={{
+                      backgroundColor: customColor,
+                      mixBlendMode: "multiply",
+                      maskImage: `url(${item.url})`,
+                      maskSize: "cover",
+                      maskRepeat: "no-repeat",
+                      maskPosition: "center",
+                      WebkitMaskImage: `url(${item.url})`,
+                      WebkitMaskSize: "cover",
+                      WebkitMaskRepeat: "no-repeat",
+                      WebkitMaskPosition: "center",
+                      padding: "4px",
+                    }}
+                  />
+                </div>
+              ) : (
+                <Image
+                  src={item.url}
+                  alt={`${productName} thumbnail ${i + 1}`}
+                  fill
+                  className="object-cover p-1 bg-stone-50"
+                  sizes="80px"
+                />
+              )
             )}
           </button>
         ))}

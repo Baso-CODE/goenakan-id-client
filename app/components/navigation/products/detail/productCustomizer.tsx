@@ -139,6 +139,8 @@ interface ProductCustomizerProps {
   selectedAttributeValueIds?: string[];
   onChange?: (customization: any) => void;
   attributeValues?: any[];
+  customColor?: string;
+  isColorPickerActive?: boolean;
 }
 
 export function ProductCustomizer({
@@ -150,6 +152,8 @@ export function ProductCustomizer({
   selectedAttributeValueIds = [],
   onChange,
   attributeValues = [],
+  customColor,
+  isColorPickerActive,
 }: ProductCustomizerProps) {
   const isImageCustomizable = (item: MediaItem) => {
     return !!(item.mockupAreas && item.mockupAreas.length > 0);
@@ -852,6 +856,24 @@ export function ProductCustomizer({
               alt={`${productName} - view`}
               className="w-full h-full object-contain p-2 select-none pointer-events-none"
             />
+            {isColorPickerActive && customColor && (
+              <div
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{
+                  backgroundColor: customColor,
+                  mixBlendMode: "multiply",
+                  maskImage: `url(${getMockupBackgroundUrl(activeMedia)})`,
+                  maskSize: "contain",
+                  maskRepeat: "no-repeat",
+                  maskPosition: "center",
+                  WebkitMaskImage: `url(${getMockupBackgroundUrl(activeMedia)})`,
+                  WebkitMaskSize: "contain",
+                  WebkitMaskRepeat: "no-repeat",
+                  WebkitMaskPosition: "center",
+                  padding: "8px",
+                }}
+              />
+            )}
 
             {/* Render Overlay Mockup Area Guides */}
             {isImageCustomizable(activeMedia) && activeMedia.mockupAreas?.map((area) => {
