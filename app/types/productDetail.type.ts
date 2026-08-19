@@ -24,6 +24,7 @@ export interface MediaItem {
   mockupSideName?: string | null;
   printPositionValueId?: string | null;
   printSideValueId?: string | null;
+  isColorCustomizable?: boolean;
 }
 
 export interface AttributeDisplay {

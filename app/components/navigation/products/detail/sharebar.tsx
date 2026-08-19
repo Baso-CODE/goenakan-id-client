@@ -1,11 +1,17 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 interface ShareBarProps {
   productName: string;
 }
 
 export function ShareBar({ productName }: ShareBarProps) {
-  const url = typeof window !== "undefined" ? window.location.href : "";
+  const [url, setUrl] = useState("");
+
+  useEffect(() => {
+    setUrl(window.location.href);
+  }, []);
 
   const shares = [
     {

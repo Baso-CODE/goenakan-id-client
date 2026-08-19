@@ -294,6 +294,17 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   // 2. Selection state tracking
   const [selections, setSelections] = useState<Record<string, string>>({});
 
+  const isColorPickerActive = useMemo(() => {
+    const colorKey = Object.keys(selections).find(
+      (key) => key.toLowerCase().includes("color") || key.toLowerCase().includes("warna")
+    );
+    const selectedColorVal = colorKey ? selections[colorKey] : "";
+    return (
+      selectedColorVal.toLowerCase().includes("custom") ||
+      selectedColorVal.toLowerCase().includes("kustom")
+    );
+  }, [selections]);
+
   const availableMockupPositions = useMemo(() => {
     if (!product.media) return [];
 
@@ -951,7 +962,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     if (selectedVariantId && product.variants) {
       const variant = product.variants.find((v) => v.id === selectedVariantId);
       if (variant && variant.images) {
-        currentMedia = [...variant.images];
+        currentMedia = variant.images.map((img) => ({
+          ...img,
+          isColorCustomizable: isColorPickerActive,
+        }));
       }
     }
 
@@ -967,11 +981,17 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         if (!img.attributeValueId) return true;
         return selectedAttributeValueIds.includes(img.attributeValueId);
       }
+    }).map((img) => {
+      const isCustomColorLink = img.attributeValueId && selectedAttributeValueIds.includes(img.attributeValueId) && isColorPickerActive;
+      return {
+        ...img,
+        isColorCustomizable: !!isCustomColorLink,
+      };
     });
 
     const mergedMedia = [...currentMedia, ...productMedia];
     return sortMediaItems(mergedMedia);
-  }, [selectedVariantId, product, selectedAttributeValueIds]);
+  }, [selectedVariantId, product, selectedAttributeValueIds, isColorPickerActive]);
 
   const hasMockupAreas = useMemo(() => {
     const result = allGalleryMediaForSize.some(
@@ -994,12 +1014,17 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       // Tampilkan semua gambar tanpa filter ukuran (polosan type)
       const currentMedia =
         selectedVariantId && product.variants
-          ? product.variants.find((v) => v.id === selectedVariantId)?.images ||
-            []
+          ? (product.variants.find((v) => v.id === selectedVariantId)?.images || []).map((img) => ({
+              ...img,
+              isColorCustomizable: isColorPickerActive,
+            }))
           : [];
       const productMedia = (product.media || []).filter(
         (img) => !img.attributeValueId,
-      );
+      ).map((img) => ({
+        ...img,
+        isColorCustomizable: false,
+      }));
       const mergedMedia = [...currentMedia, ...productMedia];
       return sortMediaItems(mergedMedia);
     }
@@ -1007,9 +1032,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     allGalleryMediaForSize,
     isCustomizing,
     hasMockupAreas,
-    product.media,
-    product.variants,
     selectedVariantId,
+    product,
+    isColorPickerActive,
   ]);
 
   const customizerMedia = useMemo(() => {
@@ -1457,14 +1482,20 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               const mUrl = p[1] || "";
 
               return (
-                <button
+                <div
                   key={val}
-                  type="button"
-                  disabled={isDisabled}
-                  onClick={() => handleSelectOption(group.name, val)}
+                  role="button"
+                  tabIndex={isDisabled ? -1 : 0}
+                  onClick={() => !isDisabled && handleSelectOption(group.name, val)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      if (!isDisabled) handleSelectOption(group.name, val);
+                    }
+                  }}
                   className={`flex flex-col items-center justify-center p-2 border rounded-sm transition-all duration-200 min-w-[70px] ${
                     isSelected && !isDisabled
-                      ? "border-stone-850 ring-1 ring-stone-900 bg-stone-50 scale-102"
+                      ? "border-stone-850 ring-1 ring-stone-900 bg-stone-50 scale-102 font-medium"
                       : isDisabled
                       ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
                       : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer bg-white"
@@ -1499,7 +1530,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   }`}>
                     {mName}
                   </span>
-                </button>
+                </div>
               );
             })}
           </div>
@@ -1555,11 +1586,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               selectedAttributeValueIds={selectedAttributeValueIds}
               onChange={setCustomization}
               attributeValues={product.attributeValues}
+              customColor={selectedCustomColor}
+              isColorPickerActive={isColorPickerActive}
             />
           ) : (
             <ProductImageGallery
               media={activeGalleryMedia}
               productName={product.name}
+              customColor={selectedCustomColor}
+              isColorPickerActive={isColorPickerActive}
             />
           )}
           <ShareBar productName={product.name} />
