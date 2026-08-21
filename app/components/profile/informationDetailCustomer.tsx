@@ -31,11 +31,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useRouter } from "@/i18n/routing";
 import { LogOut, MapPin, Package, User } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import ProfileSkeleton from "./profileCustomerSkeleton";
 
 export default function InformationDetailCustomer() {
+  const t = useTranslations("Profile");
   const { data: session, status } = useSession();
   const token = session?.user?.accessToken;
   const router = useRouter();
@@ -140,7 +142,9 @@ export default function InformationDetailCustomer() {
                   {profileData?.user?.email || "Loading..."}
                 </p>
                 <p className="text-[10px] uppercase tracking-widest text-[#C4A48E] font-bold mt-2">
-                  {profileData?.createdAt || "Member since Jan 2024"}
+                  {/* ✨ Menggunakan terjemahan untuk "Member since" */}
+                  {profileData?.createdAt ||
+                    t("header.memberSince", { date: "Jan 2024" })}
                 </p>
               </div>
             </div>
@@ -153,7 +157,8 @@ export default function InformationDetailCustomer() {
                 router.refresh();
               }}
               className="rounded-none w-full md:w-auto border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600">
-              <LogOut className="w-4 h-4 mr-2" /> Logout
+              {/* ✨ Terjemahan tombol logout */}
+              <LogOut className="w-4 h-4 mr-2" /> {t("header.logout")}
             </Button>
           </div>
         </div>
@@ -169,17 +174,18 @@ export default function InformationDetailCustomer() {
                   <TabsTrigger
                     value="orders"
                     className="w-auto lg:w-full justify-center lg:justify-start gap-2 lg:gap-3 py-3 lg:py-4 px-4 lg:px-4 rounded-none border-b-2 lg:border-b-0 lg:border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black data-[state=active]:bg-transparent lg:data-[state=active]:bg-white lg:data-[state=active]:shadow-sm transition-all whitespace-nowrap">
-                    <Package className="h-4 w-4" /> My Orders
+                    {/* ✨ Terjemahan menu tab */}
+                    <Package className="h-4 w-4" /> {t("tabs.orders")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="details"
                     className="w-auto lg:w-full justify-center lg:justify-start gap-2 lg:gap-3 py-3 lg:py-4 px-4 lg:px-4 rounded-none border-b-2 lg:border-b-0 lg:border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black data-[state=active]:bg-transparent lg:data-[state=active]:bg-white lg:data-[state=active]:shadow-sm transition-all whitespace-nowrap">
-                    <User className="h-4 w-4" /> Personal Details
+                    <User className="h-4 w-4" /> {t("tabs.details")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="address"
                     className="w-auto lg:w-full justify-center lg:justify-start gap-2 lg:gap-3 py-3 lg:py-4 px-4 lg:px-4 rounded-none border-b-2 lg:border-b-0 lg:border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black data-[state=active]:bg-transparent lg:data-[state=active]:bg-white lg:data-[state=active]:shadow-sm transition-all whitespace-nowrap">
-                    <MapPin className="h-4 w-4" /> Addresses
+                    <MapPin className="h-4 w-4" /> {t("tabs.address")}
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -192,11 +198,12 @@ export default function InformationDetailCustomer() {
                   className="m-0 focus-visible:outline-none">
                   <Card className="rounded-none border-none shadow-sm">
                     <CardHeader className="px-2 sm:px-6">
+                      {/* ✨ Terjemahan judul dan deskripsi tabel */}
                       <CardTitle className="text-xl uppercase tracking-widest">
-                        Order History
+                        {t("orders.title")}
                       </CardTitle>
                       <CardDescription>
-                        View and track your custom product orders.
+                        {t("orders.description")}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="px-2 sm:px-6">
@@ -204,20 +211,21 @@ export default function InformationDetailCustomer() {
                         <Table className="min-w-150">
                           <TableHeader className="bg-gray-50">
                             <TableRow>
+                              {/* ✨ Terjemahan Header Tabel */}
                               <TableHead className="font-bold whitespace-nowrap">
-                                Order ID
+                                {t("orders.table.orderNumber")}
                               </TableHead>
                               <TableHead className="font-bold whitespace-nowrap">
-                                Date
+                                {t("orders.table.date")}
                               </TableHead>
                               <TableHead className="font-bold whitespace-nowrap">
-                                Status
+                                {t("orders.table.status")}
                               </TableHead>
                               <TableHead className="text-right font-bold whitespace-nowrap">
-                                Total
+                                {t("orders.table.total")}
                               </TableHead>
                               <TableHead className="text-center font-bold whitespace-nowrap">
-                                Aksi
+                                {t("orders.table.action")}
                               </TableHead>
                             </TableRow>
                           </TableHeader>
@@ -227,7 +235,8 @@ export default function InformationDetailCustomer() {
                                 <TableCell
                                   colSpan={5}
                                   className="text-center py-10 text-stone-400">
-                                  Belum ada riwayat pesanan.
+                                  {/* ✨ Terjemahan jika pesanan kosong */}
+                                  {t("orders.empty")}
                                 </TableCell>
                               </TableRow>
                             ) : (
@@ -272,7 +281,8 @@ export default function InformationDetailCustomer() {
                                       size="sm"
                                       className="text-xs rounded-none">
                                       <Link href={`/profile/order/${order.id}`}>
-                                        Lihat Detail
+                                        {/* ✨ Terjemahan tombol lihat detail */}
+                                        {t("orders.viewDetails")}
                                       </Link>
                                     </Button>
                                   </TableCell>
@@ -293,20 +303,23 @@ export default function InformationDetailCustomer() {
                   <Card className="rounded-none border-none shadow-sm">
                     <CardHeader className="px-2 sm:px-6">
                       <CardTitle className="text-xl uppercase tracking-widest">
-                        Personal Details
+                        {/* ✨ Terjemahan judul detail */}
+                        {t("details.title")}
                       </CardTitle>
                       <CardDescription>
-                        Update your {profileData?.accountType?.toLowerCase()}{" "}
-                        information.
+                        {/* ✨ Terjemahan deskripsi detail dengan variabel dinamis */}
+                        {t("details.description", {
+                          type: profileData?.accountType?.toLowerCase() || "",
+                        })}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="px-2 sm:px-6">
                       <form onSubmit={handleUpdate} className="space-y-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          {/* Email Always Read Only (Standard Security) */}
                           <div className="space-y-2">
                             <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
-                              Email Address
+                              {/* ✨ Terjemahan label email */}
+                              {t("details.labels.email")}
                             </Label>
                             <Input
                               name="email"
@@ -320,7 +333,7 @@ export default function InformationDetailCustomer() {
                             <>
                               <div className="space-y-2">
                                 <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
-                                  Full Name
+                                  {t("details.labels.fullName")}
                                 </Label>
                                 <Input
                                   name="name"
@@ -330,7 +343,7 @@ export default function InformationDetailCustomer() {
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
-                                  Phone Number
+                                  {t("details.labels.phone")}
                                 </Label>
                                 <Input
                                   name="phone"
@@ -343,7 +356,7 @@ export default function InformationDetailCustomer() {
                             <>
                               <div className="space-y-2">
                                 <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
-                                  Company Name
+                                  {t("details.labels.companyName")}
                                 </Label>
                                 <Input
                                   name="companyName"
@@ -353,7 +366,7 @@ export default function InformationDetailCustomer() {
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
-                                  Department
+                                  {t("details.labels.department")}
                                 </Label>
                                 <Input
                                   name="department"
@@ -363,7 +376,7 @@ export default function InformationDetailCustomer() {
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
-                                  PIC Name
+                                  {t("details.labels.picName")}
                                 </Label>
                                 <Input
                                   name="picName"
@@ -373,7 +386,7 @@ export default function InformationDetailCustomer() {
                               </div>
                               <div className="space-y-2">
                                 <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
-                                  PIC Phone (WhatsApp)
+                                  {t("details.labels.picPhone")}
                                 </Label>
                                 <Input
                                   name="picPhone"
@@ -389,7 +402,10 @@ export default function InformationDetailCustomer() {
                           type="submit"
                           disabled={isUpdating}
                           className="w-full md:w-auto bg-black text-white rounded-none px-10 py-6 uppercase tracking-widest text-xs font-bold hover:bg-gray-800 transition-all">
-                          {isUpdating ? "Updating..." : "Update Profile"}
+                          {/* ✨ Terjemahan tombol update berdasarkan status loading */}
+                          {isUpdating
+                            ? t("details.buttons.updating")
+                            : t("details.buttons.update")}
                         </Button>
                       </form>
                     </CardContent>

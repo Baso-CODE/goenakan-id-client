@@ -267,7 +267,128 @@
 
   "Product-Card": {
     "sold": "Terjual"
+  },
+
+
+  "Profile": {
+  "header": {
+    "memberSince": "Bergabung sejak {date}",
+    "logout": "Keluar"
+  },
+  "tabs": {
+    "orders": "Pesanan Saya",
+    "details": "Detail Pribadi",
+    "address": "Daftar Alamat"
+  },
+  "orders": {
+    "title": "Riwayat Pesanan",
+    "description": "Lihat dan lacak pesanan produk kustom Anda.",
+    "table": {
+      "orderNumber": "Nomor Pesanan",
+      "date": "Tanggal",
+      "status": "Status",
+      "total": "Total",
+      "action": "Aksi"
+    },
+    "empty": "Belum ada riwayat pesanan.",
+    "viewDetails": "Lihat Detail"
+  },
+  "details": {
+    "title": "Detail Pribadi",
+    "description": "Perbarui informasi akun {type} Anda.",
+    "labels": {
+      "email": "Alamat Email",
+      "fullName": "Nama Lengkap",
+      "phone": "Nomor Telepon",
+      "companyName": "Nama Perusahaan",
+      "department": "Departemen",
+      "picName": "Nama PIC",
+      "picPhone": "Nomor Telepon PIC (WhatsApp)"
+    },
+    "buttons": {
+      "update": "Perbarui Profil",
+      "updating": "Memperbarui..."
+    }
+  },
+  "Address": {
+  "loading": "Memuat alamat...",
+  "savedAddresses": "Alamat Tersimpan",
+  "defaultBadge": "UTAMA",
+  "actions": {
+    "edit": "Ubah",
+    "setDefault": "Jadikan utama",
+    "remove": "Hapus",
+    "addNew": "Tambah Alamat Baru"
+  },
+  "dialog": {
+    "addTitle": "Tambah Alamat Baru",
+    "editTitle": "Ubah Alamat",
+    "label": "Label Alamat",
+    "recipient": "Nama Penerima",
+    "phone": "Nomor Telepon",
+    "fullAddress": "Alamat Lengkap",
+    "district": "Kecamatan",
+    "city": "Kota / Kabupaten",
+    "province": "Provinsi",
+    "postalCode": "Kode Pos",
+    "placeholders": {
+      "label": "Cth: Rumah, Kantor",
+      "recipient": "Budi Santoso",
+      "phone": "08123456789",
+      "fullAddress": "Jl. Sudirman No. 12, RT 01/RW 02...",
+      "district": "Kec. Gondomanan",
+      "city": "Yogyakarta",
+      "province": "DIY",
+      "postalCode": "55122"
+    },
+    "buttons": {
+      "cancel": "Batal",
+      "saving": "Menyimpan...",
+      "saveNew": "Simpan Alamat",
+      "update": "Perbarui Alamat"
+    }
   }
+}
+}
+,"Address": {
+  "loading": "Memuat alamat...",
+  "savedAddresses": "Alamat Tersimpan",
+  "defaultBadge": "UTAMA",
+  "actions": {
+    "edit": "Ubah",
+    "setDefault": "Jadikan utama",
+    "remove": "Hapus",
+    "addNew": "Tambah Alamat Baru"
+  },
+  "dialog": {
+    "addTitle": "Tambah Alamat Baru",
+    "editTitle": "Ubah Alamat",
+    "label": "Label Alamat",
+    "recipient": "Nama Penerima",
+    "phone": "Nomor Telepon",
+    "fullAddress": "Alamat Lengkap",
+    "district": "Kecamatan",
+    "city": "Kota / Kabupaten",
+    "province": "Provinsi",
+    "postalCode": "Kode Pos",
+    "placeholders": {
+      "label": "Cth: Rumah, Kantor",
+      "recipient": "Budi Santoso",
+      "phone": "08123456789",
+      "fullAddress": "Jl. Sudirman No. 12, RT 01/RW 02...",
+      "district": "Kec. Gondomanan",
+      "city": "Yogyakarta",
+      "province": "DIY",
+      "postalCode": "55122"
+    },
+    "buttons": {
+      "cancel": "Batal",
+      "saving": "Menyimpan...",
+      "saveNew": "Simpan Alamat",
+      "update": "Perbarui Alamat"
+    }
+  }
+}
 }
 
 

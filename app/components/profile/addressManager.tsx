@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { useSession } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -53,6 +54,7 @@ const EMPTY_FORM = {
 };
 
 export function AddressManager() {
+  const t = useTranslations("Address");
   const { data: session, status } = useSession();
 
   // Pastikan mengambil token dengan benar
@@ -209,14 +211,13 @@ export function AddressManager() {
     "rounded-sm border-stone-300 focus-visible:ring-stone-400 bg-white text-sm";
 
   if (loading) {
-    return <div className="text-sm text-stone-500">Memuat alamat...</div>;
+    return <div className="text-sm text-stone-500">{t("loading")}</div>;
   }
-
   return (
     <>
       <div className="flex flex-col gap-4">
         <h2 className="text-xs font-bold tracking-widest text-stone-700 uppercase">
-          Saved Addresses
+          {t("savedAddresses")}
         </h2>
 
         {/* Address Cards */}
@@ -231,7 +232,7 @@ export function AddressManager() {
                   <div className="flex items-center gap-2">
                     {address.isDefault && (
                       <Badge className="bg-[#b5956a] text-white text-[10px] px-2 py-0.5 rounded-sm font-semibold tracking-wide">
-                        DEFAULT
+                        {t("defaultBadge")}
                       </Badge>
                     )}
                     <span className="text-xs font-semibold text-stone-600 uppercase tracking-wide">
@@ -239,7 +240,7 @@ export function AddressManager() {
                     </span>
                   </div>
 
-                  {/* ✨ 3. Tampilan disesuaikan dengan field baru */}
+                  {/* Tampilan alamat */}
                   <div className="text-sm text-stone-600 leading-relaxed">
                     <p className="font-semibold text-stone-800">
                       {address.recipient} — {address.phone}
@@ -263,7 +264,7 @@ export function AddressManager() {
                     variant="ghost"
                     onClick={() => openEdit(address)}
                     className="text-xs text-stone-500 hover:text-stone-800 h-auto p-0 font-semibold tracking-wide uppercase cursor-pointer">
-                    Edit
+                    {t("actions.edit")}
                   </Button>
                   {!address.isDefault && (
                     <>
@@ -271,13 +272,13 @@ export function AddressManager() {
                         variant="ghost"
                         onClick={() => handleSetDefault(address.id)}
                         className="text-[11px] text-stone-400 hover:text-stone-600 h-auto p-0 cursor-pointer">
-                        Set as default
+                        {t("actions.setDefault")}
                       </Button>
                       <Button
                         variant="ghost"
                         onClick={() => handleDelete(address.id)}
                         className="text-[11px] text-red-400 hover:text-red-600 h-auto p-0 cursor-pointer">
-                        Remove
+                        {t("actions.remove")}
                       </Button>
                     </>
                   )}
@@ -290,7 +291,7 @@ export function AddressManager() {
           <button
             onClick={openAdd}
             className="border border-stone-200 rounded-sm bg-white px-5 py-5 text-center text-xs font-semibold text-stone-400 hover:text-stone-600 hover:bg-stone-50 transition-colors tracking-widest uppercase cursor-pointer">
-            + Add New Address
+            + {t("actions.addNew")}
           </button>
         </div>
       </div>
@@ -302,17 +303,21 @@ export function AddressManager() {
         <DialogContent className="sm:max-w-xl rounded-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base font-semibold text-stone-800">
-              {dialogMode === "add" ? "Add New Address" : "Edit Address"}
+              {dialogMode === "add"
+                ? t("dialog.addTitle")
+                : t("dialog.editTitle")}
             </DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-3 py-2">
             {/* Label */}
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-stone-500">Address Label</Label>
+              <Label className="text-xs text-stone-500">
+                {t("dialog.label")}
+              </Label>
               <Input
                 name="label"
-                placeholder="e.g. Home, Office"
+                placeholder={t("dialog.placeholders.label")}
                 value={form.label}
                 onChange={handleChange}
                 className={inputClass}
@@ -322,20 +327,24 @@ export function AddressManager() {
             {/* Recipient & Phone */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-stone-500">Recipient Name</Label>
+                <Label className="text-xs text-stone-500">
+                  {t("dialog.recipient")}
+                </Label>
                 <Input
                   name="recipient"
-                  placeholder="John Doe"
+                  placeholder={t("dialog.placeholders.recipient")}
                   value={form.recipient}
                   onChange={handleChange}
                   className={inputClass}
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-stone-500">Phone Number</Label>
+                <Label className="text-xs text-stone-500">
+                  {t("dialog.phone")}
+                </Label>
                 <Input
                   name="phone"
-                  placeholder="08123456789"
+                  placeholder={t("dialog.placeholders.phone")}
                   value={form.phone}
                   onChange={handleChange}
                   className={inputClass}
@@ -345,11 +354,13 @@ export function AddressManager() {
 
             {/* Full Address */}
             <div className="flex flex-col gap-1">
-              <Label className="text-xs text-stone-500">Full Address</Label>
+              <Label className="text-xs text-stone-500">
+                {t("dialog.fullAddress")}
+              </Label>
               <textarea
                 name="fullAddress"
                 rows={3}
-                placeholder="Jl. Sudirman No. 12, RT 01/RW 02..."
+                placeholder={t("dialog.placeholders.fullAddress")}
                 value={form.fullAddress}
                 onChange={handleChange}
                 className={`p-3 border resize-none ${inputClass}`}
@@ -360,11 +371,11 @@ export function AddressManager() {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-stone-500">
-                  District / Kecamatan
+                  {t("dialog.district")}
                 </Label>
                 <Input
                   name="district"
-                  placeholder="Kec. Gondomanan"
+                  placeholder={t("dialog.placeholders.district")}
                   value={form.district}
                   onChange={handleChange}
                   className={inputClass}
@@ -372,31 +383,35 @@ export function AddressManager() {
               </div>
               <div className="flex flex-col gap-1">
                 <Label className="text-xs text-stone-500">
-                  City / Kabupaten
+                  {t("dialog.city")}
                 </Label>
                 <Input
                   name="city"
-                  placeholder="Yogyakarta"
+                  placeholder={t("dialog.placeholders.city")}
                   value={form.city}
                   onChange={handleChange}
                   className={inputClass}
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-stone-500">Province</Label>
+                <Label className="text-xs text-stone-500">
+                  {t("dialog.province")}
+                </Label>
                 <Input
                   name="province"
-                  placeholder="DIY"
+                  placeholder={t("dialog.placeholders.province")}
                   value={form.province}
                   onChange={handleChange}
                   className={inputClass}
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <Label className="text-xs text-stone-500">Postal Code</Label>
+                <Label className="text-xs text-stone-500">
+                  {t("dialog.postalCode")}
+                </Label>
                 <Input
                   name="postalCode"
-                  placeholder="55122"
+                  placeholder={t("dialog.placeholders.postalCode")}
                   value={form.postalCode}
                   onChange={handleChange}
                   className={inputClass}
@@ -411,7 +426,7 @@ export function AddressManager() {
               variant="outline"
               onClick={() => setDialogMode(null)}
               className="flex-1 rounded-sm border-stone-300 text-stone-600 text-sm">
-              Cancel
+              {t("dialog.buttons.cancel")}
             </Button>
             <Button
               onClick={handleSave}
@@ -424,10 +439,10 @@ export function AddressManager() {
               }
               className="flex-1 bg-[#3d342b] hover:bg-[#2a2420] text-white rounded-sm text-sm">
               {isSaving
-                ? "Saving..."
+                ? t("dialog.buttons.saving")
                 : dialogMode === "add"
-                  ? "Save Address"
-                  : "Update Address"}
+                  ? t("dialog.buttons.saveNew")
+                  : t("dialog.buttons.update")}
             </Button>
           </div>
         </DialogContent>
