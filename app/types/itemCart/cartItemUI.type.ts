@@ -1,5 +1,3 @@
-// src/app/types/itemCart/cartItemUI.type.ts
-
 export interface CartItemUI {
   id: string | number;
   productId: string;
@@ -21,4 +19,6 @@ export interface CartItemUI {
   height?: number | null;
   length?: number | null;
   customization?: any;
+  // ✨ TAMBAHAN BARU:
+  selectedAttributes?: any;
 }

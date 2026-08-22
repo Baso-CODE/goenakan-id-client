@@ -296,7 +296,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const isColorPickerActive = useMemo(() => {
     const colorKey = Object.keys(selections).find(
-      (key) => key.toLowerCase().includes("color") || key.toLowerCase().includes("warna")
+      (key) =>
+        key.toLowerCase().includes("color") ||
+        key.toLowerCase().includes("warna"),
     );
     const selectedColorVal = colorKey ? selections[colorKey] : "";
     return (
@@ -432,7 +434,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     // Get variant generator attribute names in their rendering order (from attributeGroups)
     const variantAttrNames = attributeGroups
       .map((g) => g.name)
-      .filter((name) => product.variants![0].attributes?.some((a: any) => a.name === name));
+      .filter((name) =>
+        product.variants![0].attributes?.some((a: any) => a.name === name),
+      );
 
     const attrIndex = variantAttrNames.indexOf(attrName);
     if (attrIndex === -1) return false;
@@ -453,17 +457,22 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       // Must match the candidate value for this attribute
       const targetAttr = v.attributes?.find((a) => a.name === attrName);
       if (!targetAttr) return false;
-      const cleanTargetVal = targetAttr.value.split("|")[0].toLowerCase().trim();
+      const cleanTargetVal = targetAttr.value
+        .split("|")[0]
+        .toLowerCase()
+        .trim();
       if (cleanTargetVal !== cleanCheckVal) return false;
 
       // Must match all preceding selections
-      const matchesPreceding = Object.entries(precedingSelections).every(([name, val]) => {
-        const attr = v.attributes?.find((a) => a.name === name);
-        if (!attr) return false;
-        const cleanSelVal = val.split("|")[0].toLowerCase().trim();
-        const cleanAttrVal = attr.value.split("|")[0].toLowerCase().trim();
-        return cleanAttrVal === cleanSelVal;
-      });
+      const matchesPreceding = Object.entries(precedingSelections).every(
+        ([name, val]) => {
+          const attr = v.attributes?.find((a) => a.name === name);
+          if (!attr) return false;
+          const cleanSelVal = val.split("|")[0].toLowerCase().trim();
+          const cleanAttrVal = attr.value.split("|")[0].toLowerCase().trim();
+          return cleanAttrVal === cleanSelVal;
+        },
+      );
 
       return matchesPreceding;
     });
@@ -484,7 +493,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       // Clear any subsequent selections that become incompatible with the new selection
       const variantAttrNames = attributeGroups
         .map((g) => g.name)
-        .filter((name) => product.variants?.[0]?.attributes?.some((a: any) => a.name === name));
+        .filter((name) =>
+          product.variants?.[0]?.attributes?.some((a: any) => a.name === name),
+        );
 
       const attrIndex = variantAttrNames.indexOf(attrName);
       if (attrIndex !== -1) {
@@ -502,13 +513,18 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             }
 
             const hasMatch = product.variants?.some((v) => {
-              const matchesAll = Object.entries(currentCheckSelections).every(([name, val]) => {
-                const attr = v.attributes?.find((a) => a.name === name);
-                if (!attr) return false;
-                const cleanSelVal = val.split("|")[0].toLowerCase().trim();
-                const cleanAttrVal = attr.value.split("|")[0].toLowerCase().trim();
-                return cleanAttrVal === cleanSelVal;
-              });
+              const matchesAll = Object.entries(currentCheckSelections).every(
+                ([name, val]) => {
+                  const attr = v.attributes?.find((a) => a.name === name);
+                  if (!attr) return false;
+                  const cleanSelVal = val.split("|")[0].toLowerCase().trim();
+                  const cleanAttrVal = attr.value
+                    .split("|")[0]
+                    .toLowerCase()
+                    .trim();
+                  return cleanAttrVal === cleanSelVal;
+                },
+              );
               return matchesAll;
             });
 
@@ -537,7 +553,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       } else {
         setCustomization((prev: any) => ({
           ...(prev || {}),
-          customColor: selectedCustomColor
+          customColor: selectedCustomColor,
         }));
       }
     } else {
@@ -553,20 +569,26 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     // Find corresponding variant
     const variantAttrNames = attributeGroups
       .map((g) => g.name)
-      .filter((name) => product.variants?.[0]?.attributes?.some((a: any) => a.name === name));
+      .filter((name) =>
+        product.variants?.[0]?.attributes?.some((a: any) => a.name === name),
+      );
 
-    const matchingVariants = product.variants?.filter((v) => {
-      const allVariantNames = new Set(variantAttrNames);
-      const matchesVariant = Object.entries(nextSelections)
-        .filter(([name]) => allVariantNames.has(name))
-        .every(([name, val]) => {
-          const attr = v.attributes?.find((a) => a.name === name);
-          const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
-          const cleanAttrVal = attr?.value?.split("|")[0]?.toLowerCase().trim();
-          return cleanAttrVal === cleanVal;
-        });
-      return matchesVariant;
-    }) || [];
+    const matchingVariants =
+      product.variants?.filter((v) => {
+        const allVariantNames = new Set(variantAttrNames);
+        const matchesVariant = Object.entries(nextSelections)
+          .filter(([name]) => allVariantNames.has(name))
+          .every(([name, val]) => {
+            const attr = v.attributes?.find((a) => a.name === name);
+            const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
+            const cleanAttrVal = attr?.value
+              ?.split("|")[0]
+              ?.toLowerCase()
+              .trim();
+            return cleanAttrVal === cleanVal;
+          });
+        return matchesVariant;
+      }) || [];
 
     const variantMatch =
       matchingVariants.length > 0
@@ -970,28 +992,38 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
 
     // Hanya tampilkan media umum, atau media yang ditautkan ke atribut varian yang sedang terpilih
-    const productMedia = (product.media || []).filter((img) => {
-      const isMockup = img.mockupAreas && img.mockupAreas.length > 0;
-      if (isMockup) {
-        // Mockup kustom wajib ditautkan ke varian untuk ditampilkan
-        if (!img.attributeValueId) return false;
-        return selectedAttributeValueIds.includes(img.attributeValueId);
-      } else {
-        // Gambar produk biasa
-        if (!img.attributeValueId) return true;
-        return selectedAttributeValueIds.includes(img.attributeValueId);
-      }
-    }).map((img) => {
-      const isCustomColorLink = img.attributeValueId && selectedAttributeValueIds.includes(img.attributeValueId) && isColorPickerActive;
-      return {
-        ...img,
-        isColorCustomizable: !!isCustomColorLink,
-      };
-    });
+    const productMedia = (product.media || [])
+      .filter((img) => {
+        const isMockup = img.mockupAreas && img.mockupAreas.length > 0;
+        if (isMockup) {
+          // Mockup kustom wajib ditautkan ke varian untuk ditampilkan
+          if (!img.attributeValueId) return false;
+          return selectedAttributeValueIds.includes(img.attributeValueId);
+        } else {
+          // Gambar produk biasa
+          if (!img.attributeValueId) return true;
+          return selectedAttributeValueIds.includes(img.attributeValueId);
+        }
+      })
+      .map((img) => {
+        const isCustomColorLink =
+          img.attributeValueId &&
+          selectedAttributeValueIds.includes(img.attributeValueId) &&
+          isColorPickerActive;
+        return {
+          ...img,
+          isColorCustomizable: !!isCustomColorLink,
+        };
+      });
 
     const mergedMedia = [...currentMedia, ...productMedia];
     return sortMediaItems(mergedMedia);
-  }, [selectedVariantId, product, selectedAttributeValueIds, isColorPickerActive]);
+  }, [
+    selectedVariantId,
+    product,
+    selectedAttributeValueIds,
+    isColorPickerActive,
+  ]);
 
   const hasMockupAreas = useMemo(() => {
     const result = allGalleryMediaForSize.some(
@@ -1014,17 +1046,20 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       // Tampilkan semua gambar tanpa filter ukuran (polosan type)
       const currentMedia =
         selectedVariantId && product.variants
-          ? (product.variants.find((v) => v.id === selectedVariantId)?.images || []).map((img) => ({
+          ? (
+              product.variants.find((v) => v.id === selectedVariantId)
+                ?.images || []
+            ).map((img) => ({
               ...img,
               isColorCustomizable: isColorPickerActive,
             }))
           : [];
-      const productMedia = (product.media || []).filter(
-        (img) => !img.attributeValueId,
-      ).map((img) => ({
-        ...img,
-        isColorCustomizable: false,
-      }));
+      const productMedia = (product.media || [])
+        .filter((img) => !img.attributeValueId)
+        .map((img) => ({
+          ...img,
+          isColorCustomizable: false,
+        }));
       const mergedMedia = [...currentMedia, ...productMedia];
       return sortMediaItems(mergedMedia);
     }
@@ -1081,7 +1116,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
     const parts: string[] = [];
     attributeGroups.forEach((group) => {
-      if (group.parentValueId && !selectedAttributeValueIds.includes(group.parentValueId)) {
+      if (
+        group.parentValueId &&
+        !selectedAttributeValueIds.includes(group.parentValueId)
+      ) {
         return;
       }
       const val = selections[group.name];
@@ -1097,26 +1135,38 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     if (product.isMadeByOrder) {
       return {
         title: "Pemesanan Pre-Order / Made by Order",
-        description: "Produk/varian ini memerlukan waktu pembuatan khusus (made by order). Silakan hubungi admin kami via WhatsApp untuk detail estimasi waktu pengerjaan dan pemesanan.",
-        text: `Halo Admin Goenakan.id, saya tertarik untuk melakukan pemesanan Pre-Order/Made by Order untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ''}`
+        description:
+          "Produk/varian ini memerlukan waktu pembuatan khusus (made by order). Silakan hubungi admin kami via WhatsApp untuk detail estimasi waktu pengerjaan dan pemesanan.",
+        text: `Halo Admin Goenakan.id, saya tertarik untuk melakukan pemesanan Pre-Order/Made by Order untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
       };
     }
 
     if (isOutOfStockCheck) {
       return {
         title: "Pemesanan Produk Habis",
-        description: "Stok untuk produk/varian ini sedang habis di website. Silakan hubungi admin kami via WhatsApp untuk menanyakan ketersediaan kembali atau melakukan pemesanan khusus.",
-        text: `Halo Admin Goenakan.id, saya ingin menanyakan ketersediaan / memesan produk yang sedang habis: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ''}`
+        description:
+          "Stok untuk produk/varian ini sedang habis di website. Silakan hubungi admin kami via WhatsApp untuk menanyakan ketersediaan kembali atau melakukan pemesanan khusus.",
+        text: `Halo Admin Goenakan.id, saya ingin menanyakan ketersediaan / memesan produk yang sedang habis: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
       };
     }
 
     return {
       title: "Custom Cetak Logo via WhatsApp",
-      description: "Kustomisasi cetak logo untuk produk/ukuran ini belum dikonfigurasi pada sistem editor kami. Namun, Anda tetap dapat memesan secara custom secara manual dengan menghubungi admin kami langsung melalui WhatsApp.",
-      text: `Halo Admin Goenakan.id, saya ingin melakukan pemesanan custom cetak logo untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ''}`
+      description:
+        "Kustomisasi cetak logo untuk produk/ukuran ini belum dikonfigurasi pada sistem editor kami. Namun, Anda tetap dapat memesan secara custom secara manual dengan menghubungi admin kami langsung melalui WhatsApp.",
+      text: `Halo Admin Goenakan.id, saya ingin melakukan pemesanan custom cetak logo untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
     };
-  }, [product.isMadeByOrder, product.name, selectedVariant, product.variants, product.stock, selections, attributeGroups, selectedAttributeValueIds]);
- 
+  }, [
+    product.isMadeByOrder,
+    product.name,
+    selectedVariant,
+    product.variants,
+    product.stock,
+    selections,
+    attributeGroups,
+    selectedAttributeValueIds,
+  ]);
+
   const hasAnyMockupAreas = useMemo(() => {
     return (
       product.media?.some((m) => m.mockupAreas && m.mockupAreas.length > 0) ||
@@ -1175,6 +1225,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   }, [selectedVariant, product.attributeValues]);
 
   const handleAddToCart = async (): Promise<boolean> => {
+    console.log("🔍 [DEBUG FRONTEND] selections saat ini:", selections);
     // Validate that all visible attribute selections are made
     const visibleGroups = attributeGroups.filter((group) => {
       if (
@@ -1288,8 +1339,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               selectedOptions: customOptions,
             }
           : null,
+      selectedAttributes: selections || null,
     };
-
+    console.log("📦 [DEBUG FRONTEND] Payload addToCart yang dikirim:", payload);
     await addToCart(payload, quantity, token);
     return true;
   };
@@ -1324,7 +1376,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
     if (isColorAttr) {
       const activeVal = selections[group.name] || "";
-      const isCustomValSelected = activeVal.toLowerCase().includes("custom") || activeVal.toLowerCase().includes("kustom");
+      const isCustomValSelected =
+        activeVal.toLowerCase().includes("custom") ||
+        activeVal.toLowerCase().includes("kustom");
 
       const activeParsed = parseClientColorValue(activeVal);
       let activeDisplayName = activeParsed.name || activeParsed.hex;
@@ -1344,20 +1398,27 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           <div className="flex flex-wrap items-center gap-3">
             {group.values.map((val: string) => {
               const isSelected = selections[group.name] === val;
-              const isDisabled = isOptionDisabled(group.name, val) || disableVariantSelectors;
+              const isDisabled =
+                isOptionDisabled(group.name, val) || disableVariantSelectors;
 
               const parsedColor = parseClientColorValue(val);
-              const isValCustom = val.toLowerCase().includes("custom") || val.toLowerCase().includes("kustom");
+              const isValCustom =
+                val.toLowerCase().includes("custom") ||
+                val.toLowerCase().includes("kustom");
 
               const colorInfo = {
                 hex: isValCustom ? selectedCustomColor : parsedColor.hex,
                 cmyk: parsedColor.cmyk,
-                name: parsedColor.name || parsedColor.hex
+                name: parsedColor.name || parsedColor.hex,
               };
 
-              const bgStyle = isValCustom && !isSelected
-                ? { backgroundImage: "linear-gradient(to bottom right, #ff7e5f, #feb47b, #86e3ce, #d0e1fd, #e186e3)" }
-                : { backgroundColor: colorInfo.hex };
+              const bgStyle =
+                isValCustom && !isSelected
+                  ? {
+                      backgroundImage:
+                        "linear-gradient(to bottom right, #ff7e5f, #feb47b, #86e3ce, #d0e1fd, #e186e3)",
+                    }
+                  : { backgroundColor: colorInfo.hex };
 
               const colorButton = (
                 <button
@@ -1371,12 +1432,13 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                       : "hover:scale-105"
                   } ${isDisabled ? "opacity-35 cursor-not-allowed" : "cursor-pointer"}`}
                   style={bgStyle}
-                  title={`${colorInfo.name} (${colorInfo.cmyk})`}
-                >
+                  title={`${colorInfo.name} (${colorInfo.cmyk})`}>
                   {isSelected && !isDisabled && (
                     <span
                       className={`w-2 h-2 rounded-full ${
-                        colorInfo.hex.toLowerCase() === "#ffffff" ? "bg-black" : "bg-white"
+                        colorInfo.hex.toLowerCase() === "#ffffff"
+                          ? "bg-black"
+                          : "bg-white"
                       }`}
                     />
                   )}
@@ -1385,7 +1447,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
               if (isValCustom) {
                 return (
-                  <div key={val} className="flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none animate-pulse">
+                  <div
+                    key={val}
+                    className="flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none animate-pulse">
                     {colorButton}
                     <span className="text-[9px] font-extrabold text-indigo-700 uppercase tracking-widest leading-none">
                       🌈 Bisa Custom Warna
@@ -1435,7 +1499,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             const cmykStr = isCustomValSelected
               ? `C: ${hexToCmyk(selectedCustomColor).c} | M: ${hexToCmyk(selectedCustomColor).m} | Y: ${hexToCmyk(selectedCustomColor).y} | K: ${hexToCmyk(selectedCustomColor).k}`
               : parsed.cmyk;
-            const hexDisplay = isCustomValSelected ? selectedCustomColor.toUpperCase() : parsed.hex.toUpperCase();
+            const hexDisplay = isCustomValSelected
+              ? selectedCustomColor.toUpperCase()
+              : parsed.hex.toUpperCase();
 
             if (!cmykStr) return null;
 
@@ -1475,7 +1541,8 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           <div className="flex flex-wrap gap-3">
             {group.values.map((val: string) => {
               const isSelected = selections[group.name] === val;
-              let isDisabled = isOptionDisabled(group.name, val) || disableVariantSelectors;
+              let isDisabled =
+                isOptionDisabled(group.name, val) || disableVariantSelectors;
 
               const p = val.split("|");
               const mName = p[0] || "";
@@ -1486,7 +1553,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   key={val}
                   role="button"
                   tabIndex={isDisabled ? -1 : 0}
-                  onClick={() => !isDisabled && handleSelectOption(group.name, val)}
+                  onClick={() =>
+                    !isDisabled && handleSelectOption(group.name, val)
+                  }
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
@@ -1497,10 +1566,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                     isSelected && !isDisabled
                       ? "border-stone-850 ring-1 ring-stone-900 bg-stone-50 scale-102 font-medium"
                       : isDisabled
-                      ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
-                      : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer bg-white"
-                  }`}
-                >
+                        ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                        : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer bg-white"
+                  }`}>
                   {mUrl ? (
                     <div className="relative w-12 h-12 rounded-sm overflow-hidden bg-white mb-1 border border-stone-100 flex items-center justify-center group/thumb">
                       <img
@@ -1515,8 +1583,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                           setPreviewImage({ url: mUrl, name: mName });
                         }}
                         className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-150 flex items-center justify-center text-white"
-                        title="Perbesar gambar"
-                      >
+                        title="Perbesar gambar">
                         <ZoomIn className="w-4 h-4" />
                       </button>
                     </div>
@@ -1525,9 +1592,12 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                       No Img
                     </div>
                   )}
-                  <span className={`text-[11px] px-1 text-center font-semibold tracking-tight ${
-                    isSelected && !isDisabled ? "text-stone-900" : "text-stone-600"
-                  }`}>
+                  <span
+                    className={`text-[11px] px-1 text-center font-semibold tracking-tight ${
+                      isSelected && !isDisabled
+                        ? "text-stone-900"
+                        : "text-stone-600"
+                    }`}>
                     {mName}
                   </span>
                 </div>
@@ -1546,7 +1616,8 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         <div className="flex flex-wrap gap-2">
           {group.values.map((val: string) => {
             const isSelected = selections[group.name] === val;
-            let isDisabled = isOptionDisabled(group.name, val) || disableVariantSelectors;
+            let isDisabled =
+              isOptionDisabled(group.name, val) || disableVariantSelectors;
 
             return (
               <button
@@ -1558,10 +1629,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   isSelected && !isDisabled
                     ? "border-stone-900 bg-stone-900 text-white cursor-default"
                     : isDisabled
-                    ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
-                    : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
-                }`}
-              >
+                      ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                      : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
+                }`}>
                 {val.includes("|") ? val.split("|")[0] : val}
               </button>
             );
@@ -1717,7 +1787,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             <div className="flex flex-col gap-4">
               {attributeGroups
                 .filter((group) => {
-                  if (group.parentValueId && !selectedAttributeValueIds.includes(group.parentValueId)) {
+                  if (
+                    group.parentValueId &&
+                    !selectedAttributeValueIds.includes(group.parentValueId)
+                  ) {
                     return false;
                   }
                   if (group.type === "MOCKUP_SIDE") {
@@ -1735,7 +1808,8 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                 .map((group) => renderAttributeGroup(group))}
             </div>
           ) : (
-            product.variants && product.variants.length > 0 && (
+            product.variants &&
+            product.variants.length > 0 && (
               <div className="mt-1">
                 <p className="text-sm font-medium text-stone-900 mb-2">
                   Pilih Varian:
@@ -1744,17 +1818,26 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   {product.variants.map((v) => (
                     <button
                       key={v.id}
-                      disabled={(!product.isMadeByOrder && (v.stock ?? 0) <= 0) || disableVariantSelectors}
+                      disabled={
+                        (!product.isMadeByOrder && (v.stock ?? 0) <= 0) ||
+                        disableVariantSelectors
+                      }
                       onClick={() => handleVariantSelect(v.id)}
                       className={`px-4 py-2 border rounded-sm text-sm transition-colors ${
                         selectedVariantId === v.id && !disableVariantSelectors
                           ? "border-stone-900 bg-stone-900 text-white cursor-default"
-                          : ((!product.isMadeByOrder && (v.stock ?? 0) <= 0) || disableVariantSelectors)
-                          ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
-                          : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
-                      }`}
-                    >
-                      {v.name} ({product.isMadeByOrder ? "Pre-Order" : (v.stock > 0 ? `${v.stock} pcs` : "Habis")})
+                          : (!product.isMadeByOrder && (v.stock ?? 0) <= 0) ||
+                              disableVariantSelectors
+                            ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                            : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
+                      }`}>
+                      {v.name} (
+                      {product.isMadeByOrder
+                        ? "Pre-Order"
+                        : v.stock > 0
+                          ? `${v.stock} pcs`
+                          : "Habis"}
+                      )
                     </button>
                   ))}
                 </div>
@@ -1817,36 +1900,38 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           )}
 
           {/* ── 4. Print-Related Attributes (Metode Cetak, Warna Cetak, etc. - Only for Custom Cetak) ── */}
-          {isCustomizing && attributeGroups.length > 0 && attributeGroups.some((group) => isPrintRelatedAttribute(group.type, group.name)) && (
-            <div className="flex flex-col gap-4 border-t border-stone-100 pt-3 animate-fade-in">
-              {attributeGroups
-                .filter((group) => {
-                  if (
-                    group.parentValueId &&
-                    !selectedAttributeValueIds.includes(group.parentValueId)
-                  ) {
-                    return false;
-                  }
-                  if (
-                    group.type === "MOCKUP_SIDE" ||
-                    group.type === "PRINT_SIDE"
-                  ) {
-                    return false;
-                  }
-                  if (group.type === "PRINT_SIDE") {
-                    return false;
-                  }
-                  // Only show print-related attributes
-                  if (!isPrintRelatedAttribute(group.type, group.name)) {
-                    return false;
-                  }
-                  return true;
-                })
-                .map((group) => renderAttributeGroup(group))}
-            </div>
-          )}
- 
-
+          {isCustomizing &&
+            attributeGroups.length > 0 &&
+            attributeGroups.some((group) =>
+              isPrintRelatedAttribute(group.type, group.name),
+            ) && (
+              <div className="flex flex-col gap-4 border-t border-stone-100 pt-3 animate-fade-in">
+                {attributeGroups
+                  .filter((group) => {
+                    if (
+                      group.parentValueId &&
+                      !selectedAttributeValueIds.includes(group.parentValueId)
+                    ) {
+                      return false;
+                    }
+                    if (
+                      group.type === "MOCKUP_SIDE" ||
+                      group.type === "PRINT_SIDE"
+                    ) {
+                      return false;
+                    }
+                    if (group.type === "PRINT_SIDE") {
+                      return false;
+                    }
+                    // Only show print-related attributes
+                    if (!isPrintRelatedAttribute(group.type, group.name)) {
+                      return false;
+                    }
+                    return true;
+                  })
+                  .map((group) => renderAttributeGroup(group))}
+              </div>
+            )}
 
           {activeTiers.length > 0 && (
             <div className="mt-1">
@@ -2014,7 +2099,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   <MessageCircle className="w-5 h-5 fill-current" />
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-stone-900">{waBoxContent.title}</p>
+                  <p className="text-sm font-bold text-stone-900">
+                    {waBoxContent.title}
+                  </p>
                   <p className="text-xs text-stone-500 leading-relaxed font-normal">
                     {waBoxContent.description}
                   </p>
@@ -2024,8 +2111,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                 href={`https://wa.me/${adminWhatsApp}?text=${encodeURIComponent(waBoxContent.text)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 bg-stone-900 hover:bg-stone-800 text-white text-sm font-semibold py-3 px-4 rounded-sm transition-colors cursor-pointer w-full text-center shadow-xs"
-              >
+                className="flex items-center justify-center gap-2 bg-stone-900 hover:bg-stone-800 text-white text-sm font-semibold py-3 px-4 rounded-sm transition-colors cursor-pointer w-full text-center shadow-xs">
                 <svg className="w-5 h-5 fill-white" viewBox="0 0 24 24">
                   <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.488 1.449 5.412 1.451 5.466 0 9.911-4.441 9.914-9.907.001-2.648-1.03-5.138-2.902-7.013C17.2 1.81 14.717.78 12.01.78 6.544.78 2.099 5.22 2.096 10.687c-.001 1.97.51 3.889 1.482 5.518l-1.03 3.757 3.864-.997.245.146z" />
                 </svg>

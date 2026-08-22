@@ -48,6 +48,7 @@ export const useCartStore = create<CartState>((set, get) => ({
               variantId: i.variantId || null,
               quantity: i.quantity,
               customization: i.customization || null,
+              selectedAttributes: i.selectedAttributes || null,
             })),
           };
           await fetch(`${apiUrl}/cart/sync`, {
@@ -133,6 +134,8 @@ export const useCartStore = create<CartState>((set, get) => ({
             productId: product.id,
             variantId: product.variantId || null,
             quantity: quantity,
+            price: product.price,
+            selectedAttributes: product.selectedAttributes || null,
             customization: product.customization || null,
           }),
         });
@@ -167,6 +170,7 @@ export const useCartStore = create<CartState>((set, get) => ({
             productId: product.id,
             variantId: product.variantId || null,
             quantity: quantity,
+            selectedAttributes: product.selectedAttributes || null,
             customization: product.customization || null,
           },
         ];
@@ -296,6 +300,9 @@ function formatCartItems(items: any[]): CartItemUI[] {
       height: item.product.height,
       length: item.product.length,
       customization: item.customization,
+
+      // ✨ PASTIKAN BARIS INI ADA DAN TIDAK KOSONG
+      selectedAttributes: item.selectedAttributes || null,
     };
   });
 }

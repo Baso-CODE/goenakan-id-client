@@ -408,7 +408,15 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           form,
-          items: cartItems,
+          items: cartItems.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            customization: item.customization,
+            selectedAttributes: item.selectedAttributes || null,
+          })),
           note,
           subtotal,
           shippingCost: 0,
