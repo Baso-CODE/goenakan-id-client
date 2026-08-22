@@ -26,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useRouter } from "@/i18n/routing";
+import { countries } from "@/lib/countries";
 import { cn } from "@/lib/utils";
 import {
   Check,
@@ -67,13 +68,6 @@ interface CustomerAddress {
 
 const WILAYAH_BASE_PATH = "/wilayah";
 const GLOBAL_API_URL = "https://countriesnow.space/api/v0.1";
-
-const countriesList = [
-  { name: "Indonesia", code: "ID", flag: "🇮🇩" },
-  { name: "Malaysia", code: "MY", flag: "🇲🇾" },
-  { name: "Singapore", code: "SG", flag: "🇸🇬" },
-  { name: "Australia", code: "AU", flag: "🇦🇺" },
-];
 
 // Komponen ComboBox internal untuk pemilihan wilayah
 function RegionCombobox({
@@ -631,7 +625,7 @@ export default function CheckoutPage() {
                               <span className="flex items-center gap-2 truncate">
                                 <span>
                                   {
-                                    countriesList.find(
+                                    countries.find(
                                       (c) => c.name === form.country,
                                     )?.flag
                                   }
@@ -655,7 +649,7 @@ export default function CheckoutPage() {
                             <CommandList>
                               <CommandEmpty>Tidak ditemukan.</CommandEmpty>
                               <CommandGroup>
-                                {countriesList.map((c) => (
+                                {countries.map((c) => (
                                   <CommandItem
                                     key={c.code}
                                     value={c.name}
