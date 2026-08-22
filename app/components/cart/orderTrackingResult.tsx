@@ -241,7 +241,7 @@ export function OrderTrackingResult({
                   <div className="flex flex-col pl-2 mt-1 border-l-2 border-stone-200 space-y-3">
                     {ship.timeline?.map((t: any, tIdx: number) => (
                       <div key={tIdx} className="relative pl-3 text-xs">
-                        <div className="absolute -left-[17px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-600 ring-4 ring-white" />
+                        <div className="absolute -left-4.25 top-1 w-2.5 h-2.5 rounded-full bg-emerald-600 ring-4 ring-white" />
                         <p className="font-semibold text-stone-800">
                           {t.status}
                         </p>

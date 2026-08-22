@@ -169,7 +169,7 @@ export default function InformationDetailCustomer() {
         <div className="container ">
           <Tabs defaultValue="orders" className="w-full">
             <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
-              <div className="w-full overflow-x-auto border-b border-gray-200 lg:border-none lg:w-64 shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="w-full overflow-x-auto border-b border-gray-200 lg:border-none lg:w-64 shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] scrollbar-none">
                 <TabsList className="flex flex-row lg:flex-col h-auto bg-transparent border-none w-max lg:w-full gap-2 lg:gap-1 lg:items-start p-0">
                   <TabsTrigger
                     value="orders"
