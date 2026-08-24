@@ -275,7 +275,88 @@
   
   "Product-Card": {
     "sold": "Sold"
+  },
+
+  "Profile": {
+  "header": {
+    "memberSince": "Member since {date}",
+    "logout": "Logout"
+  },
+  "tabs": {
+    "orders": "My Orders",
+    "details": "Personal Details",
+    "address": "Addresses"
+  },
+  "orders": {
+    "title": "Order History",
+    "description": "View and track your custom product orders.",
+    "table": {
+      "orderNumber": "Order Number",
+      "date": "Date",
+      "status": "Status",
+      "total": "Total",
+      "action": "Action"
+    },
+    "empty": "No order history yet.",
+    "viewDetails": "View Details"
+  },
+  "details": {
+    "title": "Personal Details",
+    "description": "Update your {type} information.",
+    "labels": {
+      "email": "Email Address",
+      "fullName": "Full Name",
+      "phone": "Phone Number",
+      "companyName": "Company Name",
+      "department": "Department",
+      "picName": "PIC Name",
+      "picPhone": "PIC Phone (WhatsApp)"
+    },
+    "buttons": {
+      "update": "Update Profile",
+      "updating": "Updating..."
+    }
   }
+},
+"Address": {
+  "loading": "Loading addresses...",
+  "savedAddresses": "Saved Addresses",
+  "defaultBadge": "DEFAULT",
+  "actions": {
+    "edit": "Edit",
+    "setDefault": "Set as default",
+    "remove": "Remove",
+    "addNew": "Add New Address"
+  },
+  "dialog": {
+    "addTitle": "Add New Address",
+    "editTitle": "Edit Address",
+    "label": "Address Label",
+    "recipient": "Recipient Name",
+    "phone": "Phone Number",
+    "fullAddress": "Full Address",
+    "district": "District / Kecamatan",
+    "city": "City / Kabupaten",
+    "province": "Province",
+    "postalCode": "Postal Code",
+    "placeholders": {
+      "label": "e.g. Home, Office",
+      "recipient": "John Doe",
+      "phone": "08123456789",
+      "fullAddress": "Jl. Sudirman No. 12, RT 01/RW 02...",
+      "district": "Kec. Gondomanan",
+      "city": "Yogyakarta",
+      "province": "DIY",
+      "postalCode": "55122"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "saveNew": "Save Address",
+      "update": "Update Address"
+    }
+  }
+}
 }
 
 

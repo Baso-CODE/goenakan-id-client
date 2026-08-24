@@ -1,5 +1,3 @@
-// src/app/types/itemCart/addToCartPayload.type.ts
-
 export interface AddToCartPayload {
   id: string;
   name: string;
@@ -16,4 +14,6 @@ export interface AddToCartPayload {
   height?: number | null;
   length?: number | null;
   customization?: any;
+  // ✨ TAMBAHAN BARU:
+  selectedAttributes?: any;
 }

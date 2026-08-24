@@ -8,13 +8,35 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useRouter } from "@/i18n/routing";
+import { countries } from "@/lib/countries";
 import { cn } from "@/lib/utils";
-import { Loader2, Lock, MapPin, ShieldCheck, X } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  Loader2,
+  Lock,
+  MapPin,
+  ShieldCheck,
+  X,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Script from "next/script";
@@ -38,13 +60,109 @@ interface CustomerAddress {
   province: string;
   city: string;
   district: string;
+  subDistrict: string;
   postalCode: string;
   fullAddress: string;
   isDefault: boolean;
 }
 
-function formatRupiah(amount: number) {
-  return `Rp ${amount.toLocaleString("id-ID")}`;
+const WILAYAH_BASE_PATH = "/wilayah";
+const GLOBAL_API_URL = "https://countriesnow.space/api/v0.1";
+
+// Komponen ComboBox internal untuk pemilihan wilayah
+function RegionCombobox({
+  label,
+  value,
+  list,
+  placeholder,
+  disabled,
+  loading,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  list: any[];
+  placeholder: string;
+  disabled: boolean;
+  loading?: boolean;
+  onChange: (val: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <Label className="text-xs text-stone-500">{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            disabled={disabled || loading}
+            className={cn(
+              "w-full justify-between h-10 font-normal rounded-none border-stone-300 text-sm bg-white",
+              !value && "text-stone-400",
+            )}>
+            <span className="truncate">
+              {loading ? "Loading..." : value || placeholder}
+            </span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-[--radix-popover-trigger-width] p-0"
+          align="start">
+          <Command>
+            <CommandInput placeholder="Cari..." className="text-sm" />
+            <CommandList>
+              {loading ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">
+                  Loading data...
+                </div>
+              ) : (
+                <CommandEmpty>Tidak ditemukan</CommandEmpty>
+              )}
+              <CommandGroup>
+                {Array.isArray(list) &&
+                  list.map((item, idx) => (
+                    <CommandItem
+                      key={item.code || idx}
+                      value={item.name}
+                      onSelect={() => {
+                        onChange(item.name);
+                        setOpen(false);
+                      }}>
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value === item.name ? "opacity-100" : "opacity-0",
+                        )}
+                      />
+                      {item.name}
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+// ✨ PERBAIKAN 1: Gunakan formatCurrency dinamis, hapus formatRupiah
+function formatCurrency(amount: number, currencyCode: string = "IDR") {
+  // Tentukan locale berdasarkan mata uang agar format titik/komanya sesuai
+  let locale = "en-US";
+  if (currencyCode === "IDR") locale = "id-ID";
+  else if (currencyCode === "EUR") locale = "de-DE";
+  else if (currencyCode === "CNY" || currencyCode === "RMB") locale = "zh-CN";
+
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currencyCode === "RMB" ? "CNY" : currencyCode, // API standar pakai CNY untuk RMB
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 interface CustomizationZone {
@@ -76,15 +194,17 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
-  const { cartItems, fetchCart, clearCart } = useCartStore();
+
+  const { cartItems, fetchCart, clearCart, currencyCode } = useCartStore();
+
   const [addNote, setAddNote] = useState(false);
   const [note, setNote] = useState("");
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   const [userAddresses, setUserAddresses] = useState<CustomerAddress[]>([]);
-
   const [showAddressModal, setShowAddressModal] = useState(false);
 
+  // Form State mencakup subDistrict (Kelurahan)
   const [form, setForm] = useState({
     email: session?.user?.email || "",
     fullName: "",
@@ -93,10 +213,158 @@ export default function CheckoutPage() {
     province: "",
     city: "",
     district: "",
+    subDistrict: "",
     postalCode: "",
     address: "",
     label: "",
   });
+
+  // States untuk Fetching Wilayah API
+  const [loadingRegion, setLoadingRegion] = useState(false);
+  const [openCountry, setOpenCountry] = useState(false);
+  const [provinces, setProvinces] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]);
+  const [subDistricts, setSubDistricts] = useState<any[]>([]);
+  const [globalStates, setGlobalStates] = useState<any[]>([]);
+  const [globalCities, setGlobalCities] = useState<any[]>([]);
+
+  const isIndonesia = form.country === "Indonesia";
+
+  // === LOGIKA API WILAYAH BERURUTAN ===
+  useEffect(() => {
+    if (!isIndonesia) return;
+    const fetchProv = async () => {
+      setLoadingRegion(true);
+      try {
+        const res = await fetch(`${apiUrl}${WILAYAH_BASE_PATH}/provinces`);
+        const data = await res.json();
+        if (Array.isArray(data.data)) setProvinces(data.data);
+      } catch (err) {
+        console.error("Error fetch provinces:", err);
+      } finally {
+        setLoadingRegion(false);
+      }
+    };
+    fetchProv();
+  }, [isIndonesia]);
+
+  useEffect(() => {
+    if (!isIndonesia || !form.province) return;
+    const prov = provinces.find((p: any) => p.name === form.province);
+    if (!prov) return;
+
+    const fetchCitiesData = async () => {
+      setLoadingRegion(true);
+      try {
+        const res = await fetch(
+          `${apiUrl}${WILAYAH_BASE_PATH}/regencies/${prov.code}`,
+        );
+        const data = await res.json();
+        if (Array.isArray(data.data)) setCities(data.data);
+      } catch (err) {
+        console.error("Error fetch cities:", err);
+      } finally {
+        setLoadingRegion(false);
+      }
+    };
+    fetchCitiesData();
+  }, [form.province, isIndonesia, provinces]);
+
+  useEffect(() => {
+    if (!isIndonesia || !form.city) return;
+    const c = cities.find((p: any) => p.name === form.city);
+    if (!c) return;
+
+    const fetchDistrictsData = async () => {
+      setLoadingRegion(true);
+      try {
+        const res = await fetch(
+          `${apiUrl}${WILAYAH_BASE_PATH}/districts/${c.code}`,
+        );
+        const data = await res.json();
+        if (Array.isArray(data.data)) setDistricts(data.data);
+      } catch (err) {
+        console.error("Error fetch districts:", err);
+      } finally {
+        setLoadingRegion(false);
+      }
+    };
+    fetchDistrictsData();
+  }, [form.city, isIndonesia, cities]);
+
+  useEffect(() => {
+    if (!isIndonesia || !form.district) return;
+    const dist = districts.find((p: any) => p.name === form.district);
+    if (!dist) return;
+
+    const fetchSubDistrictsData = async () => {
+      setLoadingRegion(true);
+      try {
+        const res = await fetch(
+          `${apiUrl}${WILAYAH_BASE_PATH}/villages/${dist.code}`,
+        );
+        const data = await res.json();
+        if (Array.isArray(data.data)) setSubDistricts(data.data);
+      } catch (err) {
+        console.error("Error fetch subdistricts:", err);
+      } finally {
+        setLoadingRegion(false);
+      }
+    };
+    fetchSubDistrictsData();
+  }, [form.district, isIndonesia, districts]);
+
+  // Fetch Global States & Cities untuk luar Indonesia
+  useEffect(() => {
+    if (isIndonesia || !form.country) return;
+    const fetchGlobalStates = async () => {
+      setLoadingRegion(true);
+      try {
+        const res = await fetch(`${GLOBAL_API_URL}/countries/states`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ country: form.country }),
+        });
+        const json = await res.json();
+        if (json.data && json.data.states) {
+          setGlobalStates(json.data.states.map((s: any) => ({ name: s.name })));
+        } else {
+          setGlobalStates([]);
+        }
+      } catch (err) {
+        setGlobalStates([]);
+      } finally {
+        setLoadingRegion(false);
+      }
+    };
+    fetchGlobalStates();
+  }, [form.country, isIndonesia]);
+
+  useEffect(() => {
+    if (isIndonesia || !form.country || !form.province) return;
+    const fetchGlobalCities = async () => {
+      setLoadingRegion(true);
+      try {
+        const res = await fetch(`${GLOBAL_API_URL}/countries/state/cities`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ country: form.country, state: form.province }),
+        });
+        const json = await res.json();
+        if (json.data) {
+          setGlobalCities(json.data.map((c: string) => ({ name: c })));
+        } else {
+          setGlobalCities([]);
+        }
+      } catch (err) {
+        setGlobalCities([]);
+      } finally {
+        setLoadingRegion(false);
+      }
+    };
+    fetchGlobalCities();
+  }, [form.country, form.province, isIndonesia]);
 
   const subtotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -117,6 +385,7 @@ export default function CheckoutPage() {
       province: addr.province || "",
       city: addr.city || "",
       district: addr.district || "",
+      subDistrict: addr.subDistrict || "",
       postalCode: addr.postalCode || "",
       address: addr.fullAddress,
       label: addr.label,
@@ -131,7 +400,6 @@ export default function CheckoutPage() {
 
     setIsProcessing(true);
     try {
-      // 1. Buat Order
       const createOrderRes = await fetch(`${apiUrl}/web-orders`, {
         method: "POST",
         headers: {
@@ -140,7 +408,15 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           form,
-          items: cartItems,
+          items: cartItems.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            customization: item.customization,
+            selectedAttributes: item.selectedAttributes || null,
+          })),
           note,
           subtotal,
           shippingCost: 0,
@@ -154,7 +430,6 @@ export default function CheckoutPage() {
 
       const newOrderId = orderData.data.id;
 
-      // 2. Minta Token Pembayaran
       const payRes = await fetch(`${apiUrl}/web-orders/${newOrderId}/pay`, {
         method: "POST",
         headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -167,17 +442,17 @@ export default function CheckoutPage() {
       const snapTokenFromApi = payData.data.token;
 
       window.snap.pay(snapTokenFromApi, {
-        onSuccess: async function (result) {
+        onSuccess: async function () {
           toast.success("Pembayaran berhasil!");
           await clearCart(token || undefined);
           router.push(`/order-status?id=${newOrderId}&status=success`);
         },
-        onPending: async function (result) {
+        onPending: async function () {
           toast.info("Menunggu pembayaran Anda.");
           await clearCart(token || undefined);
           router.push(`/order-status?id=${newOrderId}&status=pending`);
         },
-        onError: function (result) {
+        onError: function () {
           toast.error("Pembayaran gagal.");
         },
         onClose: async function () {
@@ -303,7 +578,7 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                {/* Address Selection / Manual Form */}
+                {/* Address Selection Card / Manual Form dengan API Wilayah */}
                 {token && userAddresses.length > 0 ? (
                   <div className="p-4 border border-stone-200 bg-white shadow-sm space-y-2">
                     <Badge
@@ -320,6 +595,7 @@ export default function CheckoutPage() {
                         {form.address}
                       </p>
                       <p className="text-xs text-stone-400 font-medium uppercase">
+                        {form.subDistrict ? `${form.subDistrict}, ` : ""}
                         {form.district ? `${form.district}, ` : ""}
                         {form.city}, {form.province} {form.postalCode}
                       </p>
@@ -341,34 +617,225 @@ export default function CheckoutPage() {
                       onChange={handleChange}
                       className="rounded-none border-stone-300 bg-white"
                     />
-                    <Input
-                      name="province"
-                      placeholder="Province"
-                      value={form.province}
-                      onChange={handleChange}
-                      className="rounded-none border-stone-300 bg-white"
-                    />
-                    <Input
-                      name="city"
-                      placeholder="City"
-                      value={form.city}
-                      onChange={handleChange}
-                      className="rounded-none border-stone-300 bg-white"
-                    />
-                    <Input
-                      name="district"
-                      placeholder="District (Kecamatan)"
-                      value={form.district}
-                      onChange={handleChange}
-                      className="rounded-none border-stone-300 bg-white"
-                    />
-                    <Input
-                      name="postalCode"
-                      placeholder="Postal Code"
-                      value={form.postalCode}
-                      onChange={handleChange}
-                      className="rounded-none border-stone-300 bg-white"
-                    />
+
+                    {/* Negara / Country */}
+                    <div className="flex flex-col gap-1 md:col-span-2">
+                      <Label className="text-xs text-stone-500">
+                        Negara / Country
+                      </Label>
+                      <Popover open={openCountry} onOpenChange={setOpenCountry}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between h-10 font-normal rounded-none border-stone-300 text-sm bg-white">
+                            {form.country ? (
+                              <span className="flex items-center gap-2 truncate">
+                                <span>
+                                  {
+                                    countries.find(
+                                      (c) => c.name === form.country,
+                                    )?.flag
+                                  }
+                                </span>
+                                {form.country}
+                              </span>
+                            ) : (
+                              "Pilih Negara"
+                            )}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          className="w-[--radix-popover-trigger-width] p-0"
+                          align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Cari negara..."
+                              className="text-sm"
+                            />
+                            <CommandList>
+                              <CommandEmpty>Tidak ditemukan.</CommandEmpty>
+                              <CommandGroup>
+                                {countries.map((c) => (
+                                  <CommandItem
+                                    key={c.code}
+                                    value={c.name}
+                                    onSelect={() => {
+                                      setForm((prev) => ({
+                                        ...prev,
+                                        country: c.name,
+                                        province: "",
+                                        city: "",
+                                        district: "",
+                                        subDistrict: "",
+                                        postalCode: "",
+                                      }));
+                                      setOpenCountry(false);
+                                    }}>
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        form.country === c.name
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    <span>
+                                      {c.flag} {c.name}
+                                    </span>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Provinsi */}
+                    {isIndonesia || globalStates.length > 0 ? (
+                      <RegionCombobox
+                        label="Provinsi"
+                        placeholder="Pilih Provinsi"
+                        list={isIndonesia ? provinces : globalStates}
+                        value={form.province}
+                        disabled={!form.country}
+                        loading={loadingRegion}
+                        onChange={(val) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            province: val,
+                            city: "",
+                            district: "",
+                            subDistrict: "",
+                          }))
+                        }
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-stone-500">
+                          Provinsi
+                        </Label>
+                        <Input
+                          placeholder="Masukkan Provinsi"
+                          value={form.province}
+                          onChange={handleChange}
+                          name="province"
+                          disabled={!form.country}
+                          className="rounded-none border-stone-300 bg-white"
+                        />
+                      </div>
+                    )}
+
+                    {/* Kota / Kabupaten */}
+                    {isIndonesia || globalCities.length > 0 ? (
+                      <RegionCombobox
+                        label="Kota / Kabupaten"
+                        placeholder="Pilih Kota"
+                        list={isIndonesia ? cities : globalCities}
+                        value={form.city}
+                        disabled={!form.province}
+                        loading={loadingRegion}
+                        onChange={(val) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            city: val,
+                            district: "",
+                            subDistrict: "",
+                          }))
+                        }
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-stone-500">
+                          Kota / Kabupaten
+                        </Label>
+                        <Input
+                          placeholder="Masukkan Kota"
+                          value={form.city}
+                          onChange={handleChange}
+                          name="city"
+                          disabled={!form.province}
+                          className="rounded-none border-stone-300 bg-white"
+                        />
+                      </div>
+                    )}
+
+                    {/* Kecamatan */}
+                    {isIndonesia ? (
+                      <RegionCombobox
+                        label="Kecamatan"
+                        placeholder="Pilih Kecamatan"
+                        list={districts}
+                        value={form.district}
+                        disabled={!form.city}
+                        loading={loadingRegion}
+                        onChange={(val) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            district: val,
+                            subDistrict: "",
+                          }))
+                        }
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-stone-500">
+                          Kecamatan
+                        </Label>
+                        <Input
+                          placeholder="Masukkan Kecamatan"
+                          value={form.district}
+                          onChange={handleChange}
+                          name="district"
+                          disabled={!form.city}
+                          className="rounded-none border-stone-300 bg-white"
+                        />
+                      </div>
+                    )}
+
+                    {/* Kelurahan */}
+                    {isIndonesia ? (
+                      <RegionCombobox
+                        label="Kelurahan"
+                        placeholder="Pilih Kelurahan"
+                        list={subDistricts}
+                        value={form.subDistrict}
+                        disabled={!form.district}
+                        loading={loadingRegion}
+                        onChange={(val) =>
+                          setForm((prev) => ({ ...prev, subDistrict: val }))
+                        }
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        <Label className="text-xs text-stone-500">
+                          Kelurahan (Opsional)
+                        </Label>
+                        <Input
+                          placeholder="Masukkan Kelurahan"
+                          value={form.subDistrict}
+                          onChange={handleChange}
+                          name="subDistrict"
+                          disabled={!form.city}
+                          className="rounded-none border-stone-300 bg-white"
+                        />
+                      </div>
+                    )}
+
+                    {/* Kode Pos */}
+                    <div className="flex flex-col gap-1 md:col-span-2">
+                      <Label className="text-xs text-stone-500">Kode Pos</Label>
+                      <Input
+                        name="postalCode"
+                        placeholder="Postal Code"
+                        value={form.postalCode}
+                        onChange={handleChange}
+                        className="rounded-none border-stone-300 bg-white"
+                      />
+                    </div>
+
                     <div className="md:col-span-2">
                       <Textarea
                         name="address"
@@ -634,9 +1101,12 @@ export default function CheckoutPage() {
                         <p className="text-[10px] text-stone-400 italic">
                           {item.materialType}
                         </p>
+
+                        {/* ✨ PERBAIKAN 3: Ganti formatRupiah jadi formatCurrency dinamis */}
                         <p className="text-xs font-bold text-stone-800 mt-1">
-                          {formatRupiah(item.price)}
+                          {formatCurrency(item.price, currencyCode)}
                         </p>
+
                         {getCustomizationDetails(item.customization) && (
                           <div className="mt-1.5 p-1.5 bg-stone-100 rounded-sm border border-stone-200 self-start max-w-full">
                             <p className="text-[8px] font-bold text-stone-600 uppercase tracking-widest mb-1">
@@ -709,15 +1179,20 @@ export default function CheckoutPage() {
                     <span className="text-stone-500">
                       Subtotal ({totalQty} items)
                     </span>
+
+                    {/* ✨ PERBAIKAN 4: Ganti formatRupiah jadi formatCurrency dinamis */}
                     <span className="font-bold text-stone-800">
-                      {formatRupiah(subtotal)}
+                      {formatCurrency(subtotal, currencyCode)}
                     </span>
                   </div>
-                  {/* Bagian Flat Shipping dihapus dari sini */}
                   <Separator />
                   <div className="flex justify-between items-center py-2 font-bold uppercase tracking-widest text-stone-900">
                     <span className="text-sm">Total</span>
-                    <span className="text-base">{formatRupiah(total)}</span>
+
+                    {/* ✨ PERBAIKAN 5: Ganti formatRupiah jadi formatCurrency dinamis */}
+                    <span className="text-base">
+                      {formatCurrency(total, currencyCode)}
+                    </span>
                   </div>
 
                   <Button
@@ -726,6 +1201,15 @@ export default function CheckoutPage() {
                     className="w-full bg-[#463b34] hover:bg-stone-800 text-white text-xs font-bold tracking-[0.2em] rounded-none py-6 transition-all">
                     {isProcessing ? "PROCESSING..." : "CONFIRM ORDER"}
                   </Button>
+
+                  <div className="bg-blue-50/50 p-3 mt-4 border border-blue-100 rounded-sm">
+                    <p className="text-[10px] text-blue-700 leading-relaxed italic text-center">
+                      *Please note: All transactions are securely processed in
+                      Indonesian Rupiah (IDR). Your credit card provider will
+                      automatically convert the final amount to your local
+                      currency.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
