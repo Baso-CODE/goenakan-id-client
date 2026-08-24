@@ -10,6 +10,8 @@ interface ProductImageGalleryProps {
   productName: string;
   customColor?: string;
   isColorPickerActive?: boolean;
+  colorMockupTrigger?: string;
+  colorMaskUrl?: string;
 }
 
 export function ProductImageGallery({
@@ -17,6 +19,8 @@ export function ProductImageGallery({
   productName,
   customColor,
   isColorPickerActive,
+  colorMockupTrigger,
+  colorMaskUrl,
 }: ProductImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -36,6 +40,14 @@ export function ProductImageGallery({
 
   const activeMedia = media[activeIndex];
 
+  const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
+
+  const colorOverlayUrl = (colorMockupTrigger && colorMockupTrigger !== "NONE")
+    ? activeMask
+    : activeMedia.url;
+
+  const showColorOverlay = !!customColor && !!activeMask && activeMedia.isColorCustomizable;
+
   return (
     <div className="flex flex-col gap-3">
       {/* ── Main Media (Gambar atau Video) ── */}
@@ -50,7 +62,7 @@ export function ProductImageGallery({
             className="w-full h-full object-contain"
           />
         ) : (
-          isColorPickerActive && customColor && activeMedia.isColorCustomizable ? (
+          showColorOverlay && colorOverlayUrl ? (
             <div className="relative w-full h-full">
               <Image
                 src={activeMedia.url}
@@ -65,11 +77,11 @@ export function ProductImageGallery({
                 style={{
                   backgroundColor: customColor,
                   mixBlendMode: "multiply",
-                  maskImage: `url(${activeMedia.url})`,
+                  maskImage: `url(${colorOverlayUrl})`,
                   maskSize: "contain",
                   maskRepeat: "no-repeat",
                   maskPosition: "center",
-                  WebkitMaskImage: `url(${activeMedia.url})`,
+                  WebkitMaskImage: `url(${colorOverlayUrl})`,
                   WebkitMaskSize: "contain",
                   WebkitMaskRepeat: "no-repeat",
                   WebkitMaskPosition: "center",
