@@ -1,7 +1,7 @@
 "use client";
 
 import { MediaItem, MockupArea } from "@/app/types/productDetail.type";
-import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus, Download, Ruler } from "lucide-react";
+import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus, Download, Ruler, Printer, FileImage, Maximize2, Move } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -142,6 +142,8 @@ interface ProductCustomizerProps {
   customColor?: string;
   isColorPickerActive?: boolean;
   productDimensions?: string;
+  colorMockupTrigger?: string;
+  colorMaskUrl?: string;
 }
 
 export function ProductCustomizer({
@@ -156,6 +158,8 @@ export function ProductCustomizer({
   customColor,
   isColorPickerActive,
   productDimensions,
+  colorMockupTrigger,
+  colorMaskUrl,
 }: ProductCustomizerProps) {
   const isImageCustomizable = (item: MediaItem) => {
     return !!(item.mockupAreas && item.mockupAreas.length > 0);
@@ -223,6 +227,72 @@ export function ProductCustomizer({
 
   // Jika active index tidak valid, default ke media pertama
   const activeMedia = media[activeIndex] || media[0];
+
+  const selectedPrintingMethod = useMemo(() => {
+    if (!attributeValues || !selectedAttributeValueIds) return null;
+    const found = attributeValues.find((av: any) => {
+      if (!selectedAttributeValueIds.includes(av.attributeValueId)) return false;
+      const name = (av.attributeName || "").toLowerCase();
+      return name.includes("metode") || name.includes("cetak") || name.includes("print");
+    });
+    return found ? (found.value?.split("|")[0] || null) : null;
+  }, [attributeValues, selectedAttributeValueIds]);
+
+  const activeLogoDetails = useMemo(() => {
+    if (!activeLogoId || !activeMedia?.mockupAreas) return null;
+    for (const area of activeMedia.mockupAreas) {
+      const list = uploads[area.id] || [];
+      const found = list.find((l) => l.id === activeLogoId);
+      if (found) {
+        return { logo: found, area };
+      }
+    }
+    return null;
+  }, [activeLogoId, uploads, activeMedia]);
+
+  const logoDimensionStr = useMemo(() => {
+    if (!activeLogoDetails) return null;
+    const { logo, area } = activeLogoDetails;
+    const logoWidth = area.physicalWidth
+      ? ((logo.scale || 5) / area.width) * area.physicalWidth
+      : null;
+    const logoHeight = logoWidth && logo.aspectRatio
+      ? logoWidth / logo.aspectRatio
+      : null;
+    return logoWidth && logoHeight
+      ? `${Math.round(logoWidth * 10) / 10} x ${Math.round(logoHeight * 10) / 10} ${area.unit || "cm"}`
+      : `${Math.round(logo.scale || 5)}%`;
+  }, [activeLogoDetails]);
+
+  const distanceStr = useMemo(() => {
+    if (!activeLogoDetails) return null;
+    const { logo, area } = activeLogoDetails;
+    const scale = logo.scale ?? 10;
+    const xOffset = logo.xOffset ?? area.x;
+    const yOffset = logo.yOffset ?? area.y;
+    const aspect = logo.aspectRatio || 1.0;
+    const logoHeight = scale / aspect;
+
+    const leftDistance = xOffset - area.x;
+    const rightDistance = (area.x + area.width) - (xOffset + scale);
+    const topDistance = yOffset - area.y;
+    const bottomDistance = (area.y + area.height) - (yOffset + logoHeight);
+
+    const getCmVal = (distPct: number, physicalSize?: number, baseSize?: number) => {
+      if (physicalSize && baseSize) {
+        const cmVal = distPct * (physicalSize / baseSize);
+        return `${Math.round(cmVal * 10) / 10}${area.unit || "cm"}`;
+      }
+      return `${Math.round(distPct)}%`;
+    };
+
+    return {
+      left: getCmVal(leftDistance, area.physicalWidth, area.width),
+      right: getCmVal(rightDistance, area.physicalWidth, area.width),
+      top: getCmVal(topDistance, area.physicalHeight, area.height),
+      bottom: getCmVal(bottomDistance, area.physicalHeight, area.height),
+    };
+  }, [activeLogoDetails]);
 
   // Synchronize uploads state across different mockup media items when variants change
   useEffect(() => {
@@ -521,14 +591,60 @@ export function ProductCustomizer({
       if (activeUploads.length === 0) {
         onChange(null);
       } else {
-        const zonesObj: Record<string, { label: string; logos: LogoItem[]; logoCount: number; printPositionValueId?: string | null; rotation?: number; }> = {};
+        const zonesObj: Record<string, { label: string; logos: any[]; logoCount: number; printPositionValueId?: string | null; rotation?: number; }> = {};
         for (const [areaId, list] of activeUploads) {
           const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
           const label = activeMedia.mockupSideName || area?.label || "Kustom";
           const totalCount = list.reduce((sum, item) => sum + (item.logoCount || 1), 0);
+
+          // Enrich logos with physical calculations so they are persisted in cart/checkout
+          const enrichedLogos = list.map((logo) => {
+            const scale = logo.scale ?? 10;
+            const xOffset = logo.xOffset ?? (area?.x || 0);
+            const yOffset = logo.yOffset ?? (area?.y || 0);
+            const aspect = logo.aspectRatio || 1.0;
+            const logoHeight = scale / aspect;
+
+            const leftDistance = xOffset - (area?.x || 0);
+            const rightDistance = ((area?.x || 0) + (area?.width || 0)) - (xOffset + scale);
+            const topDistance = yOffset - (area?.y || 0);
+            const bottomDistance = ((area?.y || 0) + (area?.height || 0)) - (yOffset + logoHeight);
+
+            const getCmVal = (distPct: number, physicalSize?: number, baseSize?: number) => {
+              if (physicalSize && baseSize) {
+                const cmVal = distPct * (physicalSize / baseSize);
+                return `${Math.round(cmVal * 10) / 10}${area?.unit || "cm"}`;
+              }
+              return `${Math.round(distPct)}%`;
+            };
+
+            const logoWidthCm = area?.physicalWidth
+              ? (scale / area.width) * area.physicalWidth
+              : null;
+            const logoHeightCm = logoWidthCm && aspect
+              ? logoWidthCm / aspect
+              : null;
+            
+            const physicalDimensions = logoWidthCm && logoHeightCm
+              ? `${Math.round(logoWidthCm * 10) / 10} x ${Math.round(logoHeightCm * 10) / 10} ${area?.unit || "cm"}`
+              : `${Math.round(scale)}%`;
+
+            return {
+              ...logo,
+              logoPhysicalDimensions: physicalDimensions,
+              logoPositionDistance: {
+                left: getCmVal(leftDistance, area?.physicalWidth, area?.width),
+                right: getCmVal(rightDistance, area?.physicalWidth, area?.width),
+                top: getCmVal(topDistance, area?.physicalHeight, area?.height),
+                bottom: getCmVal(bottomDistance, area?.physicalHeight, area?.height),
+              },
+              printingMethod: selectedPrintingMethod || "Custom Cetak",
+            };
+          });
+
           zonesObj[areaId] = {
             label,
-            logos: list,
+            logos: enrichedLogos,
             logoCount: totalCount,
             printPositionValueId: activeMedia.printPositionValueId,
             rotation: area?.rotation || 0,
@@ -539,7 +655,7 @@ export function ProductCustomizer({
         });
       }
     }
-  }, [uploads, onChange, activeMedia]);
+  }, [uploads, onChange, activeMedia, selectedPrintingMethod]);
 
   if (!media || media.length === 0) return null;
 
@@ -664,6 +780,7 @@ export function ProductCustomizer({
       const metricLines = canvasRef.current.querySelectorAll(".z-15");
       const logoContainers = canvasRef.current.querySelectorAll(".customizer-logo-container");
       const badgeLabels = canvasRef.current.querySelectorAll(".customizer-logo-container > div");
+      const specBoxes = canvasRef.current.querySelectorAll(".mockup-spec-box");
 
       // 1. Hide active logo selection borders, handles, and labels for Spec sheet view
       const originalBorders: string[] = [];
@@ -702,6 +819,12 @@ export function ProductCustomizer({
         el.style.setProperty("display", "none", "important");
       });
 
+      const originalSpecsDisplay: string[] = [];
+      specBoxes.forEach((el: any) => {
+        originalSpecsDisplay.push(el.style.display || "");
+        el.style.setProperty("display", "none", "important");
+      });
+
       // Wait another frame for browser repaint
       await new Promise((resolve) => setTimeout(resolve, 150));
 
@@ -724,6 +847,10 @@ export function ProductCustomizer({
 
       metricLines.forEach((el: any, idx) => {
         el.style.display = originalMetricsDisplay[idx];
+      });
+
+      specBoxes.forEach((el: any, idx) => {
+        el.style.display = originalSpecsDisplay[idx];
       });
 
       // Draw side-by-side spec sheet using offscreen canvas
@@ -862,31 +989,76 @@ export function ProductCustomizer({
               alt={`${productName} - view`}
               className="w-full h-full object-contain p-2 select-none pointer-events-none"
             />
-            {/* Floating Product Dimension Badge in Top Right */}
-            {productDimensions && (
-              <div className="absolute top-2.5 right-2.5 z-30 bg-stone-900/90 text-white text-[9px] font-bold tracking-wider px-2 py-1 rounded shadow-sm select-none pointer-events-none flex items-center gap-1">
-                <Ruler className="w-2.5 h-2.5" />
-                <span>DIMENSI: {productDimensions}</span>
-              </div>
-            )}
-            {isColorPickerActive && customColor && (
-              <div
-                className="absolute inset-0 w-full h-full pointer-events-none"
-                style={{
-                  backgroundColor: customColor,
-                  mixBlendMode: "multiply",
-                  maskImage: `url(${getMockupBackgroundUrl(activeMedia)})`,
-                  maskSize: "contain",
-                  maskRepeat: "no-repeat",
-                  maskPosition: "center",
-                  WebkitMaskImage: `url(${getMockupBackgroundUrl(activeMedia)})`,
-                  WebkitMaskSize: "contain",
-                  WebkitMaskRepeat: "no-repeat",
-                  WebkitMaskPosition: "center",
-                  padding: "8px",
-                }}
-              />
-            )}
+            {/* Unified Specification Details Card (Top Right Overlay) */}
+            <div className="absolute top-2.5 right-2.5 z-20 mockup-spec-box bg-stone-900/90 text-white text-[7.5px] sm:text-[8px] font-medium tracking-wide p-1.5 rounded-sm shadow-md select-none pointer-events-none flex flex-col gap-1 border border-stone-850 max-w-[165px] leading-tight">
+              {productDimensions && (
+                <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
+                  <Ruler className="w-2 h-2 text-blue-400 shrink-0" />
+                  <span><strong>Dimensi Produk:</strong> {productDimensions}</span>
+                </div>
+              )}
+              {activeLogoDetails && (
+                <>
+                  {logoDimensionStr && (
+                    <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
+                      <Maximize2 className="w-2 h-2 text-amber-400 shrink-0" />
+                      <span><strong>Dimensi Logo:</strong> {logoDimensionStr}</span>
+                    </div>
+                  )}
+                  {distanceStr && (
+                    <div className="flex flex-col gap-0.5 border-b border-stone-800/60 pb-0.5">
+                      <div className="flex items-center gap-1 text-stone-300">
+                        <Move className="w-2 h-2 text-teal-400 shrink-0" />
+                        <span><strong>Jarak Sisi:</strong></span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5 pl-3 font-mono text-[7px] sm:text-[7.5px] text-stone-300">
+                        <span>Atas: {distanceStr.top}</span>
+                        <span>Bawah: {distanceStr.bottom}</span>
+                        <span>Kiri: {distanceStr.left}</span>
+                        <span>Kanan: {distanceStr.right}</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+              {selectedPrintingMethod && (
+                <div className="flex items-center gap-1 pt-0.5">
+                  <Printer className="w-2 h-2 text-indigo-400 shrink-0" />
+                  <span><strong>Metode Cetak:</strong> {selectedPrintingMethod}</span>
+                </div>
+              )}
+            </div>
+            {(() => {
+              const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
+              const colorOverlayUrl = (colorMockupTrigger && colorMockupTrigger !== "NONE")
+                ? activeMask
+                : getMockupBackgroundUrl(activeMedia);
+
+              const showColorOverlay = (colorMockupTrigger && colorMockupTrigger !== "NONE")
+                ? (!!customColor && !!activeMask)
+                : (isColorPickerActive && !!customColor);
+
+              if (!showColorOverlay || !colorOverlayUrl) return null;
+
+              return (
+                <div
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={{
+                    backgroundColor: customColor,
+                    mixBlendMode: "multiply",
+                    maskImage: `url(${colorOverlayUrl})`,
+                    maskSize: "contain",
+                    maskRepeat: "no-repeat",
+                    maskPosition: "center",
+                    WebkitMaskImage: `url(${colorOverlayUrl})`,
+                    WebkitMaskSize: "contain",
+                    WebkitMaskRepeat: "no-repeat",
+                    WebkitMaskPosition: "center",
+                    padding: "8px",
+                  }}
+                />
+              );
+            })()}
 
             {/* Render Overlay Mockup Area Guides */}
             {isImageCustomizable(activeMedia) && activeMedia.mockupAreas?.map((area) => {

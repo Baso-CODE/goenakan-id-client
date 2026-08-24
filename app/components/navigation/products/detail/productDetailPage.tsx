@@ -307,6 +307,25 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     );
   }, [selections]);
 
+  const activeColorHex = useMemo(() => {
+    const colorKey = Object.keys(selections).find(
+      (key) => key.toLowerCase().includes("color") || key.toLowerCase().includes("warna")
+    );
+    if (!colorKey) return null;
+    const selectedColorVal = selections[colorKey];
+    if (!selectedColorVal) return null;
+
+    if (
+      selectedColorVal.toLowerCase().includes("custom") ||
+      selectedColorVal.toLowerCase().includes("kustom")
+    ) {
+      return selectedCustomColor;
+    }
+
+    const parsed = parseClientColorValue(selectedColorVal);
+    return parsed.hex || null;
+  }, [selections, selectedCustomColor]);
+
   const availableMockupPositions = useMemo(() => {
     if (!product.media) return [];
 
@@ -651,6 +670,20 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return ids;
   }, [selectedVariant, selections, product.attributeValues, product.variants]);
 
+  const activeColorMaskUrl = useMemo(() => {
+    if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE") return null;
+
+    const targetType = product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
+    const activeVal = product.attributeValues?.find((av: any) => {
+      if (av.attributeType !== targetType) return false;
+      return selectedAttributeValueIds.includes(av.attributeValueId);
+    });
+
+    if (!activeVal || !activeVal.value) return null;
+    const parts = activeVal.value.split("|");
+    return parts[2] || null;
+  }, [product.colorMockupTrigger, product.attributeValues, selectedAttributeValueIds]);
+
   // Track if current selection (or entire product) is out of stock
   const isOutOfStock = useMemo(() => {
     if (product.isMadeByOrder) {
@@ -979,6 +1012,40 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return [...items].sort((a, b) => getMediaScore(a) - getMediaScore(b));
   };
 
+  const attributeMockupMedia = useMemo(() => {
+    if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE") {
+      console.log("DEBUG attributeMockupMedia: Trigger is NONE or undefined");
+      return null;
+    }
+
+    const targetType = product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
+    const activeVal = product.attributeValues?.find((av: any) => {
+      if (av.attributeType !== targetType) return false;
+      return selectedAttributeValueIds.includes(av.attributeValueId);
+    });
+
+    console.log("DEBUG attributeMockupMedia: activeVal found =", activeVal);
+
+    if (!activeVal || !activeVal.value) return null;
+    const parts = activeVal.value.split("|");
+    const name = parts[0] || "";
+    const imageUrl = parts[1] || "";
+    const colorMaskUrl = parts[2] || "";
+
+    console.log("DEBUG attributeMockupMedia parsed: name =", name, "imageUrl =", imageUrl, "colorMaskUrl =", colorMaskUrl);
+
+    if (!imageUrl) return null;
+
+    return {
+      id: `attr-mockup-${activeVal.attributeValueId}`,
+      url: imageUrl,
+      colorMaskUrl: colorMaskUrl || undefined,
+      isColorCustomizable: true,
+      altText: "Mockup Image",
+      type: "image",
+    } as MediaItem;
+  }, [product.colorMockupTrigger, product.attributeValues, selectedAttributeValueIds]);
+
   const allGalleryMediaForSize = useMemo(() => {
     let currentMedia: MediaItem[] = [];
     if (selectedVariantId && product.variants) {
@@ -986,15 +1053,22 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       if (variant && variant.images) {
         currentMedia = variant.images.map((img) => ({
           ...img,
-          isColorCustomizable: isColorPickerActive,
+          isColorCustomizable: false, // Standard variant photos are not customizable templates
         }));
       }
     }
 
-    // Hanya tampilkan media umum, atau media yang ditautkan ke atribut varian yang sedang terpilih
-    const productMedia = (product.media || [])
-      .filter((img) => {
-        const isMockup = img.mockupAreas && img.mockupAreas.length > 0;
+    const hasConfiguredMockups = (product.media || []).some(
+      (img) => img.mockupAreas && img.mockupAreas.length > 0
+    );
+
+    console.log("DEBUG: hasConfiguredMockups =", hasConfiguredMockups, "attributeMockupMedia =", attributeMockupMedia);
+
+    let productMedia: MediaItem[] = [];
+
+    if (hasConfiguredMockups) {
+      productMedia = (product.media || []).filter((img) => {
+        const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl;
         if (isMockup) {
           // Mockup kustom wajib ditautkan ke varian untuk ditampilkan
           if (!img.attributeValueId) return false;
@@ -1004,26 +1078,44 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           if (!img.attributeValueId) return true;
           return selectedAttributeValueIds.includes(img.attributeValueId);
         }
-      })
-      .map((img) => {
-        const isCustomColorLink =
-          img.attributeValueId &&
-          selectedAttributeValueIds.includes(img.attributeValueId) &&
-          isColorPickerActive;
+      }).map((img) => {
+        const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl || img.altText === "Mockup Image";
+        const isColorCustomLink = isMockup && (
+          (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE")
+            ? (!!img.attributeValueId && selectedAttributeValueIds.includes(img.attributeValueId))
+            : true
+        );
         return {
           ...img,
-          isColorCustomizable: !!isCustomColorLink,
+          isColorCustomizable: !!isColorCustomLink,
         };
       });
+    } else {
+      if (attributeMockupMedia) {
+        productMedia.push(attributeMockupMedia);
+      }
+      const genericPhotos = (product.media || []).filter(
+        (img) => !img.attributeValueId && img.altText !== "Mockup Image"
+      ).map((img) => ({
+        ...img,
+        isColorCustomizable: false,
+      }));
+      productMedia.push(...genericPhotos);
+    }
 
     const mergedMedia = [...currentMedia, ...productMedia];
-    return sortMediaItems(mergedMedia);
-  }, [
-    selectedVariantId,
-    product,
-    selectedAttributeValueIds,
-    isColorPickerActive,
-  ]);
+
+    const seen = new Set<string>();
+    const uniqueMedia = mergedMedia.filter((item) => {
+      const key = item.id || item.url;
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return sortMediaItems(uniqueMedia);
+  }, [selectedVariantId, product, selectedAttributeValueIds, product.colorMockupTrigger, attributeMockupMedia]);
 
   const hasMockupAreas = useMemo(() => {
     const result = allGalleryMediaForSize.some(
@@ -1037,39 +1129,69 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   }, [allGalleryMediaForSize]);
 
   const activeGalleryMedia = useMemo(() => {
-    if (isCustomizing && hasMockupAreas) {
+    let result: MediaItem[] = [];
+
+    if (isCustomizing) {
       // Hanya tampilkan gambar yang memiliki area mockup kustom
-      return allGalleryMediaForSize.filter(
+      result = allGalleryMediaForSize.filter(
         (img) => img.mockupAreas && img.mockupAreas.length > 0,
       );
     } else {
-      // Tampilkan semua gambar tanpa filter ukuran (polosan type)
-      const currentMedia =
-        selectedVariantId && product.variants
-          ? (
-              product.variants.find((v) => v.id === selectedVariantId)
-                ?.images || []
-            ).map((img) => ({
-              ...img,
-              isColorCustomizable: isColorPickerActive,
-            }))
-          : [];
-      const productMedia = (product.media || []).filter(
-        (img) => !img.attributeValueId && img.altText !== "Mockup Image",
-      ).map((img) => ({
-        ...img,
-        isColorCustomizable: false,
-      }));
-      const mergedMedia = [...currentMedia, ...productMedia];
-      return sortMediaItems(mergedMedia);
+      const useMockupFlow = product.colorMockupTrigger && product.colorMockupTrigger !== "NONE";
+
+      if (useMockupFlow) {
+        // Tampilkan gambar yang sesuai dengan filter ukuran/model
+        // Tapi filter out gambar mockup tambahan (kedua, ketiga, dst) di galeri polosan
+        let hasFoundMockup = false;
+        result = allGalleryMediaForSize.filter((img) => {
+          const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl || img.altText === "Mockup Image";
+          if (isMockup) {
+            if (!hasFoundMockup) {
+              hasFoundMockup = true;
+              return true;
+            }
+            return false;
+          }
+          return true;
+        });
+      } else {
+        // Tampilkan semua gambar tanpa filter ukuran (polosan type)
+        const currentMedia =
+          selectedVariantId && product.variants
+            ? (product.variants.find((v) => v.id === selectedVariantId)?.images || []).map((img) => ({
+                ...img,
+                isColorCustomizable: isColorPickerActive || !!activeColorHex,
+              }))
+            : [];
+        const productMedia = (product.media || []).filter(
+          (img) => !img.attributeValueId && img.altText !== "Mockup Image",
+        ).map((img) => ({
+          ...img,
+          isColorCustomizable: false,
+        }));
+        const mergedMedia = [...currentMedia, ...productMedia];
+        result = sortMediaItems(mergedMedia);
+      }
     }
+
+    console.log("DEBUG: activeGalleryMedia content =", result.map(m => ({
+      id: m.id,
+      url: m.url,
+      altText: m.altText,
+      attributeValueId: m.attributeValueId,
+      isColorCustomizable: m.isColorCustomizable,
+      colorMaskUrl: m.colorMaskUrl,
+      hasMockupAreas: m.mockupAreas && m.mockupAreas.length > 0,
+    })));
+
+    return result;
   }, [
     allGalleryMediaForSize,
     isCustomizing,
-    hasMockupAreas,
     selectedVariantId,
     product,
     isColorPickerActive,
+    activeColorHex,
   ]);
 
   const customizerMedia = useMemo(() => {
@@ -1340,17 +1462,67 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
   };
 
-  const displayWeight = resolvedVariantDetails
+  const selectedCustomOptionDimensions = useMemo(() => {
+    if (!product.attributeValues) return null;
+    
+    for (const [groupName, selectedVal] of Object.entries(selections)) {
+      const match = product.attributeValues.find((av: any) => {
+        const isSizeOrCapacityAttr =
+          av.attributeType === "SIZE" ||
+          av.attributeName.toLowerCase().includes("ukuran") ||
+          av.attributeName.toLowerCase().includes("size") ||
+          av.attributeName.toLowerCase().includes("kapasitas") ||
+          av.attributeName.toLowerCase().includes("capacity");
+
+        const cleanVal = selectedVal.split("|")[0].trim().toLowerCase();
+        const cleanAvAv = av.value.split("|")[0].trim().toLowerCase();
+
+        return isSizeOrCapacityAttr && av.attributeName === groupName && cleanAvAv === cleanVal;
+      });
+
+      if (match && (match.width || match.height || match.length)) {
+        return `${match.length || 0}x${match.width || 0}x${match.height || 0} cm`;
+      }
+    }
+    return null;
+  }, [selections, product.attributeValues]);
+
+  const selectedCustomOptionWeight = useMemo(() => {
+    if (!product.attributeValues) return null;
+    
+    for (const [groupName, selectedVal] of Object.entries(selections)) {
+      const match = product.attributeValues.find((av: any) => {
+        const isSizeOrCapacityAttr =
+          av.attributeType === "SIZE" ||
+          av.attributeName.toLowerCase().includes("ukuran") ||
+          av.attributeName.toLowerCase().includes("size") ||
+          av.attributeName.toLowerCase().includes("kapasitas") ||
+          av.attributeName.toLowerCase().includes("capacity");
+
+        const cleanVal = selectedVal.split("|")[0].trim().toLowerCase();
+        const cleanAvAv = av.value.split("|")[0].trim().toLowerCase();
+
+        return isSizeOrCapacityAttr && av.attributeName === groupName && cleanAvAv === cleanVal;
+      });
+
+      if (match && match.weight) {
+        return `${match.weight} gram`;
+      }
+    }
+    return null;
+  }, [selections, product.attributeValues]);
+
+  const displayWeight = selectedCustomOptionWeight || (resolvedVariantDetails
     ? resolvedVariantDetails.weight
     : selectedVariant
       ? selectedVariant.weightString
-      : product.weight;
+      : product.weight);
 
-  const displayDimensions = resolvedVariantDetails
+  const displayDimensions = selectedCustomOptionDimensions || (resolvedVariantDetails
     ? resolvedVariantDetails.dimensions
     : selectedVariant
       ? selectedVariant.dimensionsString
-      : product.dimensions;
+      : product.dimensions);
 
   const minAllowedQty =
     activeTiers.length > 0 ? (activeTiers[0].minQty ?? 1) : 1;
@@ -1643,16 +1815,20 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               selectedAttributeValueIds={selectedAttributeValueIds}
               onChange={setCustomization}
               attributeValues={product.attributeValues}
-              customColor={selectedCustomColor}
-              isColorPickerActive={isColorPickerActive}
+              customColor={activeColorHex || selectedCustomColor}
+              isColorPickerActive={isColorPickerActive || !!activeColorHex}
               productDimensions={displayDimensions}
+              colorMockupTrigger={product.colorMockupTrigger}
+              colorMaskUrl={activeColorMaskUrl || undefined}
             />
           ) : (
             <ProductImageGallery
               media={activeGalleryMedia}
               productName={product.name}
-              customColor={selectedCustomColor}
-              isColorPickerActive={isColorPickerActive}
+              customColor={activeColorHex || selectedCustomColor}
+              isColorPickerActive={isColorPickerActive || !!activeColorHex}
+              colorMockupTrigger={product.colorMockupTrigger}
+              colorMaskUrl={activeColorMaskUrl || undefined}
             />
           )}
           <ShareBar productName={product.name} />
@@ -1674,14 +1850,14 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           </div>
 
           {/* ── 1. Customization Type Selector (Pilih Tipe Pembelian) ── */}
-          {product.isCustom && (
+          {product.isCustom && hasAnyMockupAreas && (
             <div className="bg-stone-50 border border-stone-200/80 rounded-md p-4 space-y-3">
               <p className="text-xs font-bold uppercase tracking-wider text-stone-700">
                 {locale === "en"
                   ? "Select Purchase Type"
                   : "Pilih Tipe Pembelian"}
               </p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className={hasAnyMockupAreas ? "grid grid-cols-2 gap-3" : "grid grid-cols-1"}>
                 {/* Option 1: Buy Polosan */}
                 <button
                   type="button"
@@ -1721,51 +1897,49 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                 </button>
 
                 {/* Option 2: Custom Cetak Logo */}
-                <button
-                  type="button"
-                  disabled={isOutOfStock}
-                  onClick={() => handleCustomizingChange(true)}
-                  className={`flex flex-col items-start p-3 border rounded-sm transition-all duration-200 text-left ${
-                    isOutOfStock
-                      ? "border-stone-150 bg-stone-50/50 text-stone-400 cursor-not-allowed opacity-50"
-                      : isCustomizing
-                        ? "border-stone-900 bg-white ring-1 ring-stone-900 shadow-sm cursor-pointer"
-                        : "border-stone-200 bg-white/40 hover:border-stone-400 hover:bg-white cursor-pointer"
-                  }`}>
-                  <div className="flex items-center gap-2 mb-1">
+                {hasAnyMockupAreas && (
+                  <button
+                    type="button"
+                    disabled={isOutOfStock}
+                    onClick={() => handleCustomizingChange(true)}
+                    className={`flex flex-col items-start p-3 border rounded-sm transition-all duration-200 text-left ${
+                      isOutOfStock
+                        ? "border-stone-150 bg-stone-50/50 text-stone-400 cursor-not-allowed opacity-50"
+                        : isCustomizing
+                          ? "border-stone-900 bg-white ring-1 ring-stone-900 shadow-sm cursor-pointer"
+                          : "border-stone-200 bg-white/40 hover:border-stone-400 hover:bg-white cursor-pointer"
+                    }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span
+                        className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                          isOutOfStock
+                            ? "border-stone-200"
+                            : isCustomizing
+                              ? "border-stone-900"
+                              : "border-stone-300"
+                        }`}>
+                        {!isOutOfStock && isCustomizing && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-stone-900" />
+                        )}
+                      </span>
+                      <span
+                        className={`text-xs font-bold flex items-center gap-1 ${isOutOfStock ? "text-stone-300/80" : "text-stone-900"}`}>
+                        {locale === "en"
+                          ? "Custom Logo Print"
+                          : "Custom Cetak Logo"}
+                        <Sparkles
+                          className={`w-3 h-3 ${isOutOfStock ? "text-stone-300" : "text-[#C4A48E]"}`}
+                        />
+                      </span>
+                    </div>
                     <span
-                      className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                        isOutOfStock
-                          ? "border-stone-200"
-                          : isCustomizing
-                            ? "border-stone-900"
-                            : "border-stone-300"
-                      }`}>
-                      {!isOutOfStock && isCustomizing && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-stone-900" />
-                      )}
-                    </span>
-                    <span
-                      className={`text-xs font-bold flex items-center gap-1 ${isOutOfStock ? "text-stone-300/80" : "text-stone-900"}`}>
+                      className={`text-[10px] leading-normal font-normal ${isOutOfStock ? "text-stone-400" : "text-stone-500"}`}>
                       {locale === "en"
-                        ? "Custom Logo Print"
-                        : "Custom Cetak Logo"}
-                      <Sparkles
-                        className={`w-3 h-3 ${isOutOfStock ? "text-stone-300" : "text-[#C4A48E]"}`}
-                      />
-                    </span>
-                  </div>
-                  <span
-                    className={`text-[10px] leading-normal font-normal ${isOutOfStock ? "text-stone-400" : "text-stone-500"}`}>
-                    {!hasMockupAreas
-                      ? locale === "en"
-                        ? "Contact via WhatsApp."
-                        : "Kustom hubungi via WhatsApp."
-                      : locale === "en"
                         ? "Add your own logo to the product."
                         : "Tambahkan logo Anda sendiri ke produk."}
-                  </span>
-                </button>
+                    </span>
+                  </button>
+                )}
               </div>
             </div>
           )}

@@ -26,6 +26,7 @@ export interface MediaItem {
   printPositionValueId?: string | null;
   printSideValueId?: string | null;
   isColorCustomizable?: boolean;
+  colorMaskUrl?: string | null;
 }
 
 export interface AttributeDisplay {
@@ -96,6 +97,7 @@ export interface ProductDetail {
   mockupBackImageId?: string | null;
   attributeValues?: ProductAttributeValueDetail[];
   foreignPriceAdjuster?: number;
+  colorMockupTrigger?: string;
 }
 
 export interface ProductAttributeValueDetail {
