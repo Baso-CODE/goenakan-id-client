@@ -11,6 +11,7 @@ export interface MockupArea {
   physicalWidth?: number;
   physicalHeight?: number;
   unit?: string;
+  rotation?: number;
 }
 
 export interface MediaItem {
@@ -94,6 +95,7 @@ export interface ProductDetail {
   mockupFrontImageId?: string | null;
   mockupBackImageId?: string | null;
   attributeValues?: ProductAttributeValueDetail[];
+  foreignPriceAdjuster?: number;
 }
 
 export interface ProductAttributeValueDetail {

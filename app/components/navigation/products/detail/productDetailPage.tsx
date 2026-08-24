@@ -1054,12 +1054,12 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               isColorCustomizable: isColorPickerActive,
             }))
           : [];
-      const productMedia = (product.media || [])
-        .filter((img) => !img.attributeValueId)
-        .map((img) => ({
-          ...img,
-          isColorCustomizable: false,
-        }));
+      const productMedia = (product.media || []).filter(
+        (img) => !img.attributeValueId && img.altText !== "Mockup Image",
+      ).map((img) => ({
+        ...img,
+        isColorCustomizable: false,
+      }));
       const mergedMedia = [...currentMedia, ...productMedia];
       return sortMediaItems(mergedMedia);
     }
@@ -1087,23 +1087,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     if (isCustomizing && !hasMockupAreas) {
       return true;
     }
-    // 2. 0 stock (stock <= 0)
-    const isOutOfStockCheck = selectedVariant
-      ? (selectedVariant.stock ?? 0) <= 0
-      : product.variants && product.variants.length > 0
-        ? product.variants.every((v) => (v.stock ?? 0) <= 0)
-        : (Number(product.stock) || 0) <= 0;
-
-    if (isOutOfStockCheck) {
-      return true;
-    }
     return false;
   }, [
     isCustomizing,
     hasMockupAreas,
-    selectedVariant,
-    product.variants,
-    product.stock,
   ]);
 
   // Dynamically build callout banner content for WhatsApp orders
@@ -1658,6 +1645,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               attributeValues={product.attributeValues}
               customColor={selectedCustomColor}
               isColorPickerActive={isColorPickerActive}
+              productDimensions={displayDimensions}
             />
           ) : (
             <ProductImageGallery

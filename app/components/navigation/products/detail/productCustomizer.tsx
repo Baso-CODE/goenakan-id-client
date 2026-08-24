@@ -1,7 +1,7 @@
 "use client";
 
 import { MediaItem, MockupArea } from "@/app/types/productDetail.type";
-import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus, Download } from "lucide-react";
+import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus, Download, Ruler } from "lucide-react";
 import Image from "next/image";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
@@ -141,6 +141,7 @@ interface ProductCustomizerProps {
   attributeValues?: any[];
   customColor?: string;
   isColorPickerActive?: boolean;
+  productDimensions?: string;
 }
 
 export function ProductCustomizer({
@@ -154,6 +155,7 @@ export function ProductCustomizer({
   attributeValues = [],
   customColor,
   isColorPickerActive,
+  productDimensions,
 }: ProductCustomizerProps) {
   const isImageCustomizable = (item: MediaItem) => {
     return !!(item.mockupAreas && item.mockupAreas.length > 0);
@@ -166,6 +168,9 @@ export function ProductCustomizer({
   };
 
   const getMockupBackgroundUrl = (item: MediaItem) => {
+    if (item.url) {
+      return item.url;
+    }
     if (item.attributeValueId && attributeValues) {
       const av = attributeValues.find((av: any) => av.attributeValueId === item.attributeValueId);
       if (av && av.value) {
@@ -516,7 +521,7 @@ export function ProductCustomizer({
       if (activeUploads.length === 0) {
         onChange(null);
       } else {
-        const zonesObj: Record<string, { label: string; logos: LogoItem[]; logoCount: number; printPositionValueId?: string | null }> = {};
+        const zonesObj: Record<string, { label: string; logos: LogoItem[]; logoCount: number; printPositionValueId?: string | null; rotation?: number; }> = {};
         for (const [areaId, list] of activeUploads) {
           const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
           const label = activeMedia.mockupSideName || area?.label || "Kustom";
@@ -526,6 +531,7 @@ export function ProductCustomizer({
             logos: list,
             logoCount: totalCount,
             printPositionValueId: activeMedia.printPositionValueId,
+            rotation: area?.rotation || 0,
           };
         }
         onChange({
@@ -856,6 +862,13 @@ export function ProductCustomizer({
               alt={`${productName} - view`}
               className="w-full h-full object-contain p-2 select-none pointer-events-none"
             />
+            {/* Floating Product Dimension Badge in Top Right */}
+            {productDimensions && (
+              <div className="absolute top-2.5 right-2.5 z-30 bg-stone-900/90 text-white text-[9px] font-bold tracking-wider px-2 py-1 rounded shadow-sm select-none pointer-events-none flex items-center gap-1">
+                <Ruler className="w-2.5 h-2.5" />
+                <span>DIMENSI: {productDimensions}</span>
+              </div>
+            )}
             {isColorPickerActive && customColor && (
               <div
                 className="absolute inset-0 w-full h-full pointer-events-none"
@@ -887,6 +900,7 @@ export function ProductCustomizer({
                     top: `${area.y}%`,
                     width: `${area.width}%`,
                     height: `${area.height}%`,
+                    transform: `rotate(${area.rotation || 0}deg)`,
                   }}
                   onClick={() => triggerUpload(area.id)}
                   className={`mockup-guide-area border-2 border-dashed flex flex-col items-center justify-center p-1 rounded-sm group transition-colors select-none ${
@@ -970,7 +984,7 @@ export function ProductCustomizer({
                       left: `${logo.xOffset}%`,
                       top: `${logo.yOffset}%`,
                       width: `${logo.scale}%`,
-                      transform: `rotate(${logo.rotate || 0}deg)`,
+                      transform: `rotate(${(logo.rotate || 0) + (area.rotation || 0)}deg)`,
                       opacity: (logo.opacity ?? 100) / 100,
                       cursor: isDragging && isActive ? "grabbing" : "grab",
                       touchAction: "none",
