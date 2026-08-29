@@ -67,7 +67,6 @@ function LoginFormInner() {
   const getErrorMessage = (error: string): string => {
     if (!error) return t("messages.errorDefault");
 
-    // Rate limit error
     if (
       error.includes("Terlalu banyak") ||
       error.includes("Too many") ||
@@ -76,7 +75,6 @@ function LoginFormInner() {
       return t("messages.tooManyAttempts");
     }
 
-    // Invalid credentials
     if (
       error.includes("Email atau password") ||
       error.includes("Invalid") ||
@@ -85,12 +83,10 @@ function LoginFormInner() {
       return t("messages.invalidCredentials");
     }
 
-    // Server error
     if (error.includes("Server") || error.includes("500")) {
       return t("messages.serverError");
     }
 
-    // Network error
     if (error.includes("Network") || error.includes("fetch")) {
       return t("messages.networkError");
     }
@@ -101,7 +97,6 @@ function LoginFormInner() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ❌ Block jika sedang rate limited
     if (isRateLimited) {
       toast.error(t("messages.tooManyAttempts"));
       return;
@@ -124,7 +119,7 @@ function LoginFormInner() {
           res.error.includes("Terlalu banyak") ||
           res.error.includes("Too many")
         ) {
-          const retryAfter = Date.now() + 15 * 60 * 1000; // 15 menit
+          const retryAfter = Date.now() + 15 * 60 * 1000;
           localStorage.setItem(
             "login_rate_limit",
             JSON.stringify({ timestamp: Date.now(), retryAfter }),
@@ -208,6 +203,7 @@ function LoginFormInner() {
             className={inputClass}
             autoComplete="current-password"
           />
+          {/* Posisi Link Forgot Password */}
           <div className="flex justify-end mt-1">
             <Link
               href="/forgot-password"
@@ -223,8 +219,7 @@ function LoginFormInner() {
           disabled={
             isLoading || isRateLimited || !formData.email || !formData.password
           }
-          className="w-full bg-[#b5956a] hover:bg-[#a07d55] text-white text-sm font-medium rounded-sm py-6 mt-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          title={isRateLimited ? t("messages.tooManyAttempts") : ""}>
+          className="w-full bg-[#b5956a] hover:bg-[#a07d55] text-white text-sm font-medium rounded-sm py-6 mt-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
           {isLoading ? t("signingInText") : t("signInButton")}
         </Button>
 
