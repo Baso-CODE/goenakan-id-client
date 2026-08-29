@@ -25,6 +25,13 @@
     "aboutTitle": "Tentang Kami | Goenakan Indonesia",
     "aboutDescription": "Pelajari lebih lanjut tentang Goenakan Indonesia, sejarah kami, nilai inti, dan klien yang telah bekerja sama dengan kami."
   },
+  "AllClients": {
+    "backButton": "Kembali ke Beranda",
+    "title": "Klien Kami",
+    "subtitle": "Dipercaya oleh berbagai perusahaan dan merek luar biasa.",
+    "emptyStateTitle": "Belum ada klien",
+    "emptyStateDesc": "Logo klien akan segera ditampilkan di sini."
+  },
   "WhoWeAre": {
     "subtitle": "Kenal Lebih Dekat",
     "title": "Ide hebat bukan hanya untuk disimpan. Tapi layak untuk diwujudkan.",
@@ -36,7 +43,8 @@
     "stat2Label": "Produk telah dibuat",
     "stat3Value": "500+",
     "stat3Label": "Pesanan selesai",
-    "button": "Mulai Wujudkan Idemu"
+    "button": "Mulai Wujudkan Idemu",
+    "whatsappMessage": "Halo, saya tertarik untuk mendiskusikan custom project dengan Goenakan Indonesia."
   },
 
   "Footer": {

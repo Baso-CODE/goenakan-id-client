@@ -1,19 +1,25 @@
-import { Button } from "@/components/ui/button";
-// import Image from "next/image"; // Aktifkan jika sudah ada gambar asli
+"use client";
 
-// ✨ 1. Import useTranslations dari next-intl
+import { Button } from "@/components/ui/button";
+import { BASE_DOMAIN } from "@/lib/config";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function WhoWeAre() {
   const t = useTranslations("WhoWeAre");
 
+  const whatsappNumber = "6282387902238";
+
+  const rawMessage = t("whatsappMessage", { domain: BASE_DOMAIN });
+  const encodedMessage = encodeURIComponent(rawMessage);
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+
   return (
     <section className="w-full py-20 bg-white text-gray-900">
-      <div className="container ">
-        {/* Grid Container: 12 Kolom untuk Desktop */}
+      <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
-          {/* --- KOLOM KIRI (Gambar Tinggi) --- */}
+          {/* Kolom Kiri */}
           <div className="md:col-span-4 relative">
             <Image
               src={"/images/who-we-are-image.png"}
@@ -23,25 +29,22 @@ export default function WhoWeAre() {
             />
           </div>
 
-          {/* --- KOLOM TENGAH (Konten Teks) --- */}
+          {/* Kolom Tengah */}
           <div className="md:col-span-5 flex flex-col justify-center py-10">
-            {/* 🔄 Subtitle */}
             <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-4">
               {t("subtitle")}
             </span>
 
-            {/* 🔄 Judul Utama */}
             <h2 className="text-3xl md:text-4xl mb-4 leading-tight max-w-lg">
               {t("title")}
             </h2>
 
-            {/* 🔄 Deskripsi (Saya bagi jadi dua paragraf menggunakan div pembungkus berjarak space-y-4) */}
             <div className="text-gray-600 leading-relaxed mb-10 text-justify space-y-4">
               <p>{t("description1")}</p>
               <p>{t("description2")}</p>
             </div>
 
-            {/* 🔄 Statistik */}
+            {/* Statistik */}
             <div className="grid grid-cols-3 gap-4 mb-10 border-t border-gray-100 pt-8">
               <div>
                 <h4 className="text-2xl font-bold">{t("stat1Value")}</h4>
@@ -63,15 +66,22 @@ export default function WhoWeAre() {
               </div>
             </div>
 
-            {/* 🔄 Tombol CTA */}
+            {/* Tombol WhatsApp */}
             <div>
-              <Button className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-8 py-6 text-lg font-medium transition-all">
-                {t("button")}
+              <Button
+                asChild
+                className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-8 py-6 text-lg font-medium transition-all">
+                <Link
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer">
+                  {t("button")}
+                </Link>
               </Button>
             </div>
           </div>
 
-          {/* --- KOLOM KANAN (Gambar Pendek / Turun) --- */}
+          {/* Kolom Kanan */}
           <div className="md:col-span-3 md:mt-40 relative">
             <div className="bg-gray-200 w-full h-75 md:h-100 flex items-center justify-center">
               <span className="text-gray-500 font-bold tracking-widest">

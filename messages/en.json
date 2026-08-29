@@ -26,6 +26,13 @@
     "aboutTitle": "About Us | Goenakan Indonesia",
     "aboutDescription": "Learn more about Goenakan Indonesia, our history, core values, and the beloved clients we've worked with."
   },
+  "AllClients": {
+    "backButton": "Back to Home",
+    "title": "Our Clients",
+    "subtitle": "Trusted by amazing companies and brands.",
+    "emptyStateTitle": "No clients found",
+    "emptyStateDesc": "Client logos will appear here soon."
+  },
   "WhoWeAre": {
     "subtitle": "Who We Are",
     "title": "Every product starts with a great idea. Let's build yours!",
@@ -37,7 +44,8 @@
     "stat2Label": "Products created",
     "stat3Value": "500+",
     "stat3Label": "Completed orders",
-    "button": "Start a Custom Project"
+    "button": "Start a Custom Project",
+    "whatsappMessage": "Hello, I am interested in discussing a custom project with Goenakan Indonesia."
   },
 
   "Footer": {
