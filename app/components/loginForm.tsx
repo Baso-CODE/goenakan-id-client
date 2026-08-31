@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
+import ForgotPasswordModal from "./auth/forgotPasswordModal";
 
 function LoginFormInner() {
   const router = useRouter();
@@ -205,11 +206,13 @@ function LoginFormInner() {
           />
           {/* Posisi Link Forgot Password */}
           <div className="flex justify-end mt-1">
-            <Link
-              href="/forgot-password"
-              className="text-[11px] font-medium text-stone-500 hover:text-stone-800 transition-colors">
-              {t("forgotPassword")}
-            </Link>
+            <ForgotPasswordModal>
+              <button
+                type="button"
+                className="text-[11px] font-medium text-stone-500 hover:text-stone-800 transition-colors">
+                {t("forgotPassword")}
+              </button>
+            </ForgotPasswordModal>
           </div>
         </div>
 

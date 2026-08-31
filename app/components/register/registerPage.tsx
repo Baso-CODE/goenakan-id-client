@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Link, useRouter } from "@/i18n/routing";
 import { User, Users } from "lucide-react";
 import { signIn } from "next-auth/react";
+import { useTranslations } from "next-intl";
 
 import { useState } from "react";
 import { toast } from "sonner";
@@ -15,6 +16,8 @@ type AccountType = "individual" | "corporate";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations("Register");
+
   const [accountType, setAccountType] = useState<AccountType>("individual");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,12 +51,10 @@ export default function RegisterPage() {
     setCorporate((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // === 1. HANDLE REGISTRASI MANUAL (KE API EXPRESS) ===
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Siapkan payload sesuai dengan DTO di backend
     const payload = {
       accountType: accountType === "individual" ? "INDIVIDUAL" : "CORPORATE",
       email: accountType === "individual" ? individual.email : corporate.email,
@@ -61,14 +62,10 @@ export default function RegisterPage() {
         accountType === "individual" ? individual.password : corporate.password,
       address:
         accountType === "individual" ? individual.address : corporate.address,
-
-      // Jika individual
       ...(accountType === "individual" && {
         fullName: individual.fullName,
         phone: individual.phone,
       }),
-
-      // Jika corporate
       ...(accountType === "corporate" && {
         picName: corporate.picName,
         picNumbers: corporate.picNumbers,
@@ -78,12 +75,14 @@ export default function RegisterPage() {
     };
 
     try {
-      // Tembak API Express kamu
       const res = await fetch(
         `${apiUrl}/auth-web-client/register-user-web-client`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Accept-Language": t("buttonSignUp") === "Daftar" ? "id" : "en", // Opsional: mengirim bahasa ke backend
+          },
           body: JSON.stringify(payload),
         },
       );
@@ -91,20 +90,19 @@ export default function RegisterPage() {
       const json = await res.json();
 
       if (res.ok && json.success) {
-        toast.success("Registrasi berhasil! Silakan login.");
-        router.push("/login"); // Arahkan ke halaman login
+        toast.success(t("messages.success")); // ✨ Menggunakan terjemahan
+        router.push("/login");
       } else {
-        toast.error(json.message || "Gagal melakukan registrasi");
+        toast.error(json.message || t("messages.errorDefault"));
       }
     } catch (error) {
       console.error("Error registering:", error);
-      toast.error("Terjadi kesalahan pada sistem.");
+      toast.error(t("messages.errorSystem"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // === 2. HANDLE LOGIN GOOGLE (VIA NEXTAUTH) ===
   const handleGoogleSignIn = () => {
     signIn("google", {
       callbackUrl: "/",
@@ -118,10 +116,8 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-2xl">
-        {" "}
-        {/* Diperkecil sedikit agar form tidak terlalu melebar */}
         <h1 className="text-4xl font-light text-stone-800 text-center mb-8">
-          Create Account
+          {t("title")} {/* ✨ Menggunakan terjemahan */}
         </h1>
         <div className="grid grid-cols-2 gap-0 border border-stone-200 rounded-sm mb-5 overflow-hidden">
           <button
@@ -135,7 +131,7 @@ export default function RegisterPage() {
             <User
               className={`w-6 h-6 ${accountType === "individual" ? "text-stone-800" : "text-stone-400"}`}
             />
-            Individual Needs
+            {t("tabIndividual")}
           </button>
 
           <button
@@ -149,15 +145,14 @@ export default function RegisterPage() {
             <Users
               className={`w-6 h-6 ${accountType === "corporate" ? "text-stone-800" : "text-stone-400"}`}
             />
-            Corporate Needs
+            {t("tabCorporate")}
           </button>
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {/* ✨ TAMBAHAN: Field Email & Password diletakkan di atas */}
           <Input
             name="email"
             type="email"
-            placeholder="Email Address"
+            placeholder={t("emailPlaceholder")}
             value={
               accountType === "individual" ? individual.email : corporate.email
             }
@@ -172,7 +167,7 @@ export default function RegisterPage() {
           <Input
             name="password"
             type="password"
-            placeholder="Password (Min. 8 characters)"
+            placeholder={t("passwordPlaceholder")}
             value={
               accountType === "individual"
                 ? individual.password
@@ -191,7 +186,7 @@ export default function RegisterPage() {
             <>
               <Input
                 name="fullName"
-                placeholder="Full Name"
+                placeholder={t("fullNamePlaceholder")}
                 value={individual.fullName}
                 onChange={handleIndividualChange}
                 required
@@ -200,7 +195,7 @@ export default function RegisterPage() {
               <Input
                 name="phone"
                 type="tel"
-                placeholder="Phone Numbers"
+                placeholder={t("phonePlaceholder")}
                 value={individual.phone}
                 onChange={handleIndividualChange}
                 required
@@ -208,7 +203,7 @@ export default function RegisterPage() {
               />
               <Textarea
                 name="address"
-                placeholder="Address"
+                placeholder={t("addressPlaceholder")}
                 value={individual.address}
                 onChange={handleIndividualChange}
                 rows={3}
@@ -220,7 +215,7 @@ export default function RegisterPage() {
             <>
               <Input
                 name="picName"
-                placeholder="PIC Name"
+                placeholder={t("picNamePlaceholder")}
                 value={corporate.picName}
                 onChange={handleCorporateChange}
                 required
@@ -229,7 +224,7 @@ export default function RegisterPage() {
               <Input
                 name="picNumbers"
                 type="tel"
-                placeholder="PIC Numbers"
+                placeholder={t("picPhonePlaceholder")}
                 value={corporate.picNumbers}
                 onChange={handleCorporateChange}
                 required
@@ -237,7 +232,7 @@ export default function RegisterPage() {
               />
               <Input
                 name="companyName"
-                placeholder="Company Name"
+                placeholder={t("companyNamePlaceholder")}
                 value={corporate.companyName}
                 onChange={handleCorporateChange}
                 required
@@ -245,14 +240,14 @@ export default function RegisterPage() {
               />
               <Input
                 name="department"
-                placeholder="Department"
+                placeholder={t("departmentPlaceholder")}
                 value={corporate.department}
                 onChange={handleCorporateChange}
                 className={inputClass}
               />
               <Textarea
                 name="address"
-                placeholder="Address"
+                placeholder={t("addressPlaceholder")}
                 value={corporate.address}
                 onChange={handleCorporateChange}
                 rows={3}
@@ -262,15 +257,13 @@ export default function RegisterPage() {
             </>
           )}
 
-          {/* Sign Up Button */}
           <Button
             type="submit"
             disabled={isLoading}
             className="w-full bg-[#b5956a] hover:bg-[#a07d55] text-white text-sm font-medium rounded-sm py-6 mt-1 transition-colors">
-            {isLoading ? "Memproses..." : "Sign Up"}
+            {isLoading ? t("buttonProcessing") : t("buttonSignUp")}
           </Button>
 
-          {/* Google Sign In */}
           <Button
             type="button"
             variant="outline"
@@ -294,31 +287,31 @@ export default function RegisterPage() {
                 fill="#EA4335"
               />
             </svg>
-            Sign in with Google Instead
+            {t("buttonGoogleSignIn")}
           </Button>
 
           <p className="text-center text-[11px] text-stone-400 mt-1 leading-relaxed">
-            By signing up, you agree to receive marketing emails. View our{" "}
+            {t("agreementText1")}
             <Link
               href="/privacy"
               className="underline hover:text-stone-600 transition-colors">
-              privacy policy
-            </Link>{" "}
-            and{" "}
+              {t("privacyPolicy")}
+            </Link>
+            {t("agreementText2")}
             <Link
               href="/terms"
               className="underline hover:text-stone-600 transition-colors">
-              terms of service
-            </Link>{" "}
-            for more info.
+              {t("termsOfService")}
+            </Link>
+            {t("agreementText3")}
           </p>
         </form>
         <p className="text-center text-sm text-stone-500 mt-6">
-          Already have an account?{" "}
+          {t("alreadyHaveAccount")}{" "}
           <Link
             href="/login"
             className="underline text-stone-700 hover:text-stone-900 transition-colors">
-            Login
+            {t("loginLink")}
           </Link>
         </p>
       </div>

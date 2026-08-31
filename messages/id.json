@@ -25,6 +25,8 @@
     "aboutTitle": "Tentang Kami | Goenakan Indonesia",
     "aboutDescription": "Pelajari lebih lanjut tentang Goenakan Indonesia, sejarah kami, nilai inti, dan klien yang telah bekerja sama dengan kami."
   },
+
+
   "AllClients": {
     "backButton": "Kembali ke Beranda",
     "title": "Klien Kami",
@@ -32,6 +34,8 @@
     "emptyStateTitle": "Belum ada klien",
     "emptyStateDesc": "Logo klien akan segera ditampilkan di sini."
   },
+
+
   "WhoWeAre": {
     "subtitle": "Kenal Lebih Dekat",
     "title": "Ide hebat bukan hanya untuk disimpan. Tapi layak untuk diwujudkan.",
@@ -76,6 +80,8 @@
     "terms": "Saya telah membaca dan memahami Kebijakan Privasi dan Cookie serta setuju untuk menerima komunikasi komersial yang dipersonalisasi dari Goenakan Indonesia melalui email.",
     "button": "Daftar"
   },
+
+
   "HowItWorks": {
     "headline": "BAGAIMANA CARA PEMESANANNYA?",
     "subheadline": "Proses yang Jelas dari Langkah Pertama",
@@ -88,6 +94,8 @@
     "step4Title": "Sampai di tanganmu",
     "step4Desc": "Produk dikirim ke tujuan yang kamu inginkan, baik di dalam maupun luar negeri."
   },
+
+
   "ServiceFeatures": {
     "headline": "Kustom Souvenir Tanpa Ribet.",
     "subheadline": "Mulai dari mencari material sampai proses produksi, sering kali proses kustom terasa cukup rumit. Di Goenakan Indonesia, semuanya dibuat lebih sederhana, jadi kamu bisa fokus dengan ide dan kami yang akan memastikan prosesnya mudah dan hasilnya berkualitas.",
@@ -104,9 +112,12 @@
     "f6Title": "Gratis Ongkir ke Seluruh Indonesia",
     "f6Desc": "Untuk pembelian dengan nominal tertentu, tersedia pengiriman gratis ke seluruh Indonesia."
   },
+
   "ProductCategory": {
     "title": "Kategori Produk"
   },
+
+
   "BestSeller": {
     "title": "Produk Terlaris",
     "min": "min.",
@@ -268,6 +279,38 @@
       "networkError": "Kesalahan jaringan. Silakan periksa koneksi Anda."
     }
   },
+
+
+"Register": {
+    "title": "Buat Akun",
+    "tabIndividual": "Kebutuhan Pribadi",
+    "tabCorporate": "Kebutuhan Perusahaan",
+    "emailPlaceholder": "Alamat Email",
+    "passwordPlaceholder": "Kata Sandi (Min. 8 karakter)",
+    "fullNamePlaceholder": "Nama Lengkap",
+    "phonePlaceholder": "Nomor Telepon",
+    "addressPlaceholder": "Alamat",
+    "picNamePlaceholder": "Nama Penanggung Jawab (PIC)",
+    "picPhonePlaceholder": "Nomor PIC",
+    "companyNamePlaceholder": "Nama Perusahaan",
+    "departmentPlaceholder": "Departemen",
+    "buttonSignUp": "Daftar",
+    "buttonProcessing": "Memproses...",
+    "buttonGoogleSignIn": "Daftar dengan Google",
+    "agreementText1": "Dengan mendaftar, Anda setuju menerima email pemasaran. Lihat ",
+    "privacyPolicy": "kebijakan privasi",
+    "agreementText2": " dan ",
+    "termsOfService": "ketentuan layanan",
+    "agreementText3": " kami untuk info lebih lanjut.",
+    "alreadyHaveAccount": "Sudah punya akun?",
+    "loginLink": "Masuk",
+    "messages": {
+      "success": "Registrasi berhasil! Silakan periksa email Anda untuk verifikasi.",
+      "errorDefault": "Gagal melakukan registrasi",
+      "errorSystem": "Terjadi kesalahan pada sistem."
+    }
+  },
+
   "Faq": {
     "title": "Pertanyaan yang Sering Diajukan",
     "subtitle": "Semua yang perlu Anda ketahui tentang produk dan layanan kami."

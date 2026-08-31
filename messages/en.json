@@ -277,6 +277,37 @@
     }
   },
 
+  
+  "Register": {
+    "title": "Create Account",
+    "tabIndividual": "Individual Needs",
+    "tabCorporate": "Corporate Needs",
+    "emailPlaceholder": "Email Address",
+    "passwordPlaceholder": "Password (Min. 8 characters)",
+    "fullNamePlaceholder": "Full Name",
+    "phonePlaceholder": "Phone Numbers",
+    "addressPlaceholder": "Address",
+    "picNamePlaceholder": "PIC Name",
+    "picPhonePlaceholder": "PIC Numbers",
+    "companyNamePlaceholder": "Company Name",
+    "departmentPlaceholder": "Department",
+    "buttonSignUp": "Sign Up",
+    "buttonProcessing": "Processing...",
+    "buttonGoogleSignIn": "Sign in with Google Instead",
+    "agreementText1": "By signing up, you agree to receive marketing emails. View our ",
+    "privacyPolicy": "privacy policy",
+    "agreementText2": " and ",
+    "termsOfService": "terms of service",
+    "agreementText3": " for more info.",
+    "alreadyHaveAccount": "Already have an account?",
+    "loginLink": "Login",
+    "messages": {
+      "success": "Registration successful! Please check your email to verify.",
+      "errorDefault": "Registration failed",
+      "errorSystem": "A system error occurred."
+    }
+  },
+
   "Faq": {
     "title": "Frequently Asked Questions",
     "subtitle": "Everything you need to know about our products and services."
