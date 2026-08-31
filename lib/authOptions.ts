@@ -1,8 +1,8 @@
-import { apiUrl } from "@/app/utils/ApiUrl";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import * as argon2 from "argon2";
 import { sign } from "jsonwebtoken";
 import { NextAuthOptions, User } from "next-auth";
-import { AdapterUser } from "next-auth/adapters"; // ✨ TAMBAHAN: Import tipe data bawaan NextAuth
+import { AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./prisma";
@@ -12,7 +12,6 @@ const customPrismaAdapter = PrismaAdapter(prisma);
 export const authOptions: NextAuthOptions = {
   adapter: {
     ...customPrismaAdapter,
-    // ✨ PERBAIKAN 1: Berikan tipe 'Omit<AdapterUser, "id">' pada parameter 'data'
     createUser: async (data: Omit<AdapterUser, "id">) => {
       const customerRole = await prisma.role.findUnique({
         where: { name: "CUSTOMER" },
@@ -33,7 +32,6 @@ export const authOptions: NextAuthOptions = {
         },
       });
 
-      // ✨ Kembalikan data dalam format AdapterUser agar NextAuth dan TypeScript puas
       return {
         ...newUser,
         role: "CUSTOMER",
@@ -67,46 +65,38 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email dan password wajib diisi");
         }
 
-        try {
-          const response = await fetch(`${apiUrl}/auth/login`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
-          });
+        // 1. Cari user di database menggunakan Prisma
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+          include: {
+            role: true,
+          },
+        });
 
-          if (!response.ok) {
-            const error = await response.json().catch(() => ({}));
-            if (response.status === 429)
-              throw new Error(
-                "Terlalu banyak percobaan login, coba lagi dalam 15 menit",
-              );
-            if (response.status === 401)
-              throw new Error(error.message || "Email atau password salah");
-            if (response.status === 500)
-              throw new Error("Server error, silahkan coba lagi nanti");
-            throw new Error(error.message || "Login gagal");
-          }
-
-          const user = await response.json();
-
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            roleId: user.roleId,
-          };
-        } catch (error) {
-          if (error instanceof Error) {
-            throw new Error(error.message);
-          }
-          throw new Error("Terjadi kesalahan saat login");
+        if (!user || !user.password) {
+          throw new Error("Email tidak ditemukan atau belum terdaftar");
         }
+
+        // 2. Validasi kecocokan password dengan Argon2
+        const isValid = await argon2.verify(
+          user.password,
+          credentials.password,
+        );
+
+        if (!isValid) {
+          throw new Error("Password salah");
+        }
+
+        const roleName = user.role?.name || "CUSTOMER";
+
+        // 3. Kembalikan data user jika berhasil (Sesi NextAuth)
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: roleName,
+          roleId: user.roleId,
+        };
       },
     }),
   ],
@@ -114,7 +104,6 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        // ✨ PERBAIKAN 3: Ganti 'as any' menjadi 'as User' (Sesuai deklarasi di next-auth.d.ts)
         const customUser = user as User;
 
         token.id = customUser.id;
