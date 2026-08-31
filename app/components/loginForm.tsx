@@ -209,6 +209,7 @@ function LoginFormInner() {
             <ForgotPasswordModal>
               <button
                 type="button"
+                onClick={(e) => e.stopPropagation()}
                 className="text-[11px] font-medium text-stone-500 hover:text-stone-800 transition-colors">
                 {t("forgotPassword")}
               </button>
