@@ -5,7 +5,9 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 
 export const getCategoryList = async (): Promise<CategoryPublic[]> => {
   try {
-    const res = await fetch(`${apiUrl}/product-categories/list`);
+    const res = await fetch(`${apiUrl}/product-categories/list`, {
+      cache: "no-store",
+    });
 
     if (!res.ok) {
       throw new Error("Gagal mengambil data dari server");

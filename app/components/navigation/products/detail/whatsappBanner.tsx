@@ -8,7 +8,7 @@ export function WhatsAppBanner({
   productName,
 }: WhatsAppBannerProps) {
   const message = encodeURIComponent(
-    `Halo, saya ingin menanyakan harga khusus untuk produk: ${productName}`,
+    `Halo MinGoena, saya ingin menanyakan harga khusus untuk produk: ${productName}`,
   );
   const href = `https://wa.me/${whatsappNumber}?text=${message}`;
 

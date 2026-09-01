@@ -1246,7 +1246,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         title: "Pemesanan Pre-Order / Made by Order",
         description:
           "Produk/varian ini memerlukan waktu pembuatan khusus (made by order). Silakan hubungi admin kami via WhatsApp untuk detail estimasi waktu pengerjaan dan pemesanan.",
-        text: `Halo Admin Goenakan.id, saya tertarik untuk melakukan pemesanan Pre-Order/Made by Order untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
+        text: `Halo MinGoena, saya tertarik untuk melakukan pemesanan Pre-Order/Made by Order untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
       };
     }
 
@@ -1255,7 +1255,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         title: "Pemesanan Produk Habis",
         description:
           "Stok untuk produk/varian ini sedang habis di website. Silakan hubungi admin kami via WhatsApp untuk menanyakan ketersediaan kembali atau melakukan pemesanan khusus.",
-        text: `Halo Admin Goenakan.id, saya ingin menanyakan ketersediaan / memesan produk yang sedang habis: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
+        text: `Halo MinGoena, saya ingin menanyakan ketersediaan / memesan produk yang sedang habis: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
       };
     }
 
@@ -1263,7 +1263,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       title: "Custom Cetak Logo via WhatsApp",
       description:
         "Kustomisasi cetak logo untuk produk/ukuran ini belum dikonfigurasi pada sistem editor kami. Namun, Anda tetap dapat memesan secara custom secara manual dengan menghubungi admin kami langsung melalui WhatsApp.",
-      text: `Halo Admin Goenakan.id, saya ingin melakukan pemesanan custom cetak logo untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
+      text: `Halo MinGoena, saya ingin melakukan pemesanan custom cetak logo untuk produk: ${product.name}${selectedAttributesText ? ` (Varian: ${selectedAttributesText})` : ""}`,
     };
   }, [
     product.isMadeByOrder,

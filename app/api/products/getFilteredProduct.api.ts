@@ -45,7 +45,9 @@ export async function getFilteredProductsAPI(
       params.append("attributes", JSON.stringify(filters.attributes));
     }
 
-    const res = await fetch(`${apiUrl}/products/public?${params.toString()}`);
+    const res = await fetch(`${apiUrl}/products/public?${params.toString()}`, {
+      cache: "no-store",
+    });
     if (!res.ok) throw new Error("Failed to fetch products");
     return await res.json();
   } catch (error) {
@@ -55,7 +57,9 @@ export async function getFilteredProductsAPI(
 }
 export async function getFilterOptionsAPI(lang: string = "id") {
   try {
-    const res = await fetch(`${apiUrl}/products/public/filters?lang=${lang}`);
+    const res = await fetch(`${apiUrl}/products/public/filters?lang=${lang}`, {
+      cache: "no-store",
+    });
     if (!res.ok) throw new Error("Failed to fetch filter options");
 
     const result = await res.json();
