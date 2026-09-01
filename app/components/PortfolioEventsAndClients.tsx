@@ -26,6 +26,8 @@ export default function PortfolioEventsAndClients() {
   const [events, setEvents] = useState<EventCategory[]>([]);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
 
+  const MAX_CLIENTS = 21;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -176,7 +178,8 @@ export default function PortfolioEventsAndClients() {
             ) : clients.length > 0 ? (
               <>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4 mb-6">
-                  {clients.map((client) => {
+                  {/* ✨ Potong array klien menjadi maksimal 21 item (3 baris) sebelum di map */}
+                  {clients.slice(0, MAX_CLIENTS).map((client) => {
                     const imageContent = (
                       <div className="relative w-full h-full p-4 flex items-center justify-center bg-white border border-gray-100 hover:shadow-sm rounded-sm cursor-pointer grayscale hover:grayscale-0 transition-all duration-300">
                         <Image
@@ -206,6 +209,7 @@ export default function PortfolioEventsAndClients() {
                   })}
                 </div>
 
+                {/* ✨ Tombol "and Many More" tetap muncul jika ada klien */}
                 <div className="flex justify-end">
                   <Link
                     href="/clients"

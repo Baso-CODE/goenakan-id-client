@@ -5,7 +5,10 @@ export async function getPublicEventCategories(): Promise<EventCategory[]> {
   try {
     const res = await fetch(`${apiUrl}/event-categories/public`, {
       method: "GET",
-      next: { revalidate: 3600 },
+      next: {
+        revalidate: 300,
+        tags: ["event-categories"],
+      },
     });
 
     const json = await res.json();
@@ -27,7 +30,10 @@ export async function getPublicEventCategoryBySlug(
   try {
     const res = await fetch(`${apiUrl}/event-categories/public/${slug}`, {
       method: "GET",
-      next: { revalidate: 3600 },
+      next: {
+        revalidate: 300,
+        tags: ["event-categories", `event-category-${slug}`],
+      },
     });
 
     const json = await res.json();

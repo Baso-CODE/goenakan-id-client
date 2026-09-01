@@ -9,6 +9,9 @@ import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
 interface ArticleListProps {
   categories?: string[];
   pageSize?: number;
@@ -94,7 +97,6 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
             ? item.content_en
             : item.content_id;
 
-        // ✨ PERBAIKAN: Menyesuaikan label kategori pada artikel
         const categoryName =
           locale === "en" && item.category?.name_en
             ? item.category.name_en
@@ -153,34 +155,45 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
 
   return (
     <section className="w-full container py-12 ">
-      <div className="flex items-center justify-between mb-6 border-b border-stone-200 pb-3">
-        {/* Categories */}
-        <div className="flex items-center gap-5 flex-wrap">
-          {isCategoriesLoading ? (
-            <>
-              <Skeleton className="h-6 w-16" />
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-6 w-24" />
-              <Skeleton className="h-6 w-20" />
-            </>
-          ) : (
-            categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => handleCategoryChange(cat)}
-                className={`text-sm transition-colors ${
-                  activeCategory === cat
-                    ? "text-stone-900 font-medium"
-                    : "text-stone-400 hover:text-stone-600"
-                }`}>
-                {cat}
-              </button>
-            ))
-          )}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 border-b border-stone-200 pb-3 gap-4">
+        <div className="w-full md:w-[75%] lg:w-[85%] overflow-hidden">
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex items-center gap-2 pb-2">
+              {isCategoriesLoading ? (
+                <>
+                  <Skeleton className="h-8 w-24 rounded-full" />
+                  <Skeleton className="h-8 w-32 rounded-full" />
+                  <Skeleton className="h-8 w-28 rounded-full" />
+                  <Skeleton className="h-8 w-20 rounded-full" />
+                </>
+              ) : (
+                categories.map((cat) => {
+                  const isActive = activeCategory === cat;
+                  return (
+                    <Badge
+                      key={cat}
+                      onClick={() => handleCategoryChange(cat)}
+                      variant={isActive ? "default" : "outline"}
+                      className={`cursor-pointer px-4 py-2 rounded-full text-xs font-medium transition-colors ${
+                        isActive
+                          ? "bg-[#b5956a] text-white hover:bg-[#a07d55]"
+                          : "border-stone-300 text-stone-600 hover:bg-stone-100"
+                      }`}>
+                      {cat}
+                    </Badge>
+                  );
+                })
+              )}
+            </div>
+            <ScrollBar
+              orientation="horizontal"
+              className="invisible hover:visible"
+            />
+          </ScrollArea>
         </div>
 
-        {/* Sort */}
-        <div className="flex items-center gap-1 text-sm shrink-0">
+        {/* Sort (Pengurutan) */}
+        <div className="flex items-center gap-2 text-sm shrink-0">
           <button
             onClick={() => {
               if (sort !== "newest") {
@@ -204,7 +217,7 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
               if (sort !== "older") {
                 setSort("older");
                 setArticles([]);
-                setIsLoading(true);
+                setIsLoading(true); // Typo "v" sebelumnya sudah dihapus
               }
             }}
             className={

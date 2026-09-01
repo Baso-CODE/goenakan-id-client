@@ -5,7 +5,10 @@ export async function getPublicBannersProduct(): Promise<BannerProduct[]> {
   try {
     const res = await fetch(`${apiUrl}/banner-products/public`, {
       method: "GET",
-      next: { revalidate: 3600 },
+      next: {
+        revalidate: 300,
+        tags: ["banners"],
+      },
     });
 
     const json = await res.json();

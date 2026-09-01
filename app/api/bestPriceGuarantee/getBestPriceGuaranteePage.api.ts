@@ -8,7 +8,11 @@ export async function getBestPriceGuarantees(): Promise<
     const res = await fetch(
       `${apiUrl}/content/best-price-guarantee/public/main`,
       {
-        cache: "no-store",
+        method: "GET",
+        next: {
+          revalidate: 300,
+          tags: ["best-price-guarantees"],
+        },
       },
     );
 

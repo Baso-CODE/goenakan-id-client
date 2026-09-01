@@ -11,6 +11,7 @@ export async function submitContactMessage(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(data),
+      cache: "no-store",
     });
 
     if (!res.ok) {

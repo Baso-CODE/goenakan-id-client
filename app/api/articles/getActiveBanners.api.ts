@@ -1,12 +1,15 @@
 import { ArticleBanner } from "@/app/components/article/articleBannerCarousel";
 import { BannerItem } from "@/app/types/articles/bannerItem.type";
-
 import { apiUrl } from "@/app/utils/ApiUrl";
 
 export async function getActiveBanners(): Promise<ArticleBanner[]> {
   try {
     const res = await fetch(`${apiUrl}/articles-banners/public`, {
-      cache: "no-store",
+      method: "GET",
+      next: {
+        revalidate: 300,
+        tags: ["article-banners"],
+      },
     });
 
     if (!res.ok) {

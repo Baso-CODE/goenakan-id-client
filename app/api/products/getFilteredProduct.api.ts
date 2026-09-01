@@ -55,6 +55,7 @@ export async function getFilteredProductsAPI(
     return { data: [], meta: { hasNext: false } };
   }
 }
+
 export async function getFilterOptionsAPI(lang: string = "id") {
   try {
     const res = await fetch(`${apiUrl}/products/public/filters?lang=${lang}`, {

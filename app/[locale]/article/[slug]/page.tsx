@@ -33,7 +33,7 @@ export default async function ArticleSlugPage({ params }: ArticlePageProps) {
 
       return {
         id: rp.product.id,
-        name: rp.product.name, // Jika product punya name_en, bisa di-mapping di sini juga
+        name: rp.product.name,
         image: imageUrl,
         href: `/products/${rp.product.slug}`,
       };

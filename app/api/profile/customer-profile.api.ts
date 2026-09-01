@@ -16,6 +16,10 @@ export async function getMyProfile(
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
+      next: {
+        revalidate: 300,
+        tags: ["customer-profile"],
+      },
     });
 
     const json = await res.json();
@@ -44,6 +48,7 @@ export async function updateMyProfile(
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
+      cache: "no-store",
     });
 
     const json = await res.json();
@@ -65,6 +70,10 @@ export async function getMyOrders(token: string): Promise<WebOrder[]> {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+      },
+      next: {
+        revalidate: 300,
+        tags: ["customer-orders"],
       },
     });
 

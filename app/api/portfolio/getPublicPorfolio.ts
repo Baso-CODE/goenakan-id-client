@@ -4,7 +4,11 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 export async function getPublicPortfolios(): Promise<PortfolioPublic[]> {
   try {
     const res = await fetch(`${apiUrl}/portfolios/public`, {
-      next: { revalidate: 3600 },
+      method: "GET",
+      next: {
+        revalidate: 300,
+        tags: ["portfolios"],
+      },
     });
 
     if (!res.ok) return [];

@@ -1,5 +1,3 @@
-// services/categoryService.ts
-
 import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 

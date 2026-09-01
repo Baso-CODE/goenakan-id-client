@@ -26,6 +26,13 @@
     "aboutTitle": "About Us | Goenakan Indonesia",
     "aboutDescription": "Learn more about Goenakan Indonesia, our history, core values, and the beloved clients we've worked with."
   },
+  "AllClients": {
+    "backButton": "Back to Home",
+    "title": "Our Clients",
+    "subtitle": "Trusted by amazing companies and brands.",
+    "emptyStateTitle": "No clients found",
+    "emptyStateDesc": "Client logos will appear here soon."
+  },
   "WhoWeAre": {
     "subtitle": "Who We Are",
     "title": "Every product starts with a great idea. Let's build yours!",
@@ -37,7 +44,8 @@
     "stat2Label": "Products created",
     "stat3Value": "500+",
     "stat3Label": "Completed orders",
-    "button": "Start a Custom Project"
+    "button": "Start a Custom Project",
+    "whatsappMessage": "Hello, I am interested in discussing a custom project with Goenakan Indonesia."
   },
 
   "Footer": {
@@ -258,6 +266,7 @@
     "googleSignIn": "Sign in with Google",
     "noAccountText": "Don't have an account?",
     "createAccountLink": "Create an account",
+  
     "messages": {
       "success": "Login successful!",
       "errorDefault": "Login failed, please try again",
@@ -265,6 +274,37 @@
       "invalidCredentials": "Invalid email or password",
       "serverError": "Server error. Please try again later",
       "networkError": "Network error. Please check your connection"
+    }
+  },
+
+  
+  "Register": {
+    "title": "Create Account",
+    "tabIndividual": "Individual Needs",
+    "tabCorporate": "Corporate Needs",
+    "emailPlaceholder": "Email Address",
+    "passwordPlaceholder": "Password (Min. 8 characters)",
+    "fullNamePlaceholder": "Full Name",
+    "phonePlaceholder": "Phone Numbers",
+    "addressPlaceholder": "Address",
+    "picNamePlaceholder": "PIC Name",
+    "picPhonePlaceholder": "PIC Numbers",
+    "companyNamePlaceholder": "Company Name",
+    "departmentPlaceholder": "Department",
+    "buttonSignUp": "Sign Up",
+    "buttonProcessing": "Processing...",
+    "buttonGoogleSignIn": "Sign in with Google Instead",
+    "agreementText1": "By signing up, you agree to receive marketing emails. View our ",
+    "privacyPolicy": "privacy policy",
+    "agreementText2": " and ",
+    "termsOfService": "terms of service",
+    "agreementText3": " for more info.",
+    "alreadyHaveAccount": "Already have an account?",
+    "loginLink": "Login",
+    "messages": {
+      "success": "Registration successful! Please check your email to verify.",
+      "errorDefault": "Registration failed",
+      "errorSystem": "A system error occurred."
     }
   },
 
