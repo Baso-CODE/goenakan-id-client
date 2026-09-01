@@ -4,7 +4,11 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 export async function getMainFaqs(): Promise<FaqItem[]> {
   try {
     const res = await fetch(`${apiUrl}/content/faqs/public/main?take=50`, {
-      cache: "no-store",
+      method: "GET",
+      next: {
+        revalidate: 300,
+        tags: ["main-faqs"],
+      },
     });
 
     if (!res.ok) {

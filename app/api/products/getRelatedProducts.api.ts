@@ -4,7 +4,11 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 export async function getRelatedProductsAPI(slug: string): Promise<Product[]> {
   try {
     const res = await fetch(`${apiUrl}/products/public/${slug}/related`, {
-      cache: "no-store",
+      method: "GET",
+      next: {
+        revalidate: 300,
+        tags: ["related-products", `related-${slug}`],
+      },
     });
 
     if (!res.ok) throw new Error("Failed to fetch related products");

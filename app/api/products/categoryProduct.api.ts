@@ -6,8 +6,9 @@ export async function getPublicCategories(
 ): Promise<CategoryPublic[]> {
   try {
     const res = await fetch(`${apiUrl}/product-categories/public`, {
+      method: "GET",
       next: {
-        revalidate: 3600,
+        revalidate: 300,
         tags: [`categories-${lang}`],
       },
       headers: {

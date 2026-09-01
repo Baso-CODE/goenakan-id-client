@@ -5,7 +5,10 @@ export async function getBrandClients(): Promise<BrandClient[]> {
   try {
     const res = await fetch(`${apiUrl}/brand-clients/public`, {
       method: "GET",
-      next: { revalidate: 3600 },
+      next: {
+        revalidate: 300,
+        tags: ["brand-clients"],
+      },
     });
 
     const json = await res.json();

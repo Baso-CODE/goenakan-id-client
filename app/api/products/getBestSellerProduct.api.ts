@@ -5,7 +5,10 @@ export async function getBestSellerProductsAPI(): Promise<BestSellerProduct[]> {
   try {
     const res = await fetch(`${apiUrl}/products/best-sellers`, {
       method: "GET",
-      cache: "no-store",
+      next: {
+        revalidate: 300,
+        tags: ["best-sellers"],
+      },
     });
 
     if (!res.ok) throw new Error("Failed to fetch best seller products");
