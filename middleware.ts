@@ -8,7 +8,6 @@ export default async function middleware(request: NextRequest) {
 
   if (countryCookie) {
     country = countryCookie;
-    console.log("Menggunakan negara dari cookie:", country);
   } else {
     const forwardedFor = request.headers.get("x-forwarded-for");
     const realIp = request.headers.get("x-real-ip");
@@ -16,7 +15,6 @@ export default async function middleware(request: NextRequest) {
 
     if (ip && ip !== "::1" && ip !== "127.0.0.1") {
       try {
-        console.log(`Mengambil data lokasi untuk IP: ${ip} dari ipwhois...`);
         const response = await fetch(`https://ipwhois.app/json/${ip}`, {
           signal: AbortSignal.timeout(3000),
         });
@@ -25,16 +23,13 @@ export default async function middleware(request: NextRequest) {
           const data = await response.json();
           if (data && data.country_code) {
             country = data.country_code;
-            console.log("Berhasil! Negara terdeteksi:", country);
           }
-        } else {
-          console.log("Gagal fetch API ipwhois, status HTTP:", response.status);
         }
       } catch (error) {
-        console.log("Error saat memanggil API lokasi:", error);
+        // console.log("Error saat memanggil API lokasi:", error);
       }
     } else {
-      console.log("IP terdeteksi sebagai localhost, menggunakan default ID");
+      // console.log("IP terdeteksi sebagai localhost, menggunakan default ID");
     }
   }
 

@@ -309,7 +309,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const activeColorHex = useMemo(() => {
     const colorKey = Object.keys(selections).find(
-      (key) => key.toLowerCase().includes("color") || key.toLowerCase().includes("warna")
+      (key) =>
+        key.toLowerCase().includes("color") ||
+        key.toLowerCase().includes("warna"),
     );
     if (!colorKey) return null;
     const selectedColorVal = selections[colorKey];
@@ -671,9 +673,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   }, [selectedVariant, selections, product.attributeValues, product.variants]);
 
   const activeColorMaskUrl = useMemo(() => {
-    if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE") return null;
+    if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE")
+      return null;
 
-    const targetType = product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
+    const targetType =
+      product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
     const activeVal = product.attributeValues?.find((av: any) => {
       if (av.attributeType !== targetType) return false;
       return selectedAttributeValueIds.includes(av.attributeValueId);
@@ -682,7 +686,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     if (!activeVal || !activeVal.value) return null;
     const parts = activeVal.value.split("|");
     return parts[2] || null;
-  }, [product.colorMockupTrigger, product.attributeValues, selectedAttributeValueIds]);
+  }, [
+    product.colorMockupTrigger,
+    product.attributeValues,
+    selectedAttributeValueIds,
+  ]);
 
   // Track if current selection (or entire product) is out of stock
   const isOutOfStock = useMemo(() => {
@@ -775,15 +783,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const customOptionsPriceModifier = useMemo(() => {
     let totalModifier = 0;
-    console.log("--- START PRICING CALCULATION ---");
-    console.log("selections:", selections);
-    console.log("isCustomizing:", isCustomizing);
-    console.log("selectedMockupPositions:", selectedMockupPositions);
+    // console.log("--- START PRICING CALCULATION ---");
+    // console.log("selections:", selections);
+    // console.log("isCustomizing:", isCustomizing);
+    // console.log("selectedMockupPositions:", selectedMockupPositions);
 
     const variantAttrNames = new Set(
       selectedVariant?.attributes?.map((a: any) => a.name) || [],
     );
-    console.log("variantAttrNames:", Array.from(variantAttrNames));
+    // console.log("variantAttrNames:", Array.from(variantAttrNames));
 
     if (product.attributeValues) {
       product.attributeValues.forEach((av: any) => {
@@ -807,9 +815,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             const cleanValue = av.value.split("|")[0].toLowerCase().trim();
             if (cleanSelected === cleanValue) {
               totalModifier += av.priceModifier ?? 0;
-              console.log(
-                `Matched custom option: ${av.attributeName} = ${av.value}. Adding priceModifier = ${av.priceModifier}. Running total = ${totalModifier}`,
-              );
+              // console.log(
+              //   `Matched custom option: ${av.attributeName} = ${av.value}. Adding priceModifier = ${av.priceModifier}. Running total = ${totalModifier}`,
+              // );
             }
           }
         }
@@ -839,16 +847,16 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
           if (matchedPositionAttr) {
             totalModifier += matchedPositionAttr.priceModifier ?? 0;
-            console.log(
-              `Matched position modifier for ${posKey}: Adding priceModifier = ${matchedPositionAttr.priceModifier}. Running total = ${totalModifier}`,
-            );
+            // console.log(
+            //   `Matched position modifier for ${posKey}: Adding priceModifier = ${matchedPositionAttr.priceModifier}. Running total = ${totalModifier}`,
+            // );
           }
         });
       }
     }
 
-    console.log("Final computed customOptionsPriceModifier =", totalModifier);
-    console.log("--- END PRICING CALCULATION ---");
+    // console.log("Final computed customOptionsPriceModifier =", totalModifier);
+    // console.log("--- END PRICING CALCULATION ---");
     return totalModifier;
   }, [
     isCustomizing,
@@ -976,9 +984,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           const name = match.attributeName || "";
           if (isPrintRelatedAttribute(type, name)) {
             price -= match.priceModifier ?? 0;
-            console.log(
-              `Beli Polosan active: Subtracting print modifier ${match.priceModifier} for attribute ${attr.name}=${attr.value}. New base price = ${price}`,
-            );
+            // console.log(
+            //   `Beli Polosan active: Subtracting print modifier ${match.priceModifier} for attribute ${attr.name}=${attr.value}. New base price = ${price}`,
+            // );
           }
         }
       });
@@ -1014,17 +1022,18 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const attributeMockupMedia = useMemo(() => {
     if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE") {
-      console.log("DEBUG attributeMockupMedia: Trigger is NONE or undefined");
+      // console.log("DEBUG attributeMockupMedia: Trigger is NONE or undefined");
       return null;
     }
 
-    const targetType = product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
+    const targetType =
+      product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
     const activeVal = product.attributeValues?.find((av: any) => {
       if (av.attributeType !== targetType) return false;
       return selectedAttributeValueIds.includes(av.attributeValueId);
     });
 
-    console.log("DEBUG attributeMockupMedia: activeVal found =", activeVal);
+    // console.log("DEBUG attributeMockupMedia: activeVal found =", activeVal);
 
     if (!activeVal || !activeVal.value) return null;
     const parts = activeVal.value.split("|");
@@ -1032,7 +1041,14 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     const imageUrl = parts[1] || "";
     const colorMaskUrl = parts[2] || "";
 
-    console.log("DEBUG attributeMockupMedia parsed: name =", name, "imageUrl =", imageUrl, "colorMaskUrl =", colorMaskUrl);
+    // console.log(
+    //   "DEBUG attributeMockupMedia parsed: name =",
+    //   name,
+    //   "imageUrl =",
+    //   imageUrl,
+    //   "colorMaskUrl =",
+    //   colorMaskUrl,
+    // );
 
     if (!imageUrl) return null;
 
@@ -1044,7 +1060,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       altText: "Mockup Image",
       type: "image",
     } as MediaItem;
-  }, [product.colorMockupTrigger, product.attributeValues, selectedAttributeValueIds]);
+  }, [
+    product.colorMockupTrigger,
+    product.attributeValues,
+    selectedAttributeValueIds,
+  ]);
 
   const allGalleryMediaForSize = useMemo(() => {
     let currentMedia: MediaItem[] = [];
@@ -1059,47 +1079,62 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
 
     const hasConfiguredMockups = (product.media || []).some(
-      (img) => img.mockupAreas && img.mockupAreas.length > 0
+      (img) => img.mockupAreas && img.mockupAreas.length > 0,
     );
 
-    console.log("DEBUG: hasConfiguredMockups =", hasConfiguredMockups, "attributeMockupMedia =", attributeMockupMedia);
+    // console.log(
+    //   "DEBUG: hasConfiguredMockups =",
+    //   hasConfiguredMockups,
+    //   "attributeMockupMedia =",
+    //   attributeMockupMedia,
+    // );
 
     let productMedia: MediaItem[] = [];
 
     if (hasConfiguredMockups) {
-      productMedia = (product.media || []).filter((img) => {
-        const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl;
-        if (isMockup) {
-          // Mockup kustom wajib ditautkan ke varian untuk ditampilkan
-          if (!img.attributeValueId) return false;
-          return selectedAttributeValueIds.includes(img.attributeValueId);
-        } else {
-          // Gambar produk biasa
-          if (!img.attributeValueId) return true;
-          return selectedAttributeValueIds.includes(img.attributeValueId);
-        }
-      }).map((img) => {
-        const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl || img.altText === "Mockup Image";
-        const isColorCustomLink = isMockup && (
-          (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE")
-            ? (!!img.attributeValueId && selectedAttributeValueIds.includes(img.attributeValueId))
-            : true
-        );
-        return {
-          ...img,
-          isColorCustomizable: !!isColorCustomLink,
-        };
-      });
+      productMedia = (product.media || [])
+        .filter((img) => {
+          const isMockup =
+            (img.mockupAreas && img.mockupAreas.length > 0) ||
+            !!img.colorMaskUrl;
+          if (isMockup) {
+            // Mockup kustom wajib ditautkan ke varian untuk ditampilkan
+            if (!img.attributeValueId) return false;
+            return selectedAttributeValueIds.includes(img.attributeValueId);
+          } else {
+            // Gambar produk biasa
+            if (!img.attributeValueId) return true;
+            return selectedAttributeValueIds.includes(img.attributeValueId);
+          }
+        })
+        .map((img) => {
+          const isMockup =
+            (img.mockupAreas && img.mockupAreas.length > 0) ||
+            !!img.colorMaskUrl ||
+            img.altText === "Mockup Image";
+          const isColorCustomLink =
+            isMockup &&
+            (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE"
+              ? !!img.attributeValueId &&
+                selectedAttributeValueIds.includes(img.attributeValueId)
+              : true);
+          return {
+            ...img,
+            isColorCustomizable: !!isColorCustomLink,
+          };
+        });
     } else {
       if (attributeMockupMedia) {
         productMedia.push(attributeMockupMedia);
       }
-      const genericPhotos = (product.media || []).filter(
-        (img) => !img.attributeValueId && img.altText !== "Mockup Image"
-      ).map((img) => ({
-        ...img,
-        isColorCustomizable: false,
-      }));
+      const genericPhotos = (product.media || [])
+        .filter(
+          (img) => !img.attributeValueId && img.altText !== "Mockup Image",
+        )
+        .map((img) => ({
+          ...img,
+          isColorCustomizable: false,
+        }));
       productMedia.push(...genericPhotos);
     }
 
@@ -1115,16 +1150,22 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     });
 
     return sortMediaItems(uniqueMedia);
-  }, [selectedVariantId, product, selectedAttributeValueIds, product.colorMockupTrigger, attributeMockupMedia]);
+  }, [
+    selectedVariantId,
+    product,
+    selectedAttributeValueIds,
+    product.colorMockupTrigger,
+    attributeMockupMedia,
+  ]);
 
   const hasMockupAreas = useMemo(() => {
     const result = allGalleryMediaForSize.some(
       (m) => m.mockupAreas && m.mockupAreas.length > 0,
     );
-    console.log(
-      "DEBUG: hasMockupAreas check on allGalleryMediaForSize =",
-      result,
-    );
+    // console.log(
+    //   "DEBUG: hasMockupAreas check on allGalleryMediaForSize =",
+    //   result,
+    // );
     return result;
   }, [allGalleryMediaForSize]);
 
@@ -1137,14 +1178,18 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         (img) => img.mockupAreas && img.mockupAreas.length > 0,
       );
     } else {
-      const useMockupFlow = product.colorMockupTrigger && product.colorMockupTrigger !== "NONE";
+      const useMockupFlow =
+        product.colorMockupTrigger && product.colorMockupTrigger !== "NONE";
 
       if (useMockupFlow) {
         // Tampilkan gambar yang sesuai dengan filter ukuran/model
         // Tapi filter out gambar mockup tambahan (kedua, ketiga, dst) di galeri polosan
         let hasFoundMockup = false;
         result = allGalleryMediaForSize.filter((img) => {
-          const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl || img.altText === "Mockup Image";
+          const isMockup =
+            (img.mockupAreas && img.mockupAreas.length > 0) ||
+            !!img.colorMaskUrl ||
+            img.altText === "Mockup Image";
           if (isMockup) {
             if (!hasFoundMockup) {
               hasFoundMockup = true;
@@ -1158,31 +1203,39 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         // Tampilkan semua gambar tanpa filter ukuran (polosan type)
         const currentMedia =
           selectedVariantId && product.variants
-            ? (product.variants.find((v) => v.id === selectedVariantId)?.images || []).map((img) => ({
+            ? (
+                product.variants.find((v) => v.id === selectedVariantId)
+                  ?.images || []
+              ).map((img) => ({
                 ...img,
                 isColorCustomizable: isColorPickerActive || !!activeColorHex,
               }))
             : [];
-        const productMedia = (product.media || []).filter(
-          (img) => !img.attributeValueId && img.altText !== "Mockup Image",
-        ).map((img) => ({
-          ...img,
-          isColorCustomizable: false,
-        }));
+        const productMedia = (product.media || [])
+          .filter(
+            (img) => !img.attributeValueId && img.altText !== "Mockup Image",
+          )
+          .map((img) => ({
+            ...img,
+            isColorCustomizable: false,
+          }));
         const mergedMedia = [...currentMedia, ...productMedia];
         result = sortMediaItems(mergedMedia);
       }
     }
 
-    console.log("DEBUG: activeGalleryMedia content =", result.map(m => ({
-      id: m.id,
-      url: m.url,
-      altText: m.altText,
-      attributeValueId: m.attributeValueId,
-      isColorCustomizable: m.isColorCustomizable,
-      colorMaskUrl: m.colorMaskUrl,
-      hasMockupAreas: m.mockupAreas && m.mockupAreas.length > 0,
-    })));
+    // console.log(
+    //   "DEBUG: activeGalleryMedia content =",
+    //   result.map((m) => ({
+    //     id: m.id,
+    //     url: m.url,
+    //     altText: m.altText,
+    //     attributeValueId: m.attributeValueId,
+    //     isColorCustomizable: m.isColorCustomizable,
+    //     colorMaskUrl: m.colorMaskUrl,
+    //     hasMockupAreas: m.mockupAreas && m.mockupAreas.length > 0,
+    //   })),
+    // );
 
     return result;
   }, [
@@ -1210,10 +1263,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       return true;
     }
     return false;
-  }, [
-    isCustomizing,
-    hasMockupAreas,
-  ]);
+  }, [isCustomizing, hasMockupAreas]);
 
   // Dynamically build callout banner content for WhatsApp orders
   const waBoxContent = useMemo(() => {
@@ -1334,7 +1384,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   }, [selectedVariant, product.attributeValues]);
 
   const handleAddToCart = async (): Promise<boolean> => {
-    console.log("🔍 [DEBUG FRONTEND] selections saat ini:", selections);
+    // console.log("🔍 [DEBUG FRONTEND] selections saat ini:", selections);
     // Validate that all visible attribute selections are made
     const visibleGroups = attributeGroups.filter((group) => {
       if (
@@ -1450,7 +1500,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           : null,
       selectedAttributes: selections || null,
     };
-    console.log("📦 [DEBUG FRONTEND] Payload addToCart yang dikirim:", payload);
+    // console.log("📦 [DEBUG FRONTEND] Payload addToCart yang dikirim:", payload);
     await addToCart(payload, quantity, token);
     return true;
   };
@@ -1464,7 +1514,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const selectedCustomOptionDimensions = useMemo(() => {
     if (!product.attributeValues) return null;
-    
+
     for (const [groupName, selectedVal] of Object.entries(selections)) {
       const match = product.attributeValues.find((av: any) => {
         const isSizeOrCapacityAttr =
@@ -1477,7 +1527,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         const cleanVal = selectedVal.split("|")[0].trim().toLowerCase();
         const cleanAvAv = av.value.split("|")[0].trim().toLowerCase();
 
-        return isSizeOrCapacityAttr && av.attributeName === groupName && cleanAvAv === cleanVal;
+        return (
+          isSizeOrCapacityAttr &&
+          av.attributeName === groupName &&
+          cleanAvAv === cleanVal
+        );
       });
 
       if (match && (match.width || match.height || match.length)) {
@@ -1489,7 +1543,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const selectedCustomOptionWeight = useMemo(() => {
     if (!product.attributeValues) return null;
-    
+
     for (const [groupName, selectedVal] of Object.entries(selections)) {
       const match = product.attributeValues.find((av: any) => {
         const isSizeOrCapacityAttr =
@@ -1502,7 +1556,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         const cleanVal = selectedVal.split("|")[0].trim().toLowerCase();
         const cleanAvAv = av.value.split("|")[0].trim().toLowerCase();
 
-        return isSizeOrCapacityAttr && av.attributeName === groupName && cleanAvAv === cleanVal;
+        return (
+          isSizeOrCapacityAttr &&
+          av.attributeName === groupName &&
+          cleanAvAv === cleanVal
+        );
       });
 
       if (match && match.weight) {
@@ -1512,17 +1570,21 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return null;
   }, [selections, product.attributeValues]);
 
-  const displayWeight = selectedCustomOptionWeight || (resolvedVariantDetails
-    ? resolvedVariantDetails.weight
-    : selectedVariant
-      ? selectedVariant.weightString
-      : product.weight);
+  const displayWeight =
+    selectedCustomOptionWeight ||
+    (resolvedVariantDetails
+      ? resolvedVariantDetails.weight
+      : selectedVariant
+        ? selectedVariant.weightString
+        : product.weight);
 
-  const displayDimensions = selectedCustomOptionDimensions || (resolvedVariantDetails
-    ? resolvedVariantDetails.dimensions
-    : selectedVariant
-      ? selectedVariant.dimensionsString
-      : product.dimensions);
+  const displayDimensions =
+    selectedCustomOptionDimensions ||
+    (resolvedVariantDetails
+      ? resolvedVariantDetails.dimensions
+      : selectedVariant
+        ? selectedVariant.dimensionsString
+        : product.dimensions);
 
   const minAllowedQty =
     activeTiers.length > 0 ? (activeTiers[0].minQty ?? 1) : 1;
@@ -1857,7 +1919,12 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   ? "Select Purchase Type"
                   : "Pilih Tipe Pembelian"}
               </p>
-              <div className={hasAnyMockupAreas ? "grid grid-cols-2 gap-3" : "grid grid-cols-1"}>
+              <div
+                className={
+                  hasAnyMockupAreas
+                    ? "grid grid-cols-2 gap-3"
+                    : "grid grid-cols-1"
+                }>
                 {/* Option 1: Buy Polosan */}
                 <button
                   type="button"
