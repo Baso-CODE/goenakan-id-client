@@ -19,6 +19,7 @@ export interface MediaItem {
   type: MediaType;
   url: string;
   isFeatured?: boolean | null;
+  sortOrder?: number | null;
   mockupAreas?: MockupArea[];
   attributeValueId?: string | null;
   altText?: string | null;
