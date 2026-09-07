@@ -1005,19 +1005,29 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const adminWhatsApp = "6282387902238";
 
-  // Order media: featured video, non-featured video, featured photo, non-featured photos
+  // Order media: video first, then photos; each ordered by sortOrder with isFeatured fallback
   const sortMediaItems = (items: MediaItem[]): MediaItem[] => {
-    const getMediaScore = (item: MediaItem): number => {
-      const isFeatured = !!item.isFeatured;
-      const isVideo = item.type === "video";
+    return [...items].sort((a, b) => {
+      const isVideoA = a.type === "video";
+      const isVideoB = b.type === "video";
 
-      if (isVideo && isFeatured) return 0; // 1. Featured video
-      if (isVideo && !isFeatured) return 1; // 2. Non-featured video
-      if (!isVideo && isFeatured) return 2; // 3. Featured photo
-      return 3; // 4. Non-featured photos
-    };
+      // 1. Grouping: videos first, then photos
+      if (isVideoA !== isVideoB) {
+        return isVideoA ? -1 : 1;
+      }
 
-    return [...items].sort((a, b) => getMediaScore(a) - getMediaScore(b));
+      // 2. Within each group (video or photo), follow admin drag-and-drop sortOrder
+      const sortA = typeof a.sortOrder === "number" ? a.sortOrder : 9999;
+      const sortB = typeof b.sortOrder === "number" ? b.sortOrder : 9999;
+      if (sortA !== sortB) {
+        return sortA - sortB;
+      }
+
+      // 3. Fallback: featured item comes first if sortOrders are identical
+      const featuredA = a.isFeatured ? 1 : 0;
+      const featuredB = b.isFeatured ? 1 : 0;
+      return featuredB - featuredA;
+    });
   };
 
   const attributeMockupMedia = useMemo(() => {
