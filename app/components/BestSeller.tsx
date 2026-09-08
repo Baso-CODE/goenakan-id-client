@@ -3,12 +3,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
+import { ImageOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getBestSellerProductsAPI } from "../api/products/getBestSellerProduct.api";
 import { BestSellerProduct } from "../types/bestSellerProduct.type";
-
-import { useTranslations } from "next-intl";
 
 // Fungsi format Rupiah
 function formatRupiah(amount: number): string {
@@ -76,15 +76,24 @@ export default function BestSeller() {
                 className="group cursor-pointer">
                 <Card className="bg-white border border-gray-200 rounded-none shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden h-full">
                   <CardContent className="p-0 flex flex-col h-full">
-                    {/* Bagian Gambar */}
-                    <div className="relative aspect-square bg-white flex items-center justify-center border-b border-gray-100 overflow-hidden">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-cover p-4 group-hover:scale-105 transition-transform duration-500"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
+                    {/* Bagian Gambar dengan Pengecekan Fallback */}
+                    <div className="relative aspect-square bg-gray-50 flex items-center justify-center border-b border-gray-100 overflow-hidden">
+                      {product.image ? (
+                        <Image
+                          src={product.image}
+                          alt={product.name}
+                          fill
+                          className="object-cover p-4 group-hover:scale-105 transition-transform duration-500"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-gray-400 p-4">
+                          <ImageOff className="w-10 h-10 mb-2 stroke-[1.5]" />
+                          <span className="text-xs uppercase tracking-wider font-medium">
+                            No Image
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Bagian Informasi Produk */}
@@ -94,12 +103,10 @@ export default function BestSeller() {
                       </h3>
 
                       <p className="text-sm text-gray-400 line-through mb-1">
-                        {/* 🔄 Ganti satuan pcs */}
                         {formatRupiah(product.regularPrice)}/{t("pcs")}
                       </p>
 
                       <p className="text-sm font-semibold text-gray-900 mb-6">
-                        {/* 🔄 Ganti satuan pcs dan min */}
                         {formatRupiah(product.bulkPrice)}/{t("pcs")}{" "}
                         <span className="font-normal text-gray-500 text-xs ml-1">
                           {t("min")} {product.minOrder} {t("pcs")}
@@ -109,7 +116,6 @@ export default function BestSeller() {
                       {/* Spacer agar tulisan 'Sold' selalu ada di bawah */}
                       <div className="mt-auto pt-4">
                         <p className="text-xs text-[#C4A48E] font-bold uppercase tracking-wider">
-                          {/* 🔄 Ganti Sold / Terjual */}
                           {product.sold.toLocaleString("id-ID")} {t("sold")}
                         </p>
                       </div>
@@ -121,7 +127,6 @@ export default function BestSeller() {
           ) : (
             /* --- Empty State --- */
             <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">
-              {/* 🔄 Ganti pesan kosong */}
               {t("emptyState")}
             </div>
           )}
@@ -131,7 +136,6 @@ export default function BestSeller() {
         <div className="flex justify-center md:justify-end">
           <Link href="/products">
             <Button className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-10 py-6 text-base uppercase tracking-widest cursor-pointer transition-colors">
-              {/* 🔄 Ganti tombol lihat semua */}
               {t("viewAll")}
             </Button>
           </Link>

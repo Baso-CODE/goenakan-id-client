@@ -1,9 +1,11 @@
 import { PortfolioPublic } from "@/app/types/portfolioPublic.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
-export async function getPublicPortfolios(): Promise<PortfolioPublic[]> {
+export async function getPublicPortfolios(
+  lang: string = "id",
+): Promise<PortfolioPublic[]> {
   try {
-    const res = await fetch(`${apiUrl}/portfolios/public`, {
+    const res = await fetch(`${apiUrl}/portfolios/public?lang=${lang}`, {
       method: "GET",
       next: {
         revalidate: 300,

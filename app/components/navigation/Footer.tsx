@@ -2,21 +2,23 @@
 import { getCategoryList } from "@/app/api/products/getCategoryProductList.api";
 import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { Link } from "@/i18n/routing";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export default function Footer() {
+  const locale = useLocale();
   const [categories, setCategories] = useState<CategoryPublic[]>([]);
   const t = useTranslations("Footer");
+
   useEffect(() => {
     const loadCategories = async () => {
-      const data = await getCategoryList();
+      const data = await getCategoryList(locale);
       setCategories(data);
     };
 
     loadCategories();
-  }, []);
+  }, [locale]);
   return (
     <footer className="mt-auto w-full bg-[#1c1c1c] text-white pt-16 pb-8 border-t border-gray-800">
       <div className="container ">

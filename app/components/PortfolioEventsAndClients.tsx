@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/carousel";
 import { Link } from "@/i18n/routing";
 import { ArrowUpRight, ImageOff } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getClientLogos } from "../api/client-logos/getClientLogo.api";
@@ -19,10 +19,11 @@ import { EventCategory } from "../types/eventCategory.type";
 
 export default function PortfolioEventsAndClients() {
   const t = useTranslations("PortfolioSection");
+  const locale = useLocale(); // ✨ 2. Ambil bahasa aktif (id/en)
 
   const [clients, setClients] = useState<BrandClient[]>([]);
-
   const [isClientsLoading, setIsClientsLoading] = useState(true);
+
   const [events, setEvents] = useState<EventCategory[]>([]);
   const [isEventsLoading, setIsEventsLoading] = useState(true);
 
@@ -31,9 +32,12 @@ export default function PortfolioEventsAndClients() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setIsEventsLoading(true);
+        setIsClientsLoading(true);
+
         const [clientsData, eventsData] = await Promise.all([
           getClientLogos(),
-          getPublicEventCategories(),
+          getPublicEventCategories(locale), // ✨ 3. Teruskan locale ke fungsi API
         ]);
 
         setClients(clientsData);
@@ -47,7 +51,7 @@ export default function PortfolioEventsAndClients() {
     };
 
     fetchData();
-  }, []);
+  }, [locale]); // ✨ 4. Jalankan ulang fetch saat bahasa (locale) berubah
 
   return (
     <section className="w-full py-20 bg-white border-t border-gray-100">
@@ -75,7 +79,6 @@ export default function PortfolioEventsAndClients() {
                 })}
               </h2>
 
-              {/* Tampilkan link See More hanya jika ada data */}
               {!isEventsLoading && events.length > 0 && (
                 <Link
                   href="/occasions"
@@ -140,7 +143,6 @@ export default function PortfolioEventsAndClients() {
                 <CarouselNext className="hidden md:flex -right-4 bg-white border-gray-300" />
               </Carousel>
             ) : (
-              // ✨ EMPTY STATE UNTUK EVENT
               <div className="w-full h-64 flex flex-col items-center justify-center bg-gray-50 border border-dashed border-gray-200 rounded-sm">
                 <ImageOff className="w-8 h-8 text-gray-300 mb-3" />
                 <p className="text-sm text-gray-500 font-medium">
@@ -158,7 +160,6 @@ export default function PortfolioEventsAndClients() {
             BAGIAN 2: OUR CLIENTS
            ========================================= */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          {/* --- KOLOM KIRI (LABEL) --- */}
           <div className="lg:col-span-3">
             <h3 className="text-[#C4A48E] font-bold text-sm md:text-base uppercase tracking-wider border-b-2 border-[#C4A48E] inline-block pb-2 mb-4">
               {t("clientsLabel")}
@@ -178,13 +179,12 @@ export default function PortfolioEventsAndClients() {
             ) : clients.length > 0 ? (
               <>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4 mb-6">
-                  {/* ✨ Potong array klien menjadi maksimal 21 item (3 baris) sebelum di map */}
                   {clients.slice(0, MAX_CLIENTS).map((client) => {
                     const imageContent = (
                       <div className="relative w-full h-full p-4 flex items-center justify-center bg-white border border-gray-100 hover:shadow-sm rounded-sm cursor-pointer grayscale hover:grayscale-0 transition-all duration-300">
                         <Image
                           src={client.logo}
-                          alt={client.name || client.name}
+                          alt={client.name || "Client Logo"}
                           fill
                           className="object-contain p-4"
                           sizes="(max-width: 768px) 33vw, 15vw"
@@ -209,7 +209,6 @@ export default function PortfolioEventsAndClients() {
                   })}
                 </div>
 
-                {/* ✨ Tombol "and Many More" tetap muncul jika ada klien */}
                 <div className="flex justify-end">
                   <Link
                     href="/clients"
@@ -219,7 +218,6 @@ export default function PortfolioEventsAndClients() {
                 </div>
               </>
             ) : (
-              // ✨ EMPTY STATE UNTUK CLIENTS
               <div className="w-full h-32 flex flex-col items-center justify-center bg-gray-50 border border-dashed border-gray-200 rounded-sm">
                 <p className="text-sm text-gray-400">
                   Client logos will appear here soon.

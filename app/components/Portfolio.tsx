@@ -1,3 +1,6 @@
+"use client";
+
+import { PortfolioPublic } from "@/app/types/portfolioPublic.type";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Carousel,
@@ -6,32 +9,43 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { FileQuestion } from "lucide-react"; // ✨ Tambahkan icon untuk empty state
+import { FileQuestion } from "lucide-react";
+import { useLocale } from "next-intl";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { getPublicPortfolios } from "../api/portfolio/getPublicPorfolio";
 
-export default async function Portfolio() {
-  const portfolios = await getPublicPortfolios();
+export default function Portfolio() {
+  const locale = useLocale();
+  const [portfolios, setPortfolios] = useState<PortfolioPublic[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPortfolios = async () => {
+      setIsLoading(true);
+      const data = await getPublicPortfolios(locale);
+      setPortfolios(data);
+      setIsLoading(false);
+    };
+    fetchPortfolios();
+  }, [locale]);
 
   return (
     <section className="w-full bg-white pb-20">
       {/* --- BAGIAN ATAS: Banner Image & Text --- */}
       <div className="relative w-full h-100 md:h-125 mb-16">
-        {/* Gambar Background */}
         <div className="absolute inset-0">
           <Image
             src="/images/portfolio.png"
             alt="Our Portfolio Background"
             fill
             className="object-cover"
-            priority // ✨ Tambahkan priority karena ini banner atas
+            priority
           />
-          {/* Overlay Gradient Hitam */}
           <div className="absolute inset-0 bg-linear-to-r from-transparent via-black/40 to-black/90" />
         </div>
 
-        {/* Tulisan OUR PORTFOLIO */}
-        <div className="absolute inset-0 container  flex items-center justify-end">
+        <div className="absolute inset-0 container flex items-center justify-end">
           <h2 className="text-4xl md:text-7xl text-white tracking-widest uppercase text-right leading-tight">
             Our <br className="hidden md:block" /> Portfolio
           </h2>
@@ -40,7 +54,11 @@ export default async function Portfolio() {
 
       {/* --- BAGIAN BAWAH: Carousel Card atau Empty State --- */}
       <div className="container relative">
-        {portfolios.length > 0 ? (
+        {isLoading ? (
+          <div className="w-full py-24 text-center text-stone-400">
+            Loading portfolios...
+          </div>
+        ) : portfolios.length > 0 ? (
           <Carousel
             opts={{
               align: "start",
@@ -63,11 +81,9 @@ export default async function Portfolio() {
                             className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
                           />
-                          {/* Overlay tipis saat dihover */}
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                         </div>
 
-                        {/* Detail Teks di Bawah Gambar */}
                         <div className="text-center">
                           <h3 className="text-lg font-bold text-gray-900 uppercase tracking-wide">
                             {item.title}
@@ -86,12 +102,10 @@ export default async function Portfolio() {
               ))}
             </CarouselContent>
 
-            {/* Tombol Navigasi Kanan Kiri */}
             <CarouselPrevious className="hidden md:flex -left-12 bg-white border-gray-200 hover:bg-gray-100" />
             <CarouselNext className="hidden md:flex -right-12 bg-white border-gray-200 hover:bg-gray-100" />
           </Carousel>
         ) : (
-          // ✨ TAMPILAN JIKA TIDAK ADA DATA ✨
           <div className="w-full py-24 flex flex-col items-center justify-center border border-dashed border-stone-200 rounded-sm bg-stone-50/50">
             <FileQuestion className="w-12 h-12 text-stone-300 mb-4 stroke-[1.5]" />
             <h3 className="text-lg font-medium text-stone-600 tracking-wide uppercase">
