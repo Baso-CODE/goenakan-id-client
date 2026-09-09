@@ -26,6 +26,7 @@ export default function WhoWeAre() {
               alt="who we are product"
               width={500}
               height={800}
+              className="object-cover w-full h-auto"
             />
           </div>
 
@@ -81,12 +82,16 @@ export default function WhoWeAre() {
             </div>
           </div>
 
-          {/* Kolom Kanan */}
+          {/* Kolom Kanan (✨ Diperbarui menggunakan Image Next.js) */}
           <div className="md:col-span-3 md:mt-40 relative">
-            <div className="bg-gray-200 w-full h-75 md:h-100 flex items-center justify-center">
-              <span className="text-gray-500 font-bold tracking-widest">
-                FOTO
-              </span>
+            <div className="relative w-full h-75 md:h-100 overflow-hidden">
+              <Image
+                src="/images/who-we-are-image-2.webp"
+                alt="who we are secondary view"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 25vw"
+              />
             </div>
           </div>
         </div>

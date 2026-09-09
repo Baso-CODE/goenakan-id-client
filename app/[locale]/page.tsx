@@ -12,7 +12,6 @@ import Portfolio from "../components/Portfolio";
 import PortfolioEventsAndClients from "../components/PortfolioEventsAndClients";
 import ProductCategory from "../components/ProductCategory";
 import ServiceFeatures from "../components/ServiceFeatures";
-import Testimonials from "../components/Testimonials";
 import WhoWeAre from "../components/WhoWeAre";
 
 type Props = {
@@ -47,7 +46,7 @@ export default async function Home() {
       <HowItWorks />
       <Newsletter />
       <BestSeller />
-      <Testimonials />
+      {/* <Testimonials /> */}
       <PlanningLargerOrder />
       <Articles />
       <Faq />
