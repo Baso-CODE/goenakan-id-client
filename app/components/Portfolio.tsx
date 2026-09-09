@@ -9,16 +9,22 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 import { FileQuestion } from "lucide-react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getPublicPortfolios } from "../api/portfolio/getPublicPorfolio";
 
 export default function Portfolio() {
   const locale = useLocale();
   const [portfolios, setPortfolios] = useState<PortfolioPublic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const plugin = useMemo(
+    () => Autoplay({ delay: 3000, stopOnInteraction: true }),
+    [],
+  );
 
   useEffect(() => {
     const fetchPortfolios = async () => {
@@ -64,6 +70,9 @@ export default function Portfolio() {
               align: "start",
               loop: true,
             }}
+            plugins={[plugin]}
+            onMouseEnter={() => plugin.stop()}
+            onMouseLeave={() => plugin.reset()}
             className="w-full">
             <CarouselContent className="-ml-4">
               {portfolios.map((item) => (

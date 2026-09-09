@@ -8,10 +8,11 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Link } from "@/i18n/routing";
+import Autoplay from "embla-carousel-autoplay";
 import { ArrowUpRight, ImageOff } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getClientLogos } from "../api/client-logos/getClientLogo.api";
 import { getPublicEventCategories } from "../api/portfolio/getEventCategory.api";
 import { BrandClient } from "../types/brandClient.type";
@@ -19,7 +20,7 @@ import { EventCategory } from "../types/eventCategory.type";
 
 export default function PortfolioEventsAndClients() {
   const t = useTranslations("PortfolioSection");
-  const locale = useLocale(); // ✨ 2. Ambil bahasa aktif (id/en)
+  const locale = useLocale();
 
   const [clients, setClients] = useState<BrandClient[]>([]);
   const [isClientsLoading, setIsClientsLoading] = useState(true);
@@ -28,6 +29,10 @@ export default function PortfolioEventsAndClients() {
   const [isEventsLoading, setIsEventsLoading] = useState(true);
 
   const MAX_CLIENTS = 21;
+  const autoplayPlugin = useMemo(
+    () => Autoplay({ delay: 3000, stopOnInteraction: true }),
+    [],
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -37,7 +42,7 @@ export default function PortfolioEventsAndClients() {
 
         const [clientsData, eventsData] = await Promise.all([
           getClientLogos(),
-          getPublicEventCategories(locale), // ✨ 3. Teruskan locale ke fungsi API
+          getPublicEventCategories(locale),
         ]);
 
         setClients(clientsData);
@@ -51,7 +56,7 @@ export default function PortfolioEventsAndClients() {
     };
 
     fetchData();
-  }, [locale]); // ✨ 4. Jalankan ulang fetch saat bahasa (locale) berubah
+  }, [locale]);
 
   return (
     <section className="w-full py-20 bg-white border-t border-gray-100">
@@ -108,6 +113,10 @@ export default function PortfolioEventsAndClients() {
             ) : events.length > 0 ? (
               <Carousel
                 opts={{ align: "start", loop: true }}
+                // ✨ 4. Masukkan plugin dan event handler untuk autoplay ke Carousel
+                plugins={[autoplayPlugin]}
+                onMouseEnter={() => autoplayPlugin.stop()}
+                onMouseLeave={() => autoplayPlugin.reset()}
                 className="w-full">
                 <CarouselContent className="-ml-4">
                   {events.map((item) => (

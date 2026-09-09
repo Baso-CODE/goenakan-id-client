@@ -159,7 +159,7 @@ function formatCurrency(amount: number, currencyCode: string = "IDR") {
 
   return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: currencyCode === "RMB" ? "CNY" : currencyCode, // API standar pakai CNY untuk RMB
+    currency: currencyCode === "RMB" ? "CNY" : currencyCode,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount);

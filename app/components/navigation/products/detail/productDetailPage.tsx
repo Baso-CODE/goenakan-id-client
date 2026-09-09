@@ -104,6 +104,7 @@ function parseClientColorValue(val: string) {
 
   return { name: val, hex: "#cbd5e1", cmyk: "CMYK N/A" };
 }
+
 function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
   let locale = "id-ID";
   if (currencyCode === "USD") locale = "en-US";

@@ -1,8 +1,8 @@
 import { getPublicEventCategoryBySlug } from "@/app/api/portfolio/getEventCategory.api";
+import { ImageOff } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
-// ✨ Definisi interface agar params ditangani sebagai Promise
 interface OccasionPageProps {
   params: Promise<{ slug: string; locale: string }>;
 }
@@ -10,11 +10,9 @@ interface OccasionPageProps {
 export default async function OccasionDetailPage({
   params,
 }: OccasionPageProps) {
-  // ✨ Await params terlebih dahulu
-  const { slug } = await params;
+  const { slug, locale } = await params;
 
-  // Fetch data menggunakan slug yang sudah di-await
-  const categoryDetail = await getPublicEventCategoryBySlug(slug);
+  const categoryDetail = await getPublicEventCategoryBySlug(slug, locale);
 
   if (!categoryDetail) {
     notFound();
@@ -39,15 +37,24 @@ export default async function OccasionDetailPage({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {portfolios.map((item) => (
             <div key={item.id} className="group block cursor-pointer">
-              <div className="relative w-full aspect-square bg-stone-100 mb-4 overflow-hidden rounded-md">
+              <div className="relative w-full aspect-square bg-stone-100 mb-4 overflow-hidden rounded-md flex items-center justify-center">
                 {item.image ? (
                   <Image
                     src={item.image}
                     alt={item.title}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
-                ) : null}
+                ) : (
+                  /* ✨ Fallback jika gambar portofolio kosong */
+                  <div className="flex flex-col items-center text-stone-400">
+                    <ImageOff className="w-10 h-10 mb-2 stroke-[1.5]" />
+                    <span className="text-xs font-medium uppercase tracking-wider">
+                      No Image
+                    </span>
+                  </div>
+                )}
               </div>
 
               <h3 className="text-lg font-semibold text-gray-900 group-hover:text-[#C4A48E] transition-colors">
