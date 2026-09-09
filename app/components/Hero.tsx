@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
@@ -9,9 +10,9 @@ import {
 } from "@/components/ui/carousel";
 import { Link } from "@/i18n/routing";
 import Autoplay from "embla-carousel-autoplay";
+import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import * as React from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getPublicHeroSlides } from "../api/hero/getHero.api";
 import { HeroSlidePublic } from "../types/hero.type";
 
@@ -19,7 +20,6 @@ export default function Hero() {
   const [slides, setSlides] = useState<HeroSlidePublic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Ambil data dari server saat komponen pertama kali dimuat
   useEffect(() => {
     const fetchSlides = async () => {
       try {
@@ -35,11 +35,10 @@ export default function Hero() {
     fetchSlides();
   }, []);
 
-  const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: true }),
+  const plugin = useMemo(
+    () => Autoplay({ delay: 3000, stopOnInteraction: true }),
+    [],
   );
-
-  // Jika sedang loading atau data kosong, tampilkan placeholder sederhana
   if (isLoading) {
     return (
       <section className="relative w-full h-screen bg-gray-100 flex items-center justify-center">
@@ -52,47 +51,71 @@ export default function Hero() {
 
   if (slides.length === 0) {
     return (
-      <section className="relative w-full h-screen overflow-hidden bg-gray-900">
-        {/* Gambar Banner Cadangan (Fallback) */}
+      <section className="relative w-full h-screen overflow-hidden bg-gray-50">
         <div className="absolute inset-0 w-full h-full">
           <Image
             src="/images/hero/hero-1.png"
             alt="Default Hero Banner"
             fill
-            className="object-cover opacity-90"
+            className="object-cover"
             priority
           />
         </div>
 
-        {/* Konten Teks Cadangan */}
-        <div className="relative z-10 container h-full flex items-center justify-between">
-          <div className="max-w-xl -mt-24 md:-mt-40">
-            <h1 className="text-4xl md:text-5xl text-gray-800 leading-tight font-bold">
+        {/* ✨ Fallback dengan layout Kiri-Kanan */}
+        <div className="relative z-10 container-hero h-full flex flex-col md:flex-row items-center justify-between px-4 md:px-8">
+          <div className="max-w-xl text-center md:text-left mt-32 md:mt-0">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl text-gray-900 leading-tight font-normal">
               Where Ideas Become Custom Products.
             </h1>
           </div>
-
-          <div className="hidden md:block mt-32 md:mt-64">
-            <p className="text-3xl md:text-5xl italic text-gray-800">
-              Custom Now
-            </p>
+          <div className="mt-8 md:mt-0 mb-32 md:mb-0">
+            <Button
+              asChild
+              className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-8 py-6 text-sm md:text-base shadow-sm group">
+              <Link href="/products" className="flex items-center gap-2">
+                Custom Now{" "}
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
     );
   }
+
   return (
     <section className="relative w-full h-screen overflow-hidden">
       <Carousel
-        plugins={[plugin.current]}
+        plugins={[plugin]}
         className="w-full h-full"
-        onMouseEnter={plugin.current.stop}
-        onMouseLeave={plugin.current.reset}>
+        onMouseEnter={plugin.stop}
+        onMouseLeave={plugin.reset}>
         <CarouselContent>
           {slides.map((slide, index) => (
             <CarouselItem key={slide.id} className="relative w-full h-screen">
-              {/* Gambar Background Full (Menggunakan imageUrl dari database) */}
-              <div className="absolute inset-0 w-full h-full">
+              {/* === GAMBAR RESPONSIF === */}
+              <div className="absolute inset-0 w-full h-full block md:hidden">
+                <Image
+                  src={slide.imageMobileUrl || slide.imageUrl}
+                  alt={slide.altText || slide.title}
+                  fill
+                  className="object-cover"
+                  priority={index === 0}
+                />
+              </div>
+
+              <div className="absolute inset-0 w-full h-full hidden md:block lg:hidden">
+                <Image
+                  src={slide.imageTabletUrl || slide.imageUrl}
+                  alt={slide.altText || slide.title}
+                  fill
+                  className="object-cover"
+                  priority={index === 0}
+                />
+              </div>
+
+              <div className="absolute inset-0 w-full h-full hidden lg:block">
                 <Image
                   src={slide.imageUrl}
                   alt={slide.altText || slide.title}
@@ -102,26 +125,35 @@ export default function Hero() {
                 />
               </div>
 
-              {/* Konten Teks */}
-              <div className="relative z-10 container h-full flex items-center justify-between">
-                <div className="max-w-xl -mt-24 md:-mt-40 animate-in fade-in slide-in-from-top-16 duration-1000 ease-out fill-mode-forwards">
-                  <h1 className="text-3xl md:text-4xl text-gray-800 leading-tight italic">
+              {/* ✨ KONTEN TEKS (KIRI) & TOMBOL (KANAN) === */}
+              <div className="relative z-20 container-hero h-full flex flex-col md:flex-row items-center justify-between px-4 md:px-8">
+                <div className="max-w-xl text-center md:text-left mt-32 md:mt-0 animate-in fade-in slide-in-from-left-8 duration-1000 ease-out fill-mode-forwards">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl text-gray-900 leading-tight font-normal italic">
                     {slide.title}
                   </h1>
                 </div>
 
+                {/* Bagian Kanan: CTA Button */}
                 {slide.ctaText && (
-                  <div className="hidden md:block mt-32 md:mt-64 animate-in fade-in slide-in-from-bottom-16 duration-1000 ease-out delay-300 fill-mode-forwards">
+                  <div className="mt-8 md:mt-0 mb-32 md:mb-0 animate-in fade-in slide-in-from-right-8 duration-1000 ease-out delay-300 fill-mode-forwards">
                     {slide.ctaLink ? (
-                      <Link
-                        href={slide.ctaLink}
-                        className="text-3xl md:text-5xl italic text-gray-800 hover:opacity-80 transition-opacity">
-                        {slide.ctaText}
-                      </Link>
+                      <Button
+                        asChild
+                        className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-8 py-6 text-sm md:text-base shadow-sm group transition-all">
+                        <Link
+                          href={slide.ctaLink}
+                          className="flex items-center gap-2">
+                          {slide.ctaText}{" "}
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                      </Button>
                     ) : (
-                      <p className="text-3xl md:text-5xl italic text-gray-800">
-                        {slide.ctaText}
-                      </p>
+                      <Button className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-8 py-6 text-sm md:text-base shadow-sm group transition-all">
+                        <span className="flex items-center gap-2">
+                          {slide.ctaText}{" "}
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </span>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -130,17 +162,10 @@ export default function Hero() {
           ))}
         </CarouselContent>
 
-        {/* Tombol Navigasi */}
-        <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/50 border-none hover:bg-white transition-all hover:scale-110 cursor-pointer" />
-        <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/50 border-none hover:bg-white transition-all hover:scale-110 cursor-pointer" />
+        {/* Tombol Navigasi Carousel - Disesuaikan agar samar dan minimalis */}
+        <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 border-none hover:bg-white/80 transition-all cursor-pointer z-30" />
+        <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 border-none hover:bg-white/80 transition-all cursor-pointer z-30" />
       </Carousel>
-
-      {/* Indikator Slide Sederhana */}
-      <div className="absolute bottom-10 right-10 flex gap-2 z-20">
-        {slides.map((_, index) => (
-          <div key={index} className="h-1 w-12 bg-white/60"></div>
-        ))}
-      </div>
     </section>
   );
 }
