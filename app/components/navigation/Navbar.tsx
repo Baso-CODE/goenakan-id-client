@@ -66,9 +66,8 @@ export default function Navbar() {
   ];
 
   const switchLanguage = (newLocale: "id" | "en") => {
-    router.replace(pathname, { locale: newLocale });
+    router.replace(pathname, { locale: newLocale, scroll: false });
   };
-
   // ✨ Fungsi untuk menangani saat pencarian disubmit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
