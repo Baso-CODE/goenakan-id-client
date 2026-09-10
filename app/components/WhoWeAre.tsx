@@ -17,36 +17,36 @@ export default function WhoWeAre() {
 
   return (
     <section className="w-full py-20 bg-white text-gray-900">
-      <div className="container">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
-          {/* Kolom Kiri */}
-          <div className="md:col-span-4 relative">
+      <div className="container max-w-6xl mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-16 items-center">
+          {/* Kolom Kiri: Gambar Utama */}
+          <div className="md:col-span-5 relative">
             <Image
               src={"/images/who-we-are-image.png"}
               alt="who we are product"
               width={500}
-              height={800}
-              className="object-cover w-full h-auto"
+              height={700}
+              className="object-contain w-full h-auto rounded-sm shadow-sm"
             />
           </div>
 
-          {/* Kolom Tengah */}
-          <div className="md:col-span-5 flex flex-col justify-center py-10">
-            <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-4">
+          {/* Kolom Kanan: Teks, Statistik, dan Tombol */}
+          <div className="md:col-span-7 flex flex-col justify-center py-6">
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-widest mb-3">
               {t("subtitle")}
             </span>
 
-            <h2 className="text-3xl md:text-4xl mb-4 leading-tight max-w-lg">
+            <h2 className="text-3xl md:text-4xl font-serif mb-4 leading-tight">
               {t("title")}
             </h2>
 
-            <div className="text-gray-600 leading-relaxed mb-10 text-justify space-y-4">
+            <div className="text-gray-600 leading-relaxed mb-8 text-justify space-y-4">
               <p>{t("description1")}</p>
               <p>{t("description2")}</p>
             </div>
 
             {/* Statistik */}
-            <div className="grid grid-cols-3 gap-4 mb-10 border-t border-gray-100 pt-8">
+            <div className="grid grid-cols-3 gap-6 mb-8 border-t border-gray-100 pt-6">
               <div>
                 <h4 className="text-2xl font-bold">{t("stat1Value")}</h4>
                 <p className="text-xs text-gray-500 mt-1 capitalize">
@@ -71,7 +71,7 @@ export default function WhoWeAre() {
             <div>
               <Button
                 asChild
-                className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-8 py-6 text-lg font-medium transition-all">
+                className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-8 py-6 text-sm font-medium transition-all">
                 <Link
                   href={whatsappUrl}
                   target="_blank"
@@ -79,19 +79,6 @@ export default function WhoWeAre() {
                   {t("button")}
                 </Link>
               </Button>
-            </div>
-          </div>
-
-          {/* Kolom Kanan (✨ Diperbarui menggunakan Image Next.js) */}
-          <div className="md:col-span-3 md:mt-40 relative">
-            <div className="relative w-full h-75 md:h-100 overflow-hidden">
-              <Image
-                src="/images/who-we-are-image-2.webp"
-                alt="who we are secondary view"
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 25vw"
-              />
             </div>
           </div>
         </div>

@@ -141,7 +141,7 @@ export default function PortfolioEventsAndClients() {
                         <h4 className="text-lg font-bold text-gray-900 group-hover:text-[#C4A48E] transition-colors">
                           {item.title}
                         </h4>
-                        <p className="text-sm text-gray-500 italic mt-1">
+                        <p className="text-sm text-gray-500 italic mt-1 hidden">
                           {t("orderedTimes", { count: item.orderCount })}
                         </p>
                       </Link>
@@ -190,12 +190,12 @@ export default function PortfolioEventsAndClients() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-4 mb-6">
                   {clients.slice(0, MAX_CLIENTS).map((client) => {
                     const imageContent = (
-                      <div className="relative w-full h-full p-4 flex items-center justify-center bg-white border border-gray-100 hover:shadow-sm rounded-sm cursor-pointer grayscale hover:grayscale-0 transition-all duration-300">
+                      <div className="relative w-full h-full p-4 flex items-center justify-center bg-stone-50 hover:bg-stone-900 border border-gray-100 hover:shadow-sm rounded-sm cursor-pointer grayscale hover:grayscale-0 transition-all duration-300 group">
                         <Image
                           src={client.logo}
                           alt={client.name || "Client Logo"}
                           fill
-                          className="object-contain p-4"
+                          className="object-contain p-4 group-hover:brightness-200 transition-all"
                           sizes="(max-width: 768px) 33vw, 15vw"
                         />
                       </div>
