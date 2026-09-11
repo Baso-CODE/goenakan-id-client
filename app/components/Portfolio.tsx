@@ -22,7 +22,11 @@ export default function Portfolio() {
   const [isLoading, setIsLoading] = useState(true);
 
   const plugin = React.useRef(
-    Autoplay({ delay: 2000, stopOnInteraction: true }),
+    Autoplay({
+      delay: 2000,
+      stopOnInteraction: false,
+      stopOnMouseEnter: true,
+    }),
   );
   useEffect(() => {
     const fetchPortfolios = async () => {
@@ -69,8 +73,6 @@ export default function Portfolio() {
               loop: true,
             }}
             plugins={[plugin.current]}
-            onMouseEnter={plugin.current.stop}
-            onMouseLeave={plugin.current.reset}
             className="w-full">
             <CarouselContent className="-ml-4">
               {portfolios.map((item) => (

@@ -1,4 +1,5 @@
 "use client";
+import * as React from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +13,7 @@ import { Link } from "@/i18n/routing";
 import Autoplay from "embla-carousel-autoplay";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { getPublicHeroSlides } from "../api/hero/getHero.api";
 import { HeroSlidePublic } from "../types/hero.type";
 
@@ -35,11 +36,13 @@ export default function Hero() {
     fetchSlides();
   }, []);
 
-  const plugin = useMemo(
-    () => Autoplay({ delay: 3000, stopOnInteraction: true }),
-    [],
+  const plugin = React.useRef(
+    Autoplay({
+      delay: 2000,
+      stopOnInteraction: false,
+      stopOnMouseEnter: true,
+    }),
   );
-
   if (isLoading) {
     return (
       <section className="relative w-full h-[calc(100vh-92px)] bg-gray-100 flex items-center justify-center">
@@ -74,7 +77,7 @@ export default function Hero() {
           <div className="mt-8 md:mt-0 mb-32 md:mb-0 w-full md:w-auto flex justify-center">
             <Button
               asChild
-              className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group min-w-[220px] md:min-w-[260px] justify-between">
+              className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group min-w-55 md:min-w-65 justify-between">
               <Link
                 href="/products"
                 className="flex items-center justify-center gap-4">
@@ -91,10 +94,12 @@ export default function Hero() {
   return (
     <section className="relative w-full h-[calc(100vh-92px)] overflow-hidden bg-gray-50">
       <Carousel
+        opts={{
+          align: "start",
+          loop: true,
+        }}
         plugins={[plugin]}
-        className="w-full h-full"
-        onMouseEnter={plugin.stop}
-        onMouseLeave={plugin.reset}>
+        className="w-full h-full">
         {/* Pastikan Content juga h-full */}
         <CarouselContent className="h-full">
           {slides.map((slide, index) => (
@@ -146,7 +151,7 @@ export default function Hero() {
                     {slide.ctaLink ? (
                       <Button
                         asChild
-                        className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group transition-all min-w-[220px] md:min-w-[260px] justify-between">
+                        className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group transition-all min-w-55 md:min-w-65 justify-between">
                         <Link
                           href={slide.ctaLink}
                           className="flex items-center justify-center gap-4">
@@ -155,7 +160,7 @@ export default function Hero() {
                         </Link>
                       </Button>
                     ) : (
-                      <Button className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group transition-all min-w-[220px] md:min-w-[260px] justify-between">
+                      <Button className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group transition-all min-w-55 md:min-w-65 justify-between">
                         <span className="flex items-center justify-center gap-4 w-full">
                           <span>{slide.ctaText}</span>
                           <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

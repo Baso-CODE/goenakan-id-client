@@ -32,7 +32,11 @@ export default function PortfolioEventsAndClients() {
   const MAX_CLIENTS = 21;
 
   const plugin = React.useRef(
-    Autoplay({ delay: 2000, stopOnInteraction: true }),
+    Autoplay({
+      delay: 2000,
+      stopOnInteraction: false,
+      stopOnMouseEnter: true,
+    }),
   );
 
   useEffect(() => {
@@ -115,8 +119,6 @@ export default function PortfolioEventsAndClients() {
               <Carousel
                 opts={{ align: "start", loop: true }}
                 plugins={[plugin.current]}
-                onMouseEnter={plugin.current.stop}
-                onMouseLeave={plugin.current.reset}
                 className="w-full">
                 <CarouselContent className="-ml-4">
                   {events.map((item) => (

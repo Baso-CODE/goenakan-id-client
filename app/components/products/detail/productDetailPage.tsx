@@ -1622,7 +1622,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       return (
         <div key={group.name} className="mt-1 space-y-2">
           <p className="text-sm font-medium text-stone-900">
-            Pilih {group.name}:{" "}
+            {locale === "en" ? "Select" : "Pilih"} {group.name}:{" "}
             <span className="font-bold text-stone-600 capitalize">
               {activeDisplayName}
             </span>
@@ -1685,7 +1685,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                     className="flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none animate-pulse">
                     {colorButton}
                     <span className="text-[9px] font-extrabold text-indigo-700 uppercase tracking-widest leading-none">
-                      🌈 Bisa Custom Warna
+                      {locale === "en"
+                        ? "🌈 Customizable Color"
+                        : "🌈 Bisa Custom Warna"}
                     </span>
                   </div>
                 );
@@ -1699,7 +1701,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           {isCustomValSelected && (
             <div className="mt-3 p-3 bg-stone-50 border border-stone-200 rounded-sm flex flex-col gap-2 max-w-sm animate-fade-in">
               <label className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                Pilih Warna Kustom Anda:
+                {locale === "en"
+                  ? "Choose Your Custom Color:"
+                  : "Pilih Warna Kustom Anda:"}
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -1741,7 +1745,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             return (
               <div className="bg-stone-50 border border-stone-200/85 p-2 px-3 rounded-sm flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-stone-700 animate-fade-in gap-1.5 max-w-sm">
                 <span className="font-bold text-[10px] text-stone-400 uppercase tracking-wider">
-                  Profil Cetak:
+                  {locale === "en" ? "Print Profile:" : "Profil Cetak:"}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-sm">
@@ -1769,7 +1773,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       return (
         <div key={group.name} className="mt-1">
           <p className="text-sm font-medium text-stone-900 mb-2">
-            Pilih {group.name}:
+            {locale === "en" ? "Select" : "Pilih"} {group.name}:
           </p>
           <div className="flex flex-wrap gap-3">
             {group.values.map((val: string) => {
@@ -1816,7 +1820,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                           setPreviewImage({ url: mUrl, name: mName });
                         }}
                         className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-150 flex items-center justify-center text-white"
-                        title="Perbesar gambar">
+                        title={
+                          locale === "en" ? "Zoom Image" : "Perbesar gambar"
+                        }>
                         <ZoomIn className="w-4 h-4" />
                       </button>
                     </div>
@@ -1844,7 +1850,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return (
       <div key={group.name} className="mt-1">
         <p className="text-sm font-medium text-stone-900 mb-2">
-          Pilih {group.name}:
+          {locale === "en" ? "Select" : "Pilih"} {group.name}:
         </p>
         <div className="flex flex-wrap gap-2">
           {group.values.map((val: string) => {
