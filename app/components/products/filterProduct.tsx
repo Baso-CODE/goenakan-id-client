@@ -10,8 +10,8 @@ import {
   Product,
 } from "@/app/types/product.type";
 import { useLocale } from "next-intl";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { FilterBar } from "./Filterbar";
 import { LoadMoreButton } from "./Loadmorebutton";
 import { PageHeader } from "./Pageheader";
@@ -37,9 +37,13 @@ const getUserCountryFromCookie = (): string => {
 
 export default function FilterProduct() {
   const locale = useLocale();
+  const router = useRouter();
   const searchParams = useSearchParams();
+  const [_, startTransition] = useTransition();
+
   const categoryParam = searchParams.get("category");
   const searchParam = searchParams.get("search") || "";
+  const pageParam = Number(searchParams.get("page")) || 1;
 
   const [filters, setFilters] = useState<FilterState>(() => ({
     ...DEFAULT_FILTERS,
@@ -52,7 +56,7 @@ export default function FilterProduct() {
     attributes: [],
   });
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(pageParam);
   const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -65,59 +69,86 @@ export default function FilterProduct() {
     fetchOptions();
   }, [locale]);
 
+  // Handle Fetch data dari Page 1 sampai Page aktif saat ini (untuk merestore posisi load more)
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchProductsData = async () => {
       setIsLoading(true);
-
       const userCountry = getUserCountryFromCookie();
 
-      const result = await getFilteredProductsAPI(
-        filters,
-        1,
-        searchParam,
-        userCountry,
-        locale,
-      );
+      let accumulatedProducts: Product[] = [];
+      let latestHasMore = false;
 
-      setProducts(result.data);
-      setHasMore(result.meta.hasNext);
-      setPage(1);
+      for (let i = 1; i <= pageParam; i++) {
+        const result = await getFilteredProductsAPI(
+          filters,
+          i,
+          searchParam,
+          userCountry,
+          locale,
+        );
+
+        if (i === 1) {
+          accumulatedProducts = result.data;
+        } else {
+          accumulatedProducts = [...accumulatedProducts, ...result.data];
+        }
+        latestHasMore = result.meta.hasNext;
+      }
+
+      setProducts(accumulatedProducts);
+      setHasMore(latestHasMore);
+      setPage(pageParam);
       setIsLoading(false);
     };
 
-    fetchInitialData();
-  }, [filters, searchParam, locale]);
+    fetchProductsData();
+  }, [filters, searchParam, locale, pageParam]);
+
+  const updateUrlParams = (newPage: number, newFilters: FilterState) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", newPage.toString());
+    if (newFilters.category && newFilters.category !== "all") {
+      params.set("category", newFilters.category);
+    } else {
+      params.delete("category");
+    }
+
+    startTransition(() => {
+      router.replace(`?${params.toString()}`, { scroll: false });
+    });
+  };
 
   const handleFilterChange = (
     keyOrObj: keyof FilterState | Partial<FilterState>,
     value?: string,
   ) => {
+    let updatedFilters = filters;
     if (typeof keyOrObj === "object") {
-      setFilters((prev) => ({ ...prev, ...keyOrObj }));
+      updatedFilters = { ...filters, ...keyOrObj };
+      setFilters(updatedFilters);
     } else {
-      setFilters((prev) => {
-        const newState = {
-          ...prev,
-          [keyOrObj as keyof FilterState]: value || "",
-        };
+      updatedFilters = {
+        ...filters,
+        [keyOrObj as keyof FilterState]: value || "",
+      };
 
-        if (keyOrObj === "category") {
-          newState.itemCategory = "all";
-          newState.itemName = "all";
-        }
-        if (keyOrObj === "itemCategory") {
-          newState.itemName = "all";
-        }
+      if (keyOrObj === "category") {
+        updatedFilters.itemCategory = "all";
+        updatedFilters.itemName = "all";
+      }
+      if (keyOrObj === "itemCategory") {
+        updatedFilters.itemName = "all";
+      }
 
-        return newState;
-      });
+      setFilters(updatedFilters);
     }
+    // Reset ke page 1 jika filter berubah
+    updateUrlParams(1, updatedFilters);
   };
 
   const handleLoadMore = async () => {
     setIsLoadingMore(true);
     const nextPage = page + 1;
-
     const userCountry = getUserCountryFromCookie();
 
     const result = await getFilteredProductsAPI(
@@ -132,6 +163,9 @@ export default function FilterProduct() {
     setHasMore(result.meta.hasNext);
     setPage(nextPage);
     setIsLoadingMore(false);
+
+    // Update URL agar page saat ini tersimpan
+    updateUrlParams(nextPage, filters);
   };
 
   return (

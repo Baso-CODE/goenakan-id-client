@@ -1,9 +1,9 @@
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-import { BannerProduct } from "@/app/components/navigation/products/bannerProduct";
-import { CustomCTA } from "@/app/components/navigation/products/customCTA";
-import FilterProduct from "@/app/components/navigation/products/filterProduct";
+import { BannerProduct } from "@/app/components/products/bannerProduct";
+import { CustomCTA } from "@/app/components/products/customCTA";
+import FilterProduct from "@/app/components/products/filterProduct";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -27,7 +27,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// ✨ 3. Jangan lupa tambahkan props di komponen utama (opsional tapi best practice)
 export default async function ProductsPage({ params }: Props) {
   return (
     <>

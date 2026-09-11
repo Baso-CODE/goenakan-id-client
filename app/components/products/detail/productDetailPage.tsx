@@ -124,10 +124,11 @@ interface ProductDetailPageProps {
 }
 
 export function ProductDetailPage({ product }: ProductDetailPageProps) {
+  console.log("data console", product);
+
   const router = useRouter();
   const locale = useLocale();
   const currencyCode = product.currencyCode || "IDR";
-  // Collect all attribute names used in variants (variant generators)
   const variantAttributeNames = useMemo(() => {
     return new Set(
       product.variants?.flatMap(
@@ -1904,7 +1905,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               colorMaskUrl={activeColorMaskUrl || undefined}
             />
           )}
-          <ShareBar productName={product.name} />
+          <ShareBar productName={product.name} locale={locale} />
         </div>
 
         {/* ── Right: Product Info ── */}
@@ -2184,6 +2185,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                 selectedIndex={selectedTierIndex}
                 onSelect={handleTierSelect}
                 currencyCode={currencyCode}
+                locale={locale}
               />
             </div>
           )}
@@ -2362,6 +2364,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
           {!isWaOnly && (
             <WhatsAppBanner
+              locale={locale}
               whatsappNumber={adminWhatsApp}
               productName={product.name}
             />
@@ -2370,6 +2373,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           <ProductDescription
             description={product.description}
             weight={displayWeight}
+            locale={locale}
             dimensions={displayDimensions}
             accessories={product.accessories}
           />
