@@ -98,7 +98,7 @@ export default function Hero() {
           align: "start",
           loop: true,
         }}
-        plugins={[plugin]}
+        plugins={[plugin.current]}
         className="w-full h-full">
         {/* Pastikan Content juga h-full */}
         <CarouselContent className="h-full">
