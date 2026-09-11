@@ -1,5 +1,4 @@
 "use client";
-
 import { PortfolioPublic } from "@/app/types/portfolioPublic.type";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -13,7 +12,8 @@ import Autoplay from "embla-carousel-autoplay";
 import { FileQuestion } from "lucide-react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import * as React from "react";
+import { useEffect, useState } from "react";
 import { getPublicPortfolios } from "../api/portfolio/getPublicPorfolio";
 
 export default function Portfolio() {
@@ -21,11 +21,9 @@ export default function Portfolio() {
   const [portfolios, setPortfolios] = useState<PortfolioPublic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const plugin = useMemo(
-    () => Autoplay({ delay: 3000, stopOnInteraction: true }),
-    [],
+  const plugin = React.useRef(
+    Autoplay({ delay: 2000, stopOnInteraction: true }),
   );
-
   useEffect(() => {
     const fetchPortfolios = async () => {
       setIsLoading(true);
@@ -70,9 +68,9 @@ export default function Portfolio() {
               align: "start",
               loop: true,
             }}
-            plugins={[plugin]}
-            onMouseEnter={() => plugin.stop()}
-            onMouseLeave={() => plugin.reset()}
+            plugins={[plugin.current]}
+            onMouseEnter={plugin.current.stop}
+            onMouseLeave={plugin.current.reset}
             className="w-full">
             <CarouselContent className="-ml-4">
               {portfolios.map((item) => (

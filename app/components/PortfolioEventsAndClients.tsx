@@ -1,4 +1,5 @@
 "use client";
+import * as React from "react";
 
 import {
   Carousel,
@@ -12,7 +13,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { ArrowUpRight, ImageOff } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { getClientLogos } from "../api/client-logos/getClientLogo.api";
 import { getPublicEventCategories } from "../api/portfolio/getEventCategory.api";
 import { BrandClient } from "../types/brandClient.type";
@@ -29,9 +30,9 @@ export default function PortfolioEventsAndClients() {
   const [isEventsLoading, setIsEventsLoading] = useState(true);
 
   const MAX_CLIENTS = 21;
-  const autoplayPlugin = useMemo(
-    () => Autoplay({ delay: 3000, stopOnInteraction: true }),
-    [],
+
+  const plugin = React.useRef(
+    Autoplay({ delay: 2000, stopOnInteraction: true }),
   );
 
   useEffect(() => {
@@ -113,10 +114,9 @@ export default function PortfolioEventsAndClients() {
             ) : events.length > 0 ? (
               <Carousel
                 opts={{ align: "start", loop: true }}
-                // ✨ 4. Masukkan plugin dan event handler untuk autoplay ke Carousel
-                plugins={[autoplayPlugin]}
-                onMouseEnter={() => autoplayPlugin.stop()}
-                onMouseLeave={() => autoplayPlugin.reset()}
+                plugins={[plugin.current]}
+                onMouseEnter={plugin.current.stop}
+                onMouseLeave={plugin.current.reset}
                 className="w-full">
                 <CarouselContent className="-ml-4">
                   {events.map((item) => (
