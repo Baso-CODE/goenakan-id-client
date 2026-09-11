@@ -12,11 +12,14 @@ interface CartState {
   currencyCode: string;
 
   fetchCart: (token?: string) => Promise<void>;
+
   addToCart: (
     product: AddToCartPayload,
     quantity: number,
     token?: string,
-  ) => Promise<void>;
+    locale?: string,
+  ) => Promise<boolean>;
+
   updateQty: (
     id: string | number,
     delta: number,
@@ -117,49 +120,87 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   // === 2. ADD TO CART ===`
-  addToCart: async (product, quantity, token) => {
+  addToCart: async (
+    product,
+    quantity,
+    token,
+    locale = "id",
+  ): Promise<boolean> => {
     const userCountry = getUserCountryFromCookie();
 
+    const messages =
+      locale === "en"
+        ? {
+            success: "Item added to cart successfully!",
+            failed: "Failed to add item to cart.",
+            networkError: "A network error occurred. Please try again.",
+          }
+        : {
+            success: "Barang berhasil ditambahkan ke keranjang!",
+            failed: "Gagal menambahkan barang ke keranjang.",
+            networkError: "Terjadi kesalahan jaringan. Silakan coba lagi.",
+          };
+
     if (token) {
-      // --- JIKA USER LOGIN (Simpan ke Database) ---
+      // =========================
+      // USER LOGIN
+      // =========================
       try {
         const res = await fetch(`${apiUrl}/cart`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
-            "x-country": userCountry || "ID", // 👈 Wajib ada agar backend tahu mata uangnya
+            "x-country": userCountry || "ID",
           },
           body: JSON.stringify({
             productId: product.id,
             variantId: product.variantId || null,
-            quantity: quantity,
+            quantity,
             price: product.price,
             selectedAttributes: product.selectedAttributes || null,
             customization: product.customization || null,
           }),
         });
-        if (res.ok) {
-          await get().fetchCart(token);
-          toast.success("Barang ditambahkan ke keranjang!");
-        } else {
-          toast.error("Gagal menambahkan barang.");
+
+        if (!res.ok) {
+          toast.error(messages.failed);
+          return false;
         }
-      } catch (e) {
-        toast.error("Terjadi kesalahan jaringan.");
+
+        await get().fetchCart(token);
+
+        toast.success(messages.success);
+
+        return true;
+      } catch (error) {
+        console.error("Add to cart error:", error);
+
+        toast.error(messages.networkError);
+
+        return false;
       }
-    } else {
-      // --- JIKA USER GUEST (Simpan ke localStorage & Hitung Kurs via Backend) ---
+    }
+
+    // =========================
+    // GUEST
+    // =========================
+    try {
       const { cartItems } = get();
+
       const existingItem = cartItems.find(
         (i) => i.productId === product.id && i.variantId === product.variantId,
       );
 
-      let newCart;
+      let newCart: any[];
+
       if (existingItem) {
         newCart = cartItems.map((i) =>
           i.id === existingItem.id
-            ? { ...i, quantity: i.quantity + quantity }
+            ? {
+                ...i,
+                quantity: i.quantity + quantity,
+              }
             : i,
         );
       } else {
@@ -169,35 +210,59 @@ export const useCartStore = create<CartState>((set, get) => ({
             id: Date.now(),
             productId: product.id,
             variantId: product.variantId || null,
-            quantity: quantity,
+            quantity,
             selectedAttributes: product.selectedAttributes || null,
             customization: product.customization || null,
           },
         ];
       }
+
       localStorage.setItem("guest_cart", JSON.stringify(newCart));
 
-      // ✨ PANGGIL FETCH DENGAN MENGIRIM COOKIE NEGARA AGAR HARGA TER-REFRESH JADI DOLAR/EURO ✨
-      try {
-        const res = await fetch(`${apiUrl}/cart/guest-calculate`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-country": userCountry || "ID", // 👈 Mengirim header negara agar backend konversi harga
-          },
-          body: JSON.stringify({ items: newCart }),
-        });
-        const json = await res.json();
-        if (json.success && json.data) {
-          if (json.data.currencyCode)
-            set({ currencyCode: json.data.currencyCode });
-          if (json.data.items) set({ cartItems: json.data.items });
-        }
-      } catch (e) {
-        console.error("Gagal kalkulasi guest cart:", e);
+      const res = await fetch(`${apiUrl}/cart/guest-calculate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-country": userCountry || "ID",
+        },
+        body: JSON.stringify({
+          items: newCart,
+        }),
+      });
+
+      if (!res.ok) {
+        toast.error(messages.failed);
+        return false;
       }
 
-      toast.success("Barang ditambahkan ke keranjang!");
+      const json = await res.json();
+
+      if (!json.success || !json.data) {
+        toast.error(messages.failed);
+        return false;
+      }
+
+      if (json.data.currencyCode) {
+        set({
+          currencyCode: json.data.currencyCode,
+        });
+      }
+
+      if (json.data.items) {
+        set({
+          cartItems: json.data.items,
+        });
+      }
+
+      toast.success(messages.success);
+
+      return true;
+    } catch (error) {
+      console.error("Guest add to cart error:", error);
+
+      toast.error(messages.networkError);
+
+      return false;
     }
   },
 
