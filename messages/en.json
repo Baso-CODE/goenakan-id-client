@@ -135,7 +135,17 @@
     "seeMore": "See more",
     "clientsLabel": "Our Clients",
     "andManyMore": "and many more",
-    "orderedTimes": "ordered {count} times"
+    "orderedTimes": "ordered {count} times",
+    "loading": "Loading portfolios...",
+    "emptyTitle": "No Portfolio Available",
+    "emptyDescription": "We haven't added any projects yet. Please check back later."
+  },
+
+
+  "BannerProduct": {
+    "loading": "Loading banners...",
+    "emptyTitle": "No promotional banners yet",
+    "emptyDescription": "Active promotional banners will be displayed in this area."
   },
 
   "Cart": {

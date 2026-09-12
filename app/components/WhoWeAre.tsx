@@ -5,6 +5,8 @@ import { BASE_DOMAIN } from "@/lib/config";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getWhoWeAreStats } from "../api/stats/getStatsOrder";
 
 export default function WhoWeAre() {
   const t = useTranslations("WhoWeAre");
@@ -14,6 +16,28 @@ export default function WhoWeAre() {
   const rawMessage = t("whatsappMessage", { domain: BASE_DOMAIN });
   const encodedMessage = encodeURIComponent(rawMessage);
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;
+
+  // State untuk menyimpan data statistik dengan nilai awal terjemahan bawaan
+  const [stats, setStats] = useState({
+    stat1Value: t("stat1Value"),
+    stat2Value: t("stat2Value"),
+    stat3Value: t("stat3Value"),
+  });
+  useEffect(() => {
+    const fetchStats = async () => {
+      const data = await getWhoWeAreStats();
+
+      if (data) {
+        setStats({
+          stat1Value: data.stat1Value,
+          stat2Value: data.stat2Value,
+          stat3Value: data.stat3Value,
+        });
+      }
+    };
+
+    fetchStats();
+  }, []); // Array kosong memastikan hanya berjalan sekali saat pertama kali dimuat
 
   return (
     <section className="w-full py-20 bg-white text-gray-900">
@@ -48,19 +72,20 @@ export default function WhoWeAre() {
             {/* Statistik */}
             <div className="grid grid-cols-3 gap-6 mb-8 border-t border-gray-100 pt-6">
               <div>
-                <h4 className="text-2xl font-bold">{t("stat1Value")}</h4>
+                {/* Menampilkan nilai dari state stats */}
+                <h4 className="text-2xl font-bold">{stats.stat1Value}</h4>
                 <p className="text-xs text-gray-500 mt-1 capitalize">
                   {t("stat1Label")}
                 </p>
               </div>
               <div>
-                <h4 className="text-2xl font-bold">{t("stat2Value")}</h4>
+                <h4 className="text-2xl font-bold">{stats.stat2Value}</h4>
                 <p className="text-xs text-gray-500 mt-1 capitalize">
                   {t("stat2Label")}
                 </p>
               </div>
               <div>
-                <h4 className="text-2xl font-bold">{t("stat3Value")}</h4>
+                <h4 className="text-2xl font-bold">{stats.stat3Value}</h4>
                 <p className="text-xs text-gray-500 mt-1 capitalize">
                   {t("stat3Label")}
                 </p>

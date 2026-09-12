@@ -139,8 +139,19 @@
     "seeMore": "Lihat selengkapnya",
     "clientsLabel": "Klien Kami",
     "andManyMore": "dan banyak lagi",
-    "orderedTimes": "dipesan {count} kali"
+    "orderedTimes": "dipesan {count} kali",
+    "loading": "Memuat portofolio...",
+    "emptyTitle": "Belum Ada Portofolio",
+    "emptyDescription": "Kami belum menambahkan proyek apa pun. Silakan periksa kembali nanti."
   },
+
+  "BannerProduct": {
+    "loading": "Memuat banner...",
+    "emptyTitle": "Belum ada banner promosi",
+    "emptyDescription": "Banner promosi yang aktif akan ditampilkan di area ini."
+  },
+
+
 
   "Cart": {
     "tabs": {

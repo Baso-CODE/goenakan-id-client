@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import { FileQuestion } from "lucide-react";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import * as React from "react";
 import { useEffect, useState } from "react";
@@ -18,6 +18,8 @@ import { getPublicPortfolios } from "../api/portfolio/getPublicPorfolio";
 
 export default function Portfolio() {
   const locale = useLocale();
+  const t = useTranslations("PortfolioSection");
+
   const [portfolios, setPortfolios] = useState<PortfolioPublic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,6 +30,7 @@ export default function Portfolio() {
       stopOnMouseEnter: true,
     }),
   );
+
   useEffect(() => {
     const fetchPortfolios = async () => {
       setIsLoading(true);
@@ -64,7 +67,7 @@ export default function Portfolio() {
       <div className="container relative">
         {isLoading ? (
           <div className="w-full py-24 text-center text-stone-400">
-            Loading portfolios...
+            {t("loading")}
           </div>
         ) : portfolios.length > 0 ? (
           <Carousel
@@ -118,10 +121,10 @@ export default function Portfolio() {
           <div className="w-full py-24 flex flex-col items-center justify-center border border-dashed border-stone-200 rounded-sm bg-stone-50/50">
             <FileQuestion className="w-12 h-12 text-stone-300 mb-4 stroke-[1.5]" />
             <h3 className="text-lg font-medium text-stone-600 tracking-wide uppercase">
-              No Portfolio Available
+              {t("emptyTitle")}
             </h3>
             <p className="text-stone-400 text-sm italic mt-1">
-              We haven&apos;t added any projects yet. Please check back later.
+              {t("emptyDescription")}
             </p>
           </div>
         )}

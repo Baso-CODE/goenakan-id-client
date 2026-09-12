@@ -10,6 +10,7 @@ export default function Footer() {
   const locale = useLocale();
   const [categories, setCategories] = useState<CategoryPublic[]>([]);
   const t = useTranslations("Footer");
+  const isEn = locale === "en";
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -172,36 +173,126 @@ export default function Footer() {
           <div className="lg:col-span-3 flex flex-col gap-10">
             {/* Group: Payment Method */}
             <div>
-              <h3 className="font-bold text-white mb-4">Payment Method</h3>
-              <div className="flex flex-wrap gap-3">
-                {/* Logo 1: QRIS */}
-                <div className="relative h-16 w-20  overflow-hidden">
-                  <Image
-                    src="/images/footer/qris.png" // Pastikan path file sesuai
-                    alt="QRIS"
-                    fill
-                    className="object-contain "
-                  />
+              <h3 className="font-bold text-white mb-4">
+                {isEn ? "Payment Method" : "Metode Pembayaran"}
+              </h3>
+
+              {/* Container daftar metode pembayaran yang lebih lengkap */}
+              <div className="flex flex-col gap-4">
+                {/* Baris 1: QRIS & E-Wallets */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <div className="relative h-6 w-14 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/qris.png"
+                      alt="QRIS"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-6 w-12 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/gopay_landscape.png"
+                      alt="GoPay"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-6 w-14 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/shopeepay.png"
+                      alt="ShopeePay"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
                 </div>
 
-                {/* Logo 2: VISA */}
-                <div className="relative h-16 w-20  overflow-hidden">
-                  <Image
-                    src="/images/footer/visa.png"
-                    alt="VISA"
-                    fill
-                    className="object-contain "
-                  />
+                {/* Baris 2: Virtual Accounts */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <div className="relative h-5 w-10 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/bca.png"
+                      alt="BCA"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-5 w-12 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/mandiri.png"
+                      alt="Mandiri"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-5 w-10 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/bni.png"
+                      alt="BNI"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-5 w-10 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/bri.png"
+                      alt="BRI"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-5 w-14 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/permata_bank.png"
+                      alt="Permata"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-5 w-14 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/cimbniaga.png"
+                      alt="Cimb Niaga"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
                 </div>
 
-                {/* Logo 3: BCA */}
-                <div className="relative h-16 w-20  overflow-hidden">
-                  <Image
-                    src="/images/footer/bca.png"
-                    alt="BCA"
-                    fill
-                    className="object-contain "
-                  />
+                {/* Baris 3: Cards & Retail */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <div className="relative h-5 w-8 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/visa.png"
+                      alt="Visa"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-5 w-8 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/mastercard.png"
+                      alt="Mastercard"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-5 w-12 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/alfamart.png"
+                      alt="Alfamart"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
+                  <div className="relative h-5 w-12 bg-white/10 p-1 rounded-sm">
+                    <Image
+                      src="/images/payment/indomaret.png"
+                      alt="Indomaret"
+                      fill
+                      className="object-contain p-0.5"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -210,7 +301,6 @@ export default function Footer() {
             <div>
               <h3 className="font-bold text-white mb-4">Marketplace</h3>
               <div className="flex gap-4">
-                {/* Shopee */}
                 <a
                   href="https://shopee.co.id/goenakan.id"
                   target="_blank"
@@ -223,8 +313,6 @@ export default function Footer() {
                     className="object-contain"
                   />
                 </a>
-
-                {/* Tokopedia */}
                 <a
                   href="https://www.tokopedia.com/goenakanid"
                   target="_blank"
@@ -237,8 +325,6 @@ export default function Footer() {
                     className="object-contain"
                   />
                 </a>
-
-                {/* TikTok Shop */}
                 <a
                   href="https://vt.tiktok.com/ZSQT9hvku/?page=Mall"
                   target="_blank"

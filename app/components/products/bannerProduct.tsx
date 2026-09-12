@@ -12,6 +12,8 @@ import { Link } from "@/i18n/routing";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useLocale, useTranslations } from "next-intl";
+
 interface HeroBannerCarouselProps {
   interval?: number;
 }
@@ -21,6 +23,7 @@ export function BannerProduct({
 }: HeroBannerCarouselProps = {}) {
   const [slides, setSlides] = useState<BannerType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const t = useTranslations("BannerProduct");
 
   const apiRef = useRef<CarouselApi | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -70,9 +73,10 @@ export function BannerProduct({
   // Loading State
   if (isLoading) {
     return (
-      <div className="w-full  min-h-75 flex items-center justify-center bg-stone-50">
+      <div className="w-full min-h-75 flex items-center justify-center bg-stone-50">
         <span className="text-stone-400 text-sm animate-pulse">
-          Memuat banner...
+          {/* ✨ Gunakan teks terjemahan untuk loading */}
+          {t("loading")}
         </span>
       </div>
     );
@@ -81,7 +85,7 @@ export function BannerProduct({
   // Empty State
   if (!slides || slides.length === 0) {
     return (
-      <section className="w-full ">
+      <section className="w-full">
         <div className="w-full aspect-16/7 bg-stone-50 flex flex-col items-center justify-center border-2 border-dashed border-stone-200">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -100,10 +104,12 @@ export function BannerProduct({
           </svg>
 
           <p className="text-stone-600 font-medium text-sm md:text-base">
-            Belum ada banner promosi
+            {/* ✨ Gunakan teks terjemahan untuk judul kosong */}
+            {t("emptyTitle")}
           </p>
           <p className="text-stone-400 text-xs md:text-sm mt-1">
-            Banner promosi yang aktif akan ditampilkan di area ini.
+            {/* ✨ Gunakan teks terjemahan untuk deskripsi kosong */}
+            {t("emptyDescription")}
           </p>
         </div>
       </section>
@@ -136,32 +142,43 @@ export function BannerProduct({
 }
 
 function BannerSlideItem({ slide }: { slide: BannerType }) {
+  // ✨ Ambil bahasa aktif untuk mengatur data dinamis dari backend
+  const locale = useLocale();
+
+  // Pastikan tipe data BannerType di-update jika field title_en & subtitle_en tersedia di backend
+  const displayTitle =
+    locale === "en" ? (slide as any).title_en || slide.title : slide.title;
+  const displaySubtitle =
+    locale === "en"
+      ? (slide as any).subtitle_en || slide.subtitle
+      : slide.subtitle;
+
   const content = (
     <div className="relative w-full aspect-16/7 overflow-hidden group bg-stone-100">
       {slide.imageUrl && (
         <Image
           src={slide.imageUrl}
-          alt={slide.title || "Promo Banner"}
+          alt={displayTitle || "Promo Banner"}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
       )}
 
-      {(slide.title || slide.subtitle) && (
+      {(displayTitle || displaySubtitle) && (
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
       )}
 
-      {(slide.title || slide.subtitle) && (
+      {(displayTitle || displaySubtitle) && (
         <div className="absolute bottom-0 left-0 p-5">
-          {slide.title && (
+          {displayTitle && (
             <p className="text-white font-semibold text-base leading-tight tracking-wide drop-shadow-md">
-              {slide.title}
+              {displayTitle}
             </p>
           )}
-          {slide.subtitle && (
+          {displaySubtitle && (
             <p className="text-white/80 text-sm mt-0.5 drop-shadow-md">
-              {slide.subtitle}
+              {displaySubtitle}
             </p>
           )}
         </div>
