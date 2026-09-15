@@ -86,8 +86,7 @@ export function PriceTierSelector({
 
   return (
     <div className="mt-4">
-      {/* Menggunakan items-stretch agar semua card memiliki tinggi yang sama rata */}
-      <div className={`grid gap-2 sm:gap-3 items-stretch ${gridColsClass}`}>
+      <div className={`grid gap-2 sm:gap-3 items-end ${gridColsClass}`}>
         {tiers.map((tier, index) => {
           const isSelected = selectedIndex === index;
           const isPremium = index === premiumIndex;
@@ -118,24 +117,19 @@ export function PriceTierSelector({
                 flex flex-col rounded-xl
                 ${isSelected ? "ring-2 ring-[#bda08c] ring-offset-2" : "hover:scale-[1.02]"}
               `}>
-              {/* h-full dipasang di sini agar pembungkus ikut meregang penuh */}
+              {/* h-full dipasang agar kartu meregang mengisi tinggi grid baris tersebut */}
               <div className="flex flex-col w-full shadow-sm rounded-xl overflow-hidden bg-white h-full">
-                {/* Badge "Best Value!" */}
-                {badge ? (
+                {/* Badge khusus untuk card premium/best value */}
+                {badge && (
                   <div className="bg-[#bda08c] py-2 text-[11px] sm:text-[13px] font-bold text-white tracking-wide w-full shrink-0">
                     {badge}
                   </div>
-                ) : (
-                  /* Spacer kosong jika tidak ada badge, agar judul card tetap sejajar dengan card ber-badge */
-                  <div className="py-2 text-[11px] sm:text-[13px] font-bold text-transparent select-none shrink-0">
-                    -
-                  </div>
                 )}
 
-                {/* Card Body Container */}
+                {/* Card Body Container dengan flex-1 & mt-auto */}
                 <div
                   className={`
-                    flex flex-col justify-between flex-1 px-2 pt-2 pb-2 sm:px-3 sm:pt-3 sm:pb-3
+                    flex flex-col justify-between flex-1 px-2 pt-3 pb-2 sm:px-3 sm:pt-4 sm:pb-3
                     ${isPremium ? "bg-[#e5dcd3]" : "bg-[#f4f4f4]"}
                   `}>
                   {/* Title & Subtitle */}
@@ -150,7 +144,7 @@ export function PriceTierSelector({
                     )}
                   </div>
 
-                  {/* Inner White Box (Harga & Kuantitas) */}
+                  {/* Inner White Box (Harga & Kuantitas) yang otomatis terkunci di bawah */}
                   <div className="bg-white rounded-lg py-2.5 sm:py-3 px-1 flex flex-col items-center justify-center shadow-sm mt-auto">
                     <p className="text-[#4e3f36] font-extrabold text-[14px] sm:text-[17px] leading-none whitespace-nowrap">
                       {formatCurrency(price, currencyCode)}
