@@ -810,7 +810,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return activeTiers.length > 0 ? (activeTiers[0].minQty ?? 1) : 1;
   });
 
-  // ✨ PERBAIKAN 1: Pindahkan logika useEffect ke dalam fungsi onClick varian
+  // PERBAIKAN 1: Pindahkan logika useEffect ke dalam fungsi onClick varian
   const handleVariantSelect = (variantId: string) => {
     setSelectedVariantId(variantId);
 
@@ -846,7 +846,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
   };
 
-  // ✨ PERBAIKAN 2: Derive selectedTierIndex langsung dari quantity (Tanpa useState & useEffect)
+  // PERBAIKAN 2: Derive selectedTierIndex langsung dari quantity (Tanpa useState & useEffect)
   const selectedTierIndex = useMemo(() => {
     if (!activeTiers || activeTiers.length === 0) return 0;
 
@@ -1085,7 +1085,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     [activeTiers, customOptionsPriceModifier],
   );
 
-  // ✨ PERBAIKAN 3: Cukup ubah quantity, dan selectedTierIndex akan otomatis mengikuti
+  // PERBAIKAN 3: Cukup ubah quantity, dan selectedTierIndex akan otomatis mengikuti
   const handleTierSelect = (index: number) => {
     const min = activeTiers[index]?.minQty ?? 1;
     setQuantity(min);

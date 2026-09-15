@@ -366,7 +366,7 @@ function formatCartItems(items: any[]): CartItemUI[] {
       length: item.product.length,
       customization: item.customization,
 
-      // ✨ PASTIKAN BARIS INI ADA DAN TIDAK KOSONG
+      // PASTIKAN BARIS INI ADA DAN TIDAK KOSONG
       selectedAttributes: item.selectedAttributes || null,
     };
   });

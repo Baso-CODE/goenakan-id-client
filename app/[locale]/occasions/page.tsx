@@ -7,10 +7,10 @@ import Image from "next/image";
 export default async function OccasionsPage() {
   const t = await getTranslations("Occasions");
 
-  // ✨ Mendapatkan bahasa aktif saat ini dari server
+  // Mendapatkan bahasa aktif saat ini dari server
   const locale = await getLocale();
 
-  // ✨ Mengambil data dari API backend berdasarkan bahasa
+  // Mengambil data dari API backend berdasarkan bahasa
   const categories = await getEventCategoryList(locale);
 
   return (

@@ -34,7 +34,7 @@ export interface FilterOption {
 }
 
 // ==========================================
-// ✨ STRUKTUR HIERARKI KATEGORI
+// STRUKTUR HIERARKI KATEGORI
 // ==========================================
 export interface ItemNameOption extends FilterOption {
   id: string;

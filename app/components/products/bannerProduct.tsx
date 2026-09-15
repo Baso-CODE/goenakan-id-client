@@ -103,11 +103,11 @@ export function BannerProduct({
           </svg>
 
           <p className="text-stone-600 font-medium text-sm md:text-base">
-            {/* ✨ Gunakan teks terjemahan untuk judul kosong */}
+            {/* Gunakan teks terjemahan untuk judul kosong */}
             {t("emptyTitle")}
           </p>
           <p className="text-stone-400 text-xs md:text-sm mt-1">
-            {/* ✨ Gunakan teks terjemahan untuk deskripsi kosong */}
+            {/* Gunakan teks terjemahan untuk deskripsi kosong */}
             {t("emptyDescription")}
           </p>
         </div>
@@ -141,7 +141,7 @@ export function BannerProduct({
 }
 
 function BannerSlideItem({ slide }: { slide: BannerType }) {
-  // ✨ Ambil bahasa aktif untuk mengatur data dinamis dari backend
+  // Ambil bahasa aktif untuk mengatur data dinamis dari backend
   const locale = useLocale();
 
   // Pastikan tipe data BannerType di-update jika field title_en & subtitle_en tersedia di backend

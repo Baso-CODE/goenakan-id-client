@@ -141,7 +141,7 @@ export function FilterBar({
         onChange={(val) => onFilterChange("category", val)}
       />
 
-      {/* ✨ 1.B. FILTER ITEM CATEGORY (Child) */}
+      {/* 1.B. FILTER ITEM CATEGORY (Child) */}
       <FilterSelect
         label="Item Category"
         options={itemCategoryOptions}
@@ -150,7 +150,7 @@ export function FilterBar({
         disabled={filters.category === "all"} // Disable jika parent belum dipilih
       />
 
-      {/* ✨ 1.C. FILTER ITEM NAME (Grandchild) */}
+      {/* 1.C. FILTER ITEM NAME (Grandchild) */}
       <FilterSelect
         label="Item Name"
         options={itemNameOptions}
@@ -159,7 +159,7 @@ export function FilterBar({
         disabled={filters.itemCategory === "all" || filters.category === "all"} // Disable jika parent/grandparent belum dipilih
       />
 
-      {/* ✨ 2. FILTER ATRIBUT DINAMIS (Warna, Ukuran, dll) - SEMENTARA DI-COMMENT
+      {/* 2. FILTER ATRIBUT DINAMIS (Warna, Ukuran, dll) - SEMENTARA DI-COMMENT
       {dynamicOptions.attributes?.map((attr) => (
         <FilterSelect
           key={attr.name}
@@ -288,7 +288,7 @@ function FilterSelect({
   options,
   value,
   onChange,
-  disabled, // ✨ Tambah properti disabled
+  disabled, // Tambah properti disabled
 }: {
   label: string;
   options: FilterOption[];

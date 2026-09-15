@@ -34,7 +34,7 @@ import { Link, usePathname, useRouter } from "@/i18n/routing";
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
 
-  // ✨ State untuk fitur Search
+  // State untuk fitur Search
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
@@ -68,15 +68,14 @@ export default function Navbar() {
   const switchLanguage = (newLocale: "id" | "en") => {
     router.replace(pathname, { locale: newLocale, scroll: false });
   };
-  // ✨ Fungsi untuk menangani saat pencarian disubmit
+  // Fungsi untuk menangani saat pencarian disubmit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    // Arahkan ke halaman products dengan membawa parameter pencarian
-    router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
+    // ✨ UBAH: Arahkan ke halaman global search
+    router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
 
-    // Tutup popover dan reset nilai input setelah mencari
     setIsSearchOpen(false);
     setSearchQuery("");
   };
@@ -163,7 +162,7 @@ export default function Navbar() {
               </Button>
             </Link>
 
-            {/* ✨ KOTAK PENCARIAN SHADCN (POPOVER) ✨ */}
+            {/* KOTAK PENCARIAN SHADCN (POPOVER) */}
             <Popover open={isSearchOpen} onOpenChange={setIsSearchOpen}>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">

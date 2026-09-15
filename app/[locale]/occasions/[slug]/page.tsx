@@ -47,7 +47,7 @@ export default async function OccasionDetailPage({
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                 ) : (
-                  /* ✨ Fallback jika gambar portofolio kosong */
+                  /* Fallback jika gambar portofolio kosong */
                   <div className="flex flex-col items-center text-stone-400">
                     <ImageOff className="w-10 h-10 mb-2 stroke-[1.5]" />
                     <span className="text-xs font-medium uppercase tracking-wider">

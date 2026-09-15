@@ -86,7 +86,8 @@ export function PriceTierSelector({
 
   return (
     <div className="mt-4">
-      <div className={`grid gap-2 sm:gap-3 items-end ${gridColsClass}`}>
+      {/* 1. Ubah dari items-end menjadi items-stretch agar semua kolom tingginya sama rata */}
+      <div className={`grid gap-2 sm:gap-3 items-stretch ${gridColsClass}`}>
         {tiers.map((tier, index) => {
           const isSelected = selectedIndex === index;
           const isPremium = index === premiumIndex;
@@ -115,18 +116,20 @@ export function PriceTierSelector({
               className={`
                 group relative w-full text-center transition-all duration-200 
                 flex flex-col rounded-xl
+                /* 2. Tambahkan h-full pada tombol agar ikut meregang penuh */
+                h-full 
                 ${isSelected ? "ring-2 ring-[#bda08c] ring-offset-2" : "hover:scale-[1.02]"}
               `}>
-              {/* h-full dipasang agar kartu meregang mengisi tinggi grid baris tersebut */}
+              {/* Pembungkus kartu bagian dalam dengan h-full */}
               <div className="flex flex-col w-full shadow-sm rounded-xl overflow-hidden bg-white h-full">
-                {/* Badge khusus untuk card premium/best value */}
+                {/* Badge khusus "Best Value!" */}
                 {badge && (
                   <div className="bg-[#bda08c] py-2 text-[11px] sm:text-[13px] font-bold text-white tracking-wide w-full shrink-0">
                     {badge}
                   </div>
                 )}
 
-                {/* Card Body Container dengan flex-1 & mt-auto */}
+                {/* Card Body Container */}
                 <div
                   className={`
                     flex flex-col justify-between flex-1 px-2 pt-3 pb-2 sm:px-3 sm:pt-4 sm:pb-3
@@ -144,7 +147,7 @@ export function PriceTierSelector({
                     )}
                   </div>
 
-                  {/* Inner White Box (Harga & Kuantitas) yang otomatis terkunci di bawah */}
+                  {/* Inner White Box (Harga & Kuantitas) yang otomatis terkunci di bagian bawah */}
                   <div className="bg-white rounded-lg py-2.5 sm:py-3 px-1 flex flex-col items-center justify-center shadow-sm mt-auto">
                     <p className="text-[#4e3f36] font-extrabold text-[14px] sm:text-[17px] leading-none whitespace-nowrap">
                       {formatCurrency(price, currencyCode)}

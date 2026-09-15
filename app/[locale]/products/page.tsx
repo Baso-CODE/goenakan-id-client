@@ -9,7 +9,7 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-// ✨ 2. Fungsi untuk menghasilkan metadata secara dinamis
+// 2. Fungsi untuk menghasilkan metadata secara dinamis
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
 

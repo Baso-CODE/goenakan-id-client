@@ -26,7 +26,7 @@ export function ContactForm() {
   const [categories, setCategories] = useState<CategoryPublic[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✨ Fetch SEMUA kategori beserta item-nya dalam sekali tarik
+  // Fetch SEMUA kategori beserta item-nya dalam sekali tarik
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -39,7 +39,7 @@ export function ContactForm() {
     loadCategories();
   }, []);
 
-  // ✨ Logika Pintar: Ambil item categories berdasarkan product category yang sedang aktif
+  // Logika Pintar: Ambil item categories berdasarkan product category yang sedang aktif
   const activeItemCategories =
     categories.find((cat) => cat.name === productCategoryName)
       ?.itemCategories || [];

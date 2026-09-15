@@ -142,7 +142,7 @@ export default function InformationDetailCustomer() {
                   {profileData?.user?.email || "Loading..."}
                 </p>
                 <p className="text-[10px] uppercase tracking-widest text-[#C4A48E] font-bold mt-2">
-                  {/* ✨ Menggunakan terjemahan untuk "Member since" */}
+                  {/* Menggunakan terjemahan untuk "Member since" */}
                   {profileData?.createdAt ||
                     t("header.memberSince", { date: "Jan 2024" })}
                 </p>
@@ -157,7 +157,7 @@ export default function InformationDetailCustomer() {
                 router.refresh();
               }}
               className="rounded-none w-full md:w-auto border-red-200 text-red-500 hover:bg-red-50 hover:text-red-600">
-              {/* ✨ Terjemahan tombol logout */}
+              {/* Terjemahan tombol logout */}
               <LogOut className="w-4 h-4 mr-2" /> {t("header.logout")}
             </Button>
           </div>
@@ -174,7 +174,7 @@ export default function InformationDetailCustomer() {
                   <TabsTrigger
                     value="orders"
                     className="w-auto lg:w-full justify-center lg:justify-start gap-2 lg:gap-3 py-3 lg:py-4 px-4 lg:px-4 rounded-none border-b-2 lg:border-b-0 lg:border-l-2 border-transparent data-[state=active]:border-[#C4A48E] text-gray-500 data-[state=active]:text-black data-[state=active]:bg-transparent lg:data-[state=active]:bg-white lg:data-[state=active]:shadow-sm transition-all whitespace-nowrap">
-                    {/* ✨ Terjemahan menu tab */}
+                    {/* Terjemahan menu tab */}
                     <Package className="h-4 w-4" /> {t("tabs.orders")}
                   </TabsTrigger>
                   <TabsTrigger
@@ -198,7 +198,7 @@ export default function InformationDetailCustomer() {
                   className="m-0 focus-visible:outline-none">
                   <Card className="rounded-none border-none shadow-sm">
                     <CardHeader className="px-2 sm:px-6">
-                      {/* ✨ Terjemahan judul dan deskripsi tabel */}
+                      {/* Terjemahan judul dan deskripsi tabel */}
                       <CardTitle className="text-xl uppercase tracking-widest">
                         {t("orders.title")}
                       </CardTitle>
@@ -211,7 +211,7 @@ export default function InformationDetailCustomer() {
                         <Table className="min-w-150">
                           <TableHeader className="bg-gray-50">
                             <TableRow>
-                              {/* ✨ Terjemahan Header Tabel */}
+                              {/* Terjemahan Header Tabel */}
                               <TableHead className="font-bold whitespace-nowrap">
                                 {t("orders.table.orderNumber")}
                               </TableHead>
@@ -235,7 +235,7 @@ export default function InformationDetailCustomer() {
                                 <TableCell
                                   colSpan={5}
                                   className="text-center py-10 text-stone-400">
-                                  {/* ✨ Terjemahan jika pesanan kosong */}
+                                  {/* Terjemahan jika pesanan kosong */}
                                   {t("orders.empty")}
                                 </TableCell>
                               </TableRow>
@@ -281,7 +281,7 @@ export default function InformationDetailCustomer() {
                                       size="sm"
                                       className="text-xs rounded-none">
                                       <Link href={`/profile/order/${order.id}`}>
-                                        {/* ✨ Terjemahan tombol lihat detail */}
+                                        {/* Terjemahan tombol lihat detail */}
                                         {t("orders.viewDetails")}
                                       </Link>
                                     </Button>
@@ -303,11 +303,11 @@ export default function InformationDetailCustomer() {
                   <Card className="rounded-none border-none shadow-sm">
                     <CardHeader className="px-2 sm:px-6">
                       <CardTitle className="text-xl uppercase tracking-widest">
-                        {/* ✨ Terjemahan judul detail */}
+                        {/* Terjemahan judul detail */}
                         {t("details.title")}
                       </CardTitle>
                       <CardDescription>
-                        {/* ✨ Terjemahan deskripsi detail dengan variabel dinamis */}
+                        {/* Terjemahan deskripsi detail dengan variabel dinamis */}
                         {t("details.description", {
                           type: profileData?.accountType?.toLowerCase() || "",
                         })}
@@ -318,7 +318,7 @@ export default function InformationDetailCustomer() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
                             <Label className="text-[10px] uppercase tracking-widest font-bold text-gray-400">
-                              {/* ✨ Terjemahan label email */}
+                              {/* Terjemahan label email */}
                               {t("details.labels.email")}
                             </Label>
                             <Input
@@ -402,7 +402,7 @@ export default function InformationDetailCustomer() {
                           type="submit"
                           disabled={isUpdating}
                           className="w-full md:w-auto bg-black text-white rounded-none px-10 py-6 uppercase tracking-widest text-xs font-bold hover:bg-gray-800 transition-all">
-                          {/* ✨ Terjemahan tombol update berdasarkan status loading */}
+                          {/* Terjemahan tombol update berdasarkan status loading */}
                           {isUpdating
                             ? t("details.buttons.updating")
                             : t("details.buttons.update")}

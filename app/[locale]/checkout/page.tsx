@@ -2,12 +2,12 @@ import CheckoutPage from "@/app/components/checkout/checkoutPage";
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 
-// ✨ 1. Definisikan tipe Props untuk menangkap parameter locale
+// 1. Definisikan tipe Props untuk menangkap parameter locale
 type Props = {
   params: Promise<{ locale: string }>;
 };
 
-// ✨ 2. Generate Metadata untuk halaman Checkout
+// 2. Generate Metadata untuk halaman Checkout
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
 
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-// ✨ 3. Komponen utama
+// 3. Komponen utama
 export default async function Page({ params }: Props) {
   return <CheckoutPage />;
 }

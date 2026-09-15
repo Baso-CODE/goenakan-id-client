@@ -149,7 +149,7 @@ function RegionCombobox({
     </div>
   );
 }
-// ✨ PERBAIKAN 1: Gunakan formatCurrency dinamis, hapus formatRupiah
+// PERBAIKAN 1: Gunakan formatCurrency dinamis, hapus formatRupiah
 function formatCurrency(amount: number, currencyCode: string = "IDR") {
   // Tentukan locale berdasarkan mata uang agar format titik/komanya sesuai
   let locale = "en-US";
@@ -1102,7 +1102,7 @@ export default function CheckoutPage() {
                           {item.materialType}
                         </p>
 
-                        {/* ✨ PERBAIKAN 3: Ganti formatRupiah jadi formatCurrency dinamis */}
+                        {/* PERBAIKAN 3: Ganti formatRupiah jadi formatCurrency dinamis */}
                         <p className="text-xs font-bold text-stone-800 mt-1">
                           {formatCurrency(item.price, currencyCode)}
                         </p>
@@ -1180,7 +1180,7 @@ export default function CheckoutPage() {
                       Subtotal ({totalQty} items)
                     </span>
 
-                    {/* ✨ PERBAIKAN 4: Ganti formatRupiah jadi formatCurrency dinamis */}
+                    {/* PERBAIKAN 4: Ganti formatRupiah jadi formatCurrency dinamis */}
                     <span className="font-bold text-stone-800">
                       {formatCurrency(subtotal, currencyCode)}
                     </span>
@@ -1189,7 +1189,7 @@ export default function CheckoutPage() {
                   <div className="flex justify-between items-center py-2 font-bold uppercase tracking-widest text-stone-900">
                     <span className="text-sm">Total</span>
 
-                    {/* ✨ PERBAIKAN 5: Ganti formatRupiah jadi formatCurrency dinamis */}
+                    {/* PERBAIKAN 5: Ganti formatRupiah jadi formatCurrency dinamis */}
                     <span className="text-base">
                       {formatCurrency(total, currencyCode)}
                     </span>

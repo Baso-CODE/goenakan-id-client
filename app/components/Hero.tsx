@@ -105,7 +105,7 @@ export default function Hero() {
           {slides.map((slide, index) => (
             <CarouselItem
               key={slide.id}
-              // ✨ KUNCI PERBAIKAN: Berikan tinggi pasti (calc) ke CarouselItem agar tidak menciut
+              // KUNCI PERBAIKAN: Berikan tinggi pasti (calc) ke CarouselItem agar tidak menciut
               className="relative w-full h-[calc(100vh-92px)]">
               {/* === GAMBAR RESPONSIF === */}
               <div className="absolute inset-0 w-full h-full block md:hidden">
@@ -138,7 +138,7 @@ export default function Hero() {
                 />
               </div>
 
-              {/* ✨ KONTEN TEKS (KIRI) & TOMBOL (KANAN) */}
+              {/* KONTEN TEKS (KIRI) & TOMBOL (KANAN) */}
               <div className="relative z-10 h-full flex flex-col md:flex-row items-center justify-between px-6 md:pl-24 md:pr-32">
                 <div className="max-w-xl text-center md:text-left mt-32 md:mt-0 animate-in fade-in slide-in-from-left-8 duration-1000 ease-out fill-mode-forwards">
                   <h1 className="text-2xl md:text-3xl lg:text-4xl text-gray-900 leading-tight font-normal italic">

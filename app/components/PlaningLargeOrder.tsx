@@ -15,7 +15,7 @@ export function PlanningLargerOrder({
   imageAlt = "Goenakan Indonesia Products",
   ctaHref = "/contact",
 }: PlanningLargerOrderProps) {
-  // ✨ Inisialisasi fungsi translasi
+  // Inisialisasi fungsi translasi
   const t = useTranslations("PlanningLargerOrder");
 
   return (

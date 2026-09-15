@@ -52,7 +52,7 @@ export function ProductDescription({
 
         <div className="relative">
           <div
-            // ✨ DITAMBAHKAN KEMBALI: class prose-p dan prose-li untuk merapikan jarak yang mepet
+            // DITAMBAHKAN KEMBALI: class prose-p dan prose-li untuk merapikan jarak yang mepet
             className={`text-sm text-stone-700 prose prose-sm max-w-none 
               prose-p:leading-relaxed prose-p:my-2 
               prose-ul:my-2 prose-li:my-1 

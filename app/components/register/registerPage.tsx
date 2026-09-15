@@ -90,7 +90,7 @@ export default function RegisterPage() {
       const json = await res.json();
 
       if (res.ok && json.success) {
-        toast.success(t("messages.success")); // ✨ Menggunakan terjemahan
+        toast.success(t("messages.success")); // Menggunakan terjemahan
         router.push("/login");
       } else {
         toast.error(json.message || t("messages.errorDefault"));
@@ -117,7 +117,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 py-16">
       <div className="w-full max-w-2xl">
         <h1 className="text-4xl font-light text-stone-800 text-center mb-8">
-          {t("title")} {/* ✨ Menggunakan terjemahan */}
+          {t("title")} {/* Menggunakan terjemahan */}
         </h1>
         <div className="grid grid-cols-2 gap-0 border border-stone-200 rounded-sm mb-5 overflow-hidden">
           <button
