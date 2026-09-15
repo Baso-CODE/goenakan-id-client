@@ -23,18 +23,16 @@ export function ProductDescription({
     { label: isEn ? "Dimensions" : "Dimensi", value: dimensions },
   ];
 
-  // Batas karakter sebelum teks dipotong (bisa disesuaikan)
+  // 1. Hapus tag HTML sementara hanya untuk menghitung panjang karakter aslinya
+  const plainText = description ? description.replace(/<[^>]+>/g, "") : "";
   const CHARACTER_LIMIT = 150;
-  const isLongDescription = description && description.length > CHARACTER_LIMIT;
 
-  const displayedDescription =
-    !isExpanded && isLongDescription
-      ? description.slice(0, CHARACTER_LIMIT) + "..."
-      : description;
+  // Cek apakah teks asli (tanpa HTML) melebihi batas karakter
+  const isLongDescription = plainText.length > CHARACTER_LIMIT;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 1. Specs (Berat & Dimensi) dipindah ke Paling Atas */}
+      {/* 1. Specs (Berat & Dimensi) di Paling Atas */}
       <div className="flex flex-col gap-2 pb-2 border-b border-stone-100">
         {specs.map((spec) => (
           <div key={spec.label} className="flex gap-2 text-sm">
@@ -46,17 +44,40 @@ export function ProductDescription({
         ))}
       </div>
 
-      {/* 2. Description berada di bawah Specs dengan Batasan Karakter */}
+      {/* 2. Description dengan Rich Text HTML */}
       <div>
-        <p className="text-sm text-stone-700 leading-relaxed whitespace-pre-line">
-          <span className="font-semibold text-stone-900 block mb-1">
-            {isEn ? "Description" : "Deskripsi"}
-          </span>
-          {displayedDescription ||
-            (isEn ? "No description available." : "Tidak ada deskripsi.")}
-        </p>
+        <span className="font-semibold text-stone-900 block mb-2 text-sm">
+          {isEn ? "Description" : "Deskripsi"}
+        </span>
 
-        {/* 3. Tombol Toggle untuk Membatasi / Menampilkan Semua */}
+        <div className="relative">
+          <div
+            // ✨ DITAMBAHKAN KEMBALI: class prose-p dan prose-li untuk merapikan jarak yang mepet
+            className={`text-sm text-stone-700 prose prose-sm max-w-none 
+              prose-p:leading-relaxed prose-p:my-2 
+              prose-ul:my-2 prose-li:my-1 
+              prose-strong:font-semibold prose-strong:text-stone-900 ${
+                !isExpanded && isLongDescription
+                  ? "line-clamp-4 overflow-hidden"
+                  : ""
+              }`}
+            // dangerouslySetInnerHTML akan mengubah string HTML menjadi elemen UI yang sesungguhnya
+            dangerouslySetInnerHTML={{
+              __html:
+                description ||
+                (isEn
+                  ? "<p>No description available.</p>"
+                  : "<p>Tidak ada deskripsi.</p>"),
+            }}
+          />
+
+          {/* Efek gradien putih transparan di bawah agar terlihat elegan saat terpotong */}
+          {!isExpanded && isLongDescription && (
+            <div className="absolute bottom-0 left-0 right-0 h-10 bg-linear-to-t from-white to-transparent pointer-events-none" />
+          )}
+        </div>
+
+        {/* 3. Tombol Toggle */}
         {isLongDescription && (
           <button
             onClick={() => setIsExpanded(!isExpanded)}
