@@ -38,7 +38,6 @@ function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
   }).format(amount);
 }
 
-// 🛠️ LOGIKA 1: Penamaan judul otomatis berdasarkan jumlah tier
 function getTierTitle(index: number, total: number, locale: string) {
   if (total === 1) return "Premium Order";
   if (total === 2) return index === 0 ? "Starter Order" : "Premium Order";
@@ -47,7 +46,6 @@ function getTierTitle(index: number, total: number, locale: string) {
   return titles[index] || `Tier ${index + 1}`;
 }
 
-// 🛠️ LOGIKA 2: Penamaan subtitle otomatis berdasarkan jumlah tier
 function getTierSubtitle(index: number, total: number, locale: string): string {
   const enSubs = [
     "Perfect for small batches & trial orders",
@@ -77,10 +75,8 @@ export function PriceTierSelector({
 }: PriceTierSelectorProps) {
   if (!tiers || tiers.length === 0) return null;
 
-  // Premium tier selalu menjadi index terakhir
   const premiumIndex = tiers.length - 1;
 
-  // Agar tampilan tetap proporsional jika jumlah tier kurang dari 3
   const gridColsClass =
     tiers.length === 1
       ? "grid-cols-1 max-w-[240px]"
@@ -90,6 +86,7 @@ export function PriceTierSelector({
 
   return (
     <div className="mt-4">
+      {/* Menggunakan items-end agar bagian bawah card rata, sementara card premium memanjang ke atas karena ada badge */}
       <div className={`grid gap-2 sm:gap-3 items-end ${gridColsClass}`}>
         {tiers.map((tier, index) => {
           const isSelected = selectedIndex === index;
@@ -109,7 +106,6 @@ export function PriceTierSelector({
           const subtitle =
             tier.subtitle || getTierSubtitle(index, tiers.length, locale);
 
-          // Badge "Best Value!" hanya untuk premium
           const badge = tier.badge || (isPremium ? "Best Value!" : null);
 
           return (
@@ -119,13 +115,13 @@ export function PriceTierSelector({
               onClick={() => onSelect(index)}
               className={`
                 group relative w-full text-center transition-all duration-200 
-                flex flex-col justify-end rounded-xl
+                flex flex-col rounded-xl
                 ${isSelected ? "ring-2 ring-[#bda08c] ring-offset-2" : "hover:scale-[1.02]"}
               `}>
-              <div className="flex flex-col h-full w-full shadow-sm rounded-xl overflow-hidden">
-                {/* 🌟 Premium Badge Header (Hanya muncul di Tier Premium) */}
-                {isPremium && badge && (
-                  <div className="bg-[#bda08c] py-2 text-[11px] sm:text-[13px] font-bold text-white tracking-wide">
+              <div className="flex flex-col w-full shadow-sm rounded-xl overflow-hidden bg-white">
+                {/* 🌟 Badge "Best Value!" hanya tampil di card premium, membuat card ini lebih tinggi ke atas */}
+                {badge && (
+                  <div className="bg-[#bda08c] py-2 text-[11px] sm:text-[13px] font-bold text-white tracking-wide w-full">
                     {badge}
                   </div>
                 )}
@@ -133,7 +129,7 @@ export function PriceTierSelector({
                 {/* 🌟 Card Body Container */}
                 <div
                   className={`
-                    flex flex-col flex-1 justify-between px-2 pt-3 pb-2 sm:px-3 sm:pt-4 sm:pb-3
+                    flex flex-col justify-between px-2 pt-3 pb-2 sm:px-3 sm:pt-4 sm:pb-3
                     ${isPremium ? "bg-[#e5dcd3]" : "bg-[#f4f4f4]"}
                   `}>
                   {/* Title & Subtitle */}

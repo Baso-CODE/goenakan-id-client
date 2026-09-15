@@ -7,6 +7,7 @@ import { useRouter } from "@/i18n/routing";
 import { MessageCircle, Sparkles, X, ZoomIn } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useLocale } from "next-intl";
+import Image from "next/image";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PriceTierSelector } from "./priceTierSelector";
@@ -1950,7 +1951,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     <div className="max-w-8xl mx-auto px-4 sm:px-6 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
         {/* ── Left: Image Gallery ── */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 md:sticky md:top-24 md:h-fit z-10">
           {product.isCustom && isCustomizing && hasMockupAreas ? (
             <MemoProductCustomizer
               media={customizerMedia}
@@ -2462,7 +2463,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               <X className="w-4 h-4" />
             </button>
             <div className="w-full aspect-square rounded-md overflow-hidden bg-stone-50 flex items-center justify-center border border-stone-100 dark:border-stone-800">
-              <img
+              <Image
                 src={previewImage.url}
                 alt={previewImage.name}
                 className="w-full h-full object-contain"

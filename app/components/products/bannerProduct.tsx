@@ -75,7 +75,6 @@ export function BannerProduct({
     return (
       <div className="w-full min-h-75 flex items-center justify-center bg-stone-50">
         <span className="text-stone-400 text-sm animate-pulse">
-          {/* ✨ Gunakan teks terjemahan untuk loading */}
           {t("loading")}
         </span>
       </div>
@@ -118,7 +117,7 @@ export function BannerProduct({
 
   return (
     <section
-      className="w-full"
+      className="w-full h-full"
       onMouseEnter={stopAutoplay}
       onMouseLeave={startAutoplay}>
       <Carousel
@@ -131,7 +130,7 @@ export function BannerProduct({
           {slides.map((slide) => (
             <CarouselItem
               key={slide.id}
-              className="pl-0 basis-full sm:basis-1/2 lg:basis-1/3">
+              className="pl-0 basis-full h-full sm:basis-1/2 lg:basis-1/3">
               <BannerSlideItem slide={slide} />
             </CarouselItem>
           ))}
