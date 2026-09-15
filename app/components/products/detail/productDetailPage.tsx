@@ -2444,7 +2444,6 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             weight={displayWeight}
             locale={locale}
             dimensions={displayDimensions}
-            accessories={product.accessories}
           />
         </div>
       </div>
