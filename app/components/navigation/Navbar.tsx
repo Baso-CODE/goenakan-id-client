@@ -63,17 +63,19 @@ export default function Navbar() {
     { name: t("about"), href: "/about" },
     { name: t("contact"), href: "/contact" },
     { name: t("article"), href: "/article" },
+    { name: t("success-story"), href: "/success-story" },
   ];
 
   const switchLanguage = (newLocale: "id" | "en") => {
     router.replace(pathname, { locale: newLocale, scroll: false });
   };
+
   // Fungsi untuk menangani saat pencarian disubmit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    // ✨ UBAH: Arahkan ke halaman global search
+    // Arahkan ke halaman global search
     router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
 
     setIsSearchOpen(false);
@@ -88,15 +90,16 @@ export default function Navbar() {
           ? "bg-white/80 backdrop-blur-md shadow-sm py-4"
           : "bg-transparent py-6",
       )}>
-      <div className="container ">
-        <div className="flex items-center justify-between md:grid md:grid-cols-3">
-          {/* --- 1. DESKTOP NAV --- */}
-          <nav className="hidden md:flex items-center gap-8">
+      <div className="container">
+        {/* MENGGUNAKAN FLEX JUSTIFY-BETWEEN DENGAN STRUKTUR 3 BAGIAN YANG SEIMBANG */}
+        <div className="flex items-center justify-between">
+          {/* --- 1. DESKTOP NAV (KIRI) --- */}
+          <nav className="hidden md:flex flex-1 items-center gap-4 lg:gap-6">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.href}
-                className="text-sm font-medium text-gray-800 hover:text-black transition-colors tracking-wide">
+                className="text-sm font-medium text-gray-800 hover:text-black transition-colors tracking-wide whitespace-nowrap">
                 {link.name}
               </Link>
             ))}
@@ -114,8 +117,8 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* --- 3. LOGO (DESKTOP) --- */}
-          <div className="hidden md:flex justify-center">
+          {/* --- 3. LOGO (DESKTOP / TENGAH) --- */}
+          <div className="hidden md:flex justify-center shrink-0">
             <Link href="/" className="hover:opacity-80 transition-opacity">
               <Image
                 alt="Goenakan Logo"
@@ -126,8 +129,8 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* --- 4. UTILITIES --- */}
-          <div className="flex items-center justify-end gap-1 md:gap-2">
+          {/* --- 4. UTILITIES (KANAN) --- */}
+          <div className="flex flex-1 items-center justify-end gap-1 md:gap-2">
             {/* TOMBOL BAHASA DESKTOP */}
             <div className="hidden sm:flex items-center gap-2 mr-2 md:mr-4 text-sm font-medium">
               <button
@@ -210,7 +213,6 @@ export default function Navbar() {
 
             {/* --- BURGER MENU (MOBILE) --- */}
             <div className="md:hidden ml-1">
-              {/* Kode Sheet/Burger Menu milikmu tetap sama */}
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">

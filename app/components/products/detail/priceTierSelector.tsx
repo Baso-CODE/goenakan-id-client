@@ -1,7 +1,21 @@
 "use client";
 
 interface FlexiblePriceTier {
+  /**
+   * Optional custom title.
+   * Jika tidak ada, otomatis:
+   * Starter Order / Standard Order / Premium Order
+   */
+  title?: string;
+
+  /**
+   * Label dari backend.
+   * Contoh: "1 - 10 pcs"
+   *
+   * TIDAK digunakan sebagai title card.
+   */
   label?: string;
+
   subtitle?: string;
   badge?: string | null;
 
@@ -22,13 +36,22 @@ interface PriceTierSelectorProps {
   locale?: string;
 }
 
+/* =========================================================
+   FORMAT CURRENCY
+   ========================================================= */
+
 function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
   let numberLocale = "id-ID";
 
-  if (currencyCode === "USD") numberLocale = "en-US";
-  else if (currencyCode === "EUR") numberLocale = "de-DE";
-  else if (currencyCode === "JPY") numberLocale = "ja-JP";
-  else if (currencyCode === "MYR") numberLocale = "ms-MY";
+  if (currencyCode === "USD") {
+    numberLocale = "en-US";
+  } else if (currencyCode === "EUR") {
+    numberLocale = "de-DE";
+  } else if (currencyCode === "JPY") {
+    numberLocale = "ja-JP";
+  } else if (currencyCode === "MYR") {
+    numberLocale = "ms-MY";
+  }
 
   return new Intl.NumberFormat(numberLocale, {
     style: "currency",
@@ -38,90 +61,165 @@ function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
   }).format(amount);
 }
 
-function getTierTitle(index: number, total: number) {
+/* =========================================================
+   TIER TITLE
+   ========================================================= */
+
+function getTierTitle(index: number, total: number): string {
+  /**
+   * 1 tier:
+   * Premium
+   */
   if (total === 1) {
     return "Premium Order";
   }
 
+  /**
+   * 2 tiers:
+   * Starter
+   * Premium
+   */
   if (total === 2) {
     return index === 0 ? "Starter Order" : "Premium Order";
   }
 
-  const titles = ["Starter Order", "Standard Order", "Premium Order"];
+  /**
+   * 3 tiers:
+   * Starter
+   * Standard
+   * Premium
+   */
+  if (total === 3) {
+    const titles = ["Starter Order", "Standard Order", "Premium Order"];
 
-  return titles[index] || `Tier ${index + 1}`;
+    return titles[index];
+  }
+
+  /**
+   * Lebih dari 3 tier.
+   *
+   * Tier pertama  = Starter
+   * Tier terakhir = Premium
+   * Tengah         = Standard / Tier N
+   */
+  if (index === 0) {
+    return "Starter Order";
+  }
+
+  if (index === total - 1) {
+    return "Premium Order";
+  }
+
+  if (index === 1) {
+    return "Standard Order";
+  }
+
+  return `Tier ${index + 1}`;
 }
 
-function getTierSubtitle(index: number, total: number, locale: string): string {
-  const enSubs = [
-    "Perfect for small batches & trial orders",
-    "Ideal for growing needs & mid-scale orders",
-    "Tailored for large-scale & corporate projects",
-  ];
+/* =========================================================
+   TIER SUBTITLE
+   ========================================================= */
 
-  const idSubs = [
-    "Cocok untuk pesanan kecil & percobaan",
-    "Ideal untuk kebutuhan berkembang & pesanan menengah",
-    "Untuk proyek besar & kebutuhan korporat",
-  ];
+function getTierSubtitle(index: number, total: number, locale: string): string {
+  const enSubs = {
+    starter: "Perfect for small batches & trial orders",
+    standard: "Ideal for growing needs & mid-scale orders",
+    premium: "Tailored for large-scale & corporate projects",
+  };
+
+  const idSubs = {
+    starter: "Cocok untuk pesanan kecil & percobaan",
+    standard: "Ideal untuk kebutuhan berkembang & pesanan menengah",
+    premium: "Untuk proyek besar & kebutuhan korporat",
+  };
 
   const subs = locale === "en" ? enSubs : idSubs;
 
   if (total === 1) {
-    return subs[2];
+    return subs.premium;
   }
 
   if (total === 2) {
-    return index === 0 ? subs[0] : subs[2];
+    return index === 0 ? subs.starter : subs.premium;
   }
 
-  return subs[index] || "";
+  if (index === 0) {
+    return subs.starter;
+  }
+
+  if (index === total - 1) {
+    return subs.premium;
+  }
+
+  return subs.standard;
 }
 
-function formatQuantity(value: number, locale: string) {
+/* =========================================================
+   FORMAT QUANTITY
+   ========================================================= */
+
+function formatQuantity(value: number, locale: string): string {
   return value.toLocaleString(locale === "en" ? "en-US" : "id-ID");
 }
+
+/* =========================================================
+   COMPONENT
+   ========================================================= */
 
 export function PriceTierSelector({
   tiers,
   selectedIndex,
   onSelect,
   currencyCode = "IDR",
-  locale = "id",
+  locale = "en",
 }: PriceTierSelectorProps) {
   if (!tiers?.length) {
     return null;
   }
 
+  /**
+   * Tier terakhir selalu dianggap Premium.
+   */
   const premiumIndex = tiers.length - 1;
 
+  /**
+   * Grid responsive berdasarkan jumlah tier.
+   */
   const gridColsClass =
     tiers.length === 1
-      ? "grid-cols-1 max-w-[460px]"
+      ? "grid-cols-1 max-w-[315px]"
       : tiers.length === 2
-        ? "grid-cols-1 sm:grid-cols-2 max-w-[950px]"
-        : "grid-cols-1 md:grid-cols-3";
+        ? "grid-cols-1 sm:grid-cols-2 max-w-[650px]"
+        : "grid-cols-1 lg:grid-cols-3";
 
   return (
-    <div className="w-full mt-5">
+    <div className="mt-5 w-full">
       <div
         className={`
-          grid
-          ${gridColsClass}
-          gap-4
-          lg:gap-6
-          items-stretch
           mx-auto
+          grid
           w-full
+          ${gridColsClass}
+          items-end
+          gap-5
         `}>
         {tiers.map((tier, index) => {
           const isSelected = selectedIndex === index;
 
           const isPremium = index === premiumIndex;
 
+          /* =============================================
+             QUANTITY
+             ============================================= */
+
           const min = tier.minQty ?? tier.minQuantity ?? 1;
 
           const max = tier.maxQty ?? tier.maxQuantity ?? null;
+
+          /* =============================================
+             PRICE
+             ============================================= */
 
           const rawPrice = tier.pricePerPcs ?? tier.price ?? 0;
 
@@ -132,12 +230,38 @@ export function PriceTierSelector({
 
           const price = Number.isFinite(parsedPrice) ? parsedPrice : 0;
 
-          const title = tier.label || getTierTitle(index, tiers.length);
+          /* =============================================
+             TITLE
+
+             PENTING:
+             Jangan gunakan tier.label di sini.
+
+             Sebelumnya:
+             tier.label || getTierTitle(...)
+
+             Itu menyebabkan "1 - 10 pcs"
+             menjadi title card.
+             ============================================= */
+
+          const title = tier.title || getTierTitle(index, tiers.length);
+
+          /* =============================================
+             SUBTITLE
+             ============================================= */
 
           const subtitle =
             tier.subtitle || getTierSubtitle(index, tiers.length, locale);
 
-          const badge = tier.badge || (isPremium ? "Best Value!" : null);
+          /* =============================================
+             BADGE
+             ============================================= */
+
+          const badge =
+            tier.badge !== undefined
+              ? tier.badge
+              : isPremium
+                ? "Best Value!"
+                : null;
 
           return (
             <button
@@ -145,177 +269,170 @@ export function PriceTierSelector({
               type="button"
               onClick={() => onSelect(index)}
               aria-pressed={isSelected}
-              className={`
+              className="
                 group
                 relative
                 w-full
-                h-full
+                cursor-pointer
+                border-0
+                bg-transparent
+                p-0
                 text-center
-                rounded-[22px]
-                transition-all
-                duration-200
-                focus:outline-none
-                ${isSelected ? "ring-2 ring-[#BE9B84] ring-offset-2" : ""}
-              `}>
-              <div
-                className={`
-                  flex
-                  flex-col
-                  h-full
-                  min-h-[290px]
-                  sm:min-h-[315px]
-                  lg:min-h-[340px]
-                  overflow-hidden
-                  rounded-[22px]
-                  transition-shadow
-                  duration-200
-                  ${isPremium ? "bg-[#E2D9D4]" : "bg-[#EEEEEE]"}
-                  ${
-                    isSelected
-                      ? "shadow-md"
-                      : "shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-md"
-                  }
-                `}>
-                {/* PREMIUM HEADER */}
-                {badge && (
-                  <div
-                    className="
-                      w-full
-                      shrink-0
-                      bg-[#BE9B84]
-                      px-4
-                      py-4
-                      sm:py-5
-                      text-white
-                      text-[18px]
-                      sm:text-[20px]
-                      lg:text-[22px]
-                      leading-none
-                      font-semibold
-                    ">
-                    {badge}
-                  </div>
-                )}
+                outline-none
+                focus-visible:ring-2
+                focus-visible:ring-[#BE9B84]
+                focus-visible:ring-offset-2
+              ">
+              {/* =========================================
+                  PREMIUM HEADER
+                  ========================================= */}
 
-                {/* BODY */}
+              {badge && (
                 <div
                   className="
                     flex
-                    flex-1
-                    flex-col
+                    h-11
+                    w-full
+                    items-center
+                    justify-center
+                    rounded-t-4xl
+                    bg-[linear-gradient(180deg,#C7A18D_0%,#B18E7B_100%)]
                     px-5
-                    sm:px-6
-                    lg:px-7
-                    pt-7
-                    sm:pt-8
-                    pb-7
+                    text-[21px]
+                    font-semibold
+                    leading-none
+                    text-white
                   ">
-                  {/* TITLE */}
-                  <div className="shrink-0">
-                    <h3
+                  {badge}
+                </div>
+              )}
+
+              {/* =========================================
+                  CARD BODY
+                  ========================================= */}
+
+              <div
+                className={`
+                  flex
+                  h-51
+                  w-full
+                  flex-col
+                  px-5
+                  pb-6
+                  pt-6.75
+
+                  ${
+                    isPremium
+                      ? `
+                        rounded-b-4xl
+                        bg-[#E2DAD7]
+                      `
+                      : `
+                        rounded-4xl
+                        bg-[#EEEEEE]
+                      `
+                  }
+                `}>
+                {/* =======================================
+                    TITLE + SUBTITLE
+                    ======================================= */}
+
+                <div className="shrink-0">
+                  <h3
+                    className="
+                      m-0
+                      text-[20px]
+                      font-bold
+                      leading-[1.05]
+                      tracking-[-0.02em]
+                      text-[#080808]
+                    ">
+                    {title}
+                  </h3>
+
+                  {subtitle && (
+                    <p
                       className="
-                        text-[#111111]
-                        text-[21px]
-                        sm:text-[24px]
-                        lg:text-[27px]
-                        leading-[1.05]
-                        font-bold
-                        tracking-[-0.025em]
+                        mt-0.75
+                        text-[12.5px]
+                        font-normal
+                        leading-[1.2]
+                        tracking-[-0.01em]
+                        text-[#333333]
                       ">
-                      {title}
-                    </h3>
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
 
-                    {subtitle && (
-                      <p
-                        className="
-                          mt-1
-                          text-[#494949]
-                          text-[12px]
-                          sm:text-[13px]
-                          lg:text-[14px]
-                          leading-[1.3]
-                          font-normal
-                        ">
-                        {subtitle}
-                      </p>
-                    )}
-                  </div>
+                {/* =======================================
+                    PRICE BOX
+                    ======================================= */}
 
-                  {/* PRICE BOX */}
+                <div
+                  className="
+                    mt-auto
+                    flex
+                    h-20
+                    w-full
+                    shrink-0
+                    flex-col
+                    items-center
+                    justify-center
+                    rounded-[10px]
+                    bg-white
+                    px-2
+                  ">
+                  {/* PRICE */}
+
                   <div
                     className="
-                      mt-auto
-                      pt-6
-                      sm:pt-7
+                      flex
+                      items-baseline
+                      justify-center
+                      whitespace-nowrap
+                      text-[#171717]
                     ">
-                    <div
+                    <span
                       className="
-                        flex
-                        min-h-[112px]
-                        sm:min-h-[125px]
-                        w-full
-                        flex-col
-                        items-center
-                        justify-center
-                        rounded-[14px]
-                        bg-white
-                        px-3
-                        py-5
-                        shadow-[0_1px_4px_rgba(0,0,0,0.025)]
+                        text-[18px]
+                        font-extrabold
+                        leading-none
+                        tracking-[-0.035em]
                       ">
-                      <div
-                        className="
-                          flex
-                          items-baseline
-                          justify-center
-                          whitespace-nowrap
-                          text-[#201F1E]
-                        ">
-                        <span
-                          className="
-                            text-[22px]
-                            sm:text-[27px]
-                            lg:text-[31px]
-                            font-extrabold
-                            leading-none
-                            tracking-[-0.035em]
-                          ">
-                          {formatCurrency(price, currencyCode)}
-                        </span>
+                      {formatCurrency(price, currencyCode)}
+                    </span>
 
-                        <span
-                          className="
-                            ml-1
-                            text-[16px]
-                            sm:text-[18px]
-                            lg:text-[21px]
-                            font-bold
-                            leading-none
-                          ">
-                          /pcs
-                        </span>
-                      </div>
-
-                      <p
-                        className="
-                          mt-3
-                          text-[13px]
-                          sm:text-[14px]
-                          lg:text-[16px]
-                          italic
-                          font-normal
-                          leading-none
-                          text-[#4F4F4F]
-                        ">
-                        {max
-                          ? `${formatQuantity(min, locale)} - ${formatQuantity(
-                              max,
-                              locale,
-                            )} pcs`
-                          : `${formatQuantity(min, locale)}+ pcs`}
-                      </p>
-                    </div>
+                    <span
+                      className="
+                        ml-0.75
+                        text-[18px]
+                        font-bold
+                        leading-none
+                        tracking-tight
+                      ">
+                      /pcs
+                    </span>
                   </div>
+
+                  {/* QUANTITY */}
+
+                  <p
+                    className="
+                      mt-2.25
+                      text-[15px]
+                      font-normal
+                      leading-none
+                      tracking-[-0.01em]
+                      text-[#3F3F3F]
+                    ">
+                    {max
+                      ? `${formatQuantity(min, locale)} - ${formatQuantity(
+                          max,
+                          locale,
+                        )} pcs`
+                      : `${formatQuantity(min, locale)}+ pcs`}
+                  </p>
                 </div>
               </div>
             </button>

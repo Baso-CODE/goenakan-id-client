@@ -56,11 +56,11 @@ export default function SuccessStoryDetail() {
   }
 
   return (
-    <article className="min-h-screen bg-white py-16 text-stone-800">
-      <div className="container max-w-5xl mx-auto px-4 md:px-6">
+    <article className="min-h-screen bg-white pt-6 pb-16 text-stone-800">
+      <div className="container max-w-6xl mx-auto px-4">
         {/* === HEADER === */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-stone-200 pb-6">
-          <h1 className="text-4xl md:text-5xl font-serif text-stone-900 leading-tight md:max-w-2xl">
+          <h1 className="text-3xl md:text-4xl font-serif text-stone-900 leading-tight md:max-w-2xl">
             {story.title}
           </h1>
           <p className="text-stone-500 text-sm md:text-base font-medium tracking-wide uppercase">
@@ -153,7 +153,7 @@ export default function SuccessStoryDetail() {
         {/* === MAIN CONTENT === */}
         {story.mainContentHtml && (
           <div
-            className="max-w-4xl border-t border-stone-200 pt-12 [&>h1]:text-4xl [&>h1]:font-serif [&>h1]:mb-6 [&>h2]:text-3xl [&>h2]:font-serif [&>h2]:mb-4 [&>p]:text-stone-600 [&>p]:mb-6 [&>p]:leading-relaxed [&>ul]:list-disc [&>ul]:ml-5 [&>ul]:mb-6 [&>li]:text-stone-600"
+            className="max-w-full border-t border-stone-200 pt-12 [&>h1]:text-4xl [&>h1]:font-serif [&>h1]:mb-6 [&>h2]:text-3xl [&>h2]:font-serif [&>h2]:mb-4 [&>p]:text-stone-600 [&>p]:mb-6 [&>p]:leading-relaxed [&>ul]:list-disc [&>ul]:ml-5 [&>ul]:mb-6 [&>li]:text-stone-600"
             dangerouslySetInnerHTML={{ __html: story.mainContentHtml }}
           />
         )}

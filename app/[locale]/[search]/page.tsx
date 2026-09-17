@@ -16,6 +16,9 @@ import { LoadMoreButton } from "@/app/components/products/Loadmorebutton";
 import { ProductGrid } from "@/app/components/products/Productgrid";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// ✨ TAMBAHAN: Import komponen Tabs dari shadcn
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 // =====================================================================
 // FUNGSI HELPER UNTUK FORMAT DATA ARTIKEL
 // =====================================================================
@@ -47,7 +50,7 @@ const formatArticleData = (item: any, locale: string) => {
       locale === "en" ? "en-US" : "id-ID",
       { month: "long", day: "numeric", year: "numeric" },
     ),
-    href: `/article/${item.slug || item.id}`, // Properti href sudah disiapkan di sini
+    href: `/article/${item.slug || item.id}`,
   };
 };
 
@@ -60,6 +63,9 @@ export default function GlobalSearchPage() {
   const locale = useLocale();
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // ✨ TAMBAHAN: State untuk mengatur tab mana yang sedang aktif
+  const [activeTab, setActiveTab] = useState("products");
 
   // --- STATE UNTUK PRODUK ---
   const [products, setProducts] = useState<any[]>([]);
@@ -79,7 +85,6 @@ export default function GlobalSearchPage() {
   const [portHasMore, setPortHasMore] = useState(false);
   const [isLoadingMorePort, setIsLoadingMorePort] = useState(false);
 
-  // Fungsi pembantu untuk mengambil negara pengguna
   const getUserCountryFromCookie = (): string => {
     if (typeof document === "undefined") return "ID";
     const match = document.cookie.match(/(^|;)\s*USER_COUNTRY\s*=\s*([^;]+)/);
@@ -98,19 +103,16 @@ export default function GlobalSearchPage() {
       const country = getUserCountryFromCookie();
 
       try {
-        // Panggil 3 API sekaligus untuk halaman 1
         const [prodRes, artRes, portRes] = await Promise.all([
           getFilteredProductsAPI({} as any, 1, query, country, locale),
           getSearchArticlesAPI(query, 1, locale),
           getSearchPortfoliosAPI(query, 1, locale),
         ]);
 
-        // Set State Produk
         setProducts(prodRes.data || []);
         setProdHasMore(prodRes.meta?.hasNext || false);
         setProdPage(1);
 
-        // Set State Artikel (Dengan Format Data)
         const formattedArticles = (artRes.data || []).map((item: any) =>
           formatArticleData(item, locale),
         );
@@ -118,7 +120,6 @@ export default function GlobalSearchPage() {
         setArtHasMore(artRes.meta?.hasNext || false);
         setArtPage(1);
 
-        // Set State Portofolio
         setPortfolios(portRes.data || []);
         setPortHasMore(portRes.meta?.hasNext || false);
         setPortPage(1);
@@ -157,8 +158,6 @@ export default function GlobalSearchPage() {
     const nextPage = artPage + 1;
 
     const res = await getSearchArticlesAPI(query, nextPage, locale);
-
-    // Format data artikel baru sebelum digabungkan ke state
     const formattedNewArticles = (res.data || []).map((item: any) =>
       formatArticleData(item, locale),
     );
@@ -205,12 +204,26 @@ export default function GlobalSearchPage() {
             <Skeleton className="h-64 w-full" />
           </div>
         ) : (
-          <div className="space-y-20">
-            {/* === SECTION PRODUK === */}
-            <section>
-              <h2 className="text-2xl font-bold text-stone-800 mb-6 border-b pb-2 uppercase tracking-wide">
-                Products
-              </h2>
+          /* ✨ UBAH: Layout yang awalnya numpuk vertikal kini digabung menggunakan Tabs */
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full">
+            {/* Navigasi Tab */}
+            <div className="flex justify-center mb-8">
+              <TabsList className="grid w-full md:w-125 grid-cols-3">
+                <TabsTrigger value="products">Products</TabsTrigger>
+                <TabsTrigger value="articles">Articles</TabsTrigger>
+                <TabsTrigger value="portfolios">Portfolios</TabsTrigger>
+              </TabsList>
+            </div>
+
+            {/* TAB 1: PRODUCTS */}
+            <TabsContent
+              value="products"
+              forceMount={true}
+              hidden={activeTab !== "products"}
+              className="mt-0">
               {products.length > 0 ? (
                 <>
                   <ProductGrid products={products} isLoading={false} />
@@ -225,17 +238,22 @@ export default function GlobalSearchPage() {
                   )}
                 </>
               ) : (
-                <p className="text-stone-500 italic">
-                  Tidak ada produk ditemukan.
-                </p>
+                <div className="text-center py-20 bg-white rounded-lg border border-gray-100">
+                  <p className="text-stone-500 italic">
+                    {locale === "en"
+                      ? "No products found."
+                      : "Tidak ada produk ditemukan."}
+                  </p>
+                </div>
               )}
-            </section>
+            </TabsContent>
 
-            {/* === SECTION ARTIKEL === */}
-            <section>
-              <h2 className="text-2xl font-bold text-stone-800 mb-6 border-b pb-2 uppercase tracking-wide">
-                Articles
-              </h2>
+            {/* TAB 2: ARTICLES */}
+            <TabsContent
+              value="articles"
+              forceMount={true}
+              hidden={activeTab !== "articles"}
+              className="mt-0">
               {articles.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -254,17 +272,22 @@ export default function GlobalSearchPage() {
                   )}
                 </>
               ) : (
-                <p className="text-stone-500 italic">
-                  Tidak ada artikel ditemukan.
-                </p>
+                <div className="text-center py-20 bg-white rounded-lg border border-gray-100">
+                  <p className="text-stone-500 italic">
+                    {locale === "en"
+                      ? "No articles found."
+                      : "Tidak ada artikel ditemukan."}
+                  </p>
+                </div>
               )}
-            </section>
+            </TabsContent>
 
-            {/* === SECTION PORTOFOLIO === */}
-            <section>
-              <h2 className="text-2xl font-bold text-stone-800 mb-6 border-b pb-2 uppercase tracking-wide">
-                Portfolios
-              </h2>
+            {/* TAB 3: PORTFOLIOS */}
+            <TabsContent
+              value="portfolios"
+              forceMount={true}
+              hidden={activeTab !== "portfolios"}
+              className="mt-0">
               {portfolios.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -283,12 +306,16 @@ export default function GlobalSearchPage() {
                   )}
                 </>
               ) : (
-                <p className="text-stone-500 italic">
-                  Tidak ada portofolio ditemukan.
-                </p>
+                <div className="text-center py-20 bg-white rounded-lg border border-gray-100">
+                  <p className="text-stone-500 italic">
+                    {locale === "en"
+                      ? "No portfolios found."
+                      : "Tidak ada portofolio ditemukan."}
+                  </p>
+                </div>
               )}
-            </section>
-          </div>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </div>

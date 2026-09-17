@@ -1948,8 +1948,8 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   };
 
   return (
-    <div className="max-w-8xl mx-auto px-4 sm:px-6 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+    <div className="max-w-8xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-6">
         {/* ── Left: Image Gallery ── */}
         <div className="flex flex-col gap-4 md:sticky md:top-24 md:h-fit z-10">
           {product.isCustom && isCustomizing && hasMockupAreas ? (
