@@ -11,7 +11,7 @@ import {
 } from "@/app/types/product.type";
 import { useLocale } from "next-intl";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { FilterBar } from "./Filterbar";
 import { LoadMoreButton } from "./Loadmorebutton";
 import { PageHeader } from "./Pageheader";
@@ -41,6 +41,8 @@ export default function FilterProduct() {
   const searchParams = useSearchParams();
   const [_, startTransition] = useTransition();
 
+  const isLoadMoreRef = useRef(false);
+
   const categoryParam = searchParams.get("category");
   const searchParam = searchParams.get("search") || "";
   const pageParam = Number(searchParams.get("page")) || 1;
@@ -69,9 +71,15 @@ export default function FilterProduct() {
     fetchOptions();
   }, [locale]);
 
-  // Handle Fetch data dari Page 1 sampai Page aktif saat ini (untuk merestore posisi load more)
+  // Handle Fetch data dari Page 1 sampai Page aktif saat ini
   useEffect(() => {
     const fetchProductsData = async () => {
+      // ✨ 2. Jika URL berubah karena tombol Load More, batalkan fetch ulang ini!
+      if (isLoadMoreRef.current) {
+        isLoadMoreRef.current = false; // Turunkan kembali benderanya
+        return;
+      }
+
       setIsLoading(true);
       const userCountry = getUserCountryFromCookie();
 
@@ -122,6 +130,9 @@ export default function FilterProduct() {
     keyOrObj: keyof FilterState | Partial<FilterState>,
     value?: string,
   ) => {
+    // ✨ 3. Pastikan flag dimatikan jika user mengubah filter agar loading screen muncul kembali
+    isLoadMoreRef.current = false;
+
     let updatedFilters = filters;
     if (typeof keyOrObj === "object") {
       updatedFilters = { ...filters, ...keyOrObj };
@@ -164,7 +175,7 @@ export default function FilterProduct() {
     setPage(nextPage);
     setIsLoadingMore(false);
 
-    // Update URL agar page saat ini tersimpan
+    isLoadMoreRef.current = true;
     updateUrlParams(nextPage, filters);
   };
 
