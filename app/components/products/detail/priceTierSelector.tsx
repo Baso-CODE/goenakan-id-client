@@ -1,28 +1,13 @@
 "use client";
 
 interface FlexiblePriceTier {
-  /**
-   * Optional custom title.
-   * Jika tidak ada, otomatis:
-   * Starter Order / Standard Order / Premium Order
-   */
   title?: string;
-
-  /**
-   * Label dari backend.
-   * Contoh: "1 - 10 pcs"
-   *
-   * TIDAK digunakan sebagai title card.
-   */
   label?: string;
-
   subtitle?: string;
   badge?: string | null;
-
   pricePerPcs?: number;
   minQty?: number;
   maxQty?: number | null;
-
   price?: number | string;
   minQuantity?: number;
   maxQuantity?: number | null;
@@ -66,54 +51,16 @@ function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
    ========================================================= */
 
 function getTierTitle(index: number, total: number): string {
-  /**
-   * 1 tier:
-   * Premium
-   */
-  if (total === 1) {
-    return "Premium Order";
-  }
-
-  /**
-   * 2 tiers:
-   * Starter
-   * Premium
-   */
-  if (total === 2) {
-    return index === 0 ? "Starter Order" : "Premium Order";
-  }
-
-  /**
-   * 3 tiers:
-   * Starter
-   * Standard
-   * Premium
-   */
+  if (total === 1) return "Premium Order";
+  if (total === 2) return index === 0 ? "Starter Order" : "Premium Order";
   if (total === 3) {
     const titles = ["Starter Order", "Standard Order", "Premium Order"];
-
     return titles[index];
   }
 
-  /**
-   * Lebih dari 3 tier.
-   *
-   * Tier pertama  = Starter
-   * Tier terakhir = Premium
-   * Tengah         = Standard / Tier N
-   */
-  if (index === 0) {
-    return "Starter Order";
-  }
-
-  if (index === total - 1) {
-    return "Premium Order";
-  }
-
-  if (index === 1) {
-    return "Standard Order";
-  }
-
+  if (index === 0) return "Starter Order";
+  if (index === total - 1) return "Premium Order";
+  if (index === 1) return "Standard Order";
   return `Tier ${index + 1}`;
 }
 
@@ -136,22 +83,10 @@ function getTierSubtitle(index: number, total: number, locale: string): string {
 
   const subs = locale === "en" ? enSubs : idSubs;
 
-  if (total === 1) {
-    return subs.premium;
-  }
-
-  if (total === 2) {
-    return index === 0 ? subs.starter : subs.premium;
-  }
-
-  if (index === 0) {
-    return subs.starter;
-  }
-
-  if (index === total - 1) {
-    return subs.premium;
-  }
-
+  if (total === 1) return subs.premium;
+  if (total === 2) return index === 0 ? subs.starter : subs.premium;
+  if (index === 0) return subs.starter;
+  if (index === total - 1) return subs.premium;
   return subs.standard;
 }
 
@@ -178,14 +113,8 @@ export function PriceTierSelector({
     return null;
   }
 
-  /**
-   * Tier terakhir selalu dianggap Premium.
-   */
   const premiumIndex = tiers.length - 1;
 
-  /**
-   * Grid responsive berdasarkan jumlah tier.
-   */
   const gridColsClass =
     tiers.length === 1
       ? "grid-cols-1 max-w-[315px]"
@@ -206,55 +135,21 @@ export function PriceTierSelector({
         `}>
         {tiers.map((tier, index) => {
           const isSelected = selectedIndex === index;
-
           const isPremium = index === premiumIndex;
 
-          /* =============================================
-             QUANTITY
-             ============================================= */
-
           const min = tier.minQty ?? tier.minQuantity ?? 1;
-
           const max = tier.maxQty ?? tier.maxQuantity ?? null;
 
-          /* =============================================
-             PRICE
-             ============================================= */
-
           const rawPrice = tier.pricePerPcs ?? tier.price ?? 0;
-
           const parsedPrice =
             typeof rawPrice === "string"
               ? Number.parseFloat(rawPrice)
               : rawPrice;
-
           const price = Number.isFinite(parsedPrice) ? parsedPrice : 0;
 
-          /* =============================================
-             TITLE
-
-             PENTING:
-             Jangan gunakan tier.label di sini.
-
-             Sebelumnya:
-             tier.label || getTierTitle(...)
-
-             Itu menyebabkan "1 - 10 pcs"
-             menjadi title card.
-             ============================================= */
-
           const title = tier.title || getTierTitle(index, tiers.length);
-
-          /* =============================================
-             SUBTITLE
-             ============================================= */
-
           const subtitle =
             tier.subtitle || getTierSubtitle(index, tiers.length, locale);
-
-          /* =============================================
-             BADGE
-             ============================================= */
 
           const badge =
             tier.badge !== undefined
@@ -269,7 +164,7 @@ export function PriceTierSelector({
               type="button"
               onClick={() => onSelect(index)}
               aria-pressed={isSelected}
-              className="
+              className={`
                 group
                 relative
                 w-full
@@ -279,14 +174,19 @@ export function PriceTierSelector({
                 p-0
                 text-center
                 outline-none
-                focus-visible:ring-2
-                focus-visible:ring-[#BE9B84]
-                focus-visible:ring-offset-2
-              ">
+                rounded-4xl
+                transition-all
+                duration-300
+                ease-in-out
+                ${
+                  isSelected
+                    ? "scale-[1.03] shadow-xl ring-2 ring-[#BE9B84] ring-offset-4 z-10" // Efek saat dipilih (Active)
+                    : "hover:-translate-y-1 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-[#BE9B84] focus-visible:ring-offset-2 z-0" // Efek saat kursor diarahkan (Hover)
+                }
+              `}>
               {/* =========================================
                   PREMIUM HEADER
                   ========================================= */}
-
               {badge && (
                 <div
                   className="
@@ -310,7 +210,6 @@ export function PriceTierSelector({
               {/* =========================================
                   CARD BODY
                   ========================================= */}
-
               <div
                 className={`
                   flex
@@ -320,23 +219,15 @@ export function PriceTierSelector({
                   px-5
                   pb-6
                   pt-6.75
-
                   ${
                     isPremium
-                      ? `
-                        rounded-b-4xl
-                        bg-[#E2DAD7]
-                      `
-                      : `
-                        rounded-4xl
-                        bg-[#EEEEEE]
-                      `
+                      ? "rounded-b-4xl bg-[#E2DAD7]"
+                      : "rounded-4xl bg-[#EEEEEE]"
                   }
                 `}>
                 {/* =======================================
                     TITLE + SUBTITLE
                     ======================================= */}
-
                 <div className="shrink-0">
                   <h3
                     className="
@@ -368,9 +259,8 @@ export function PriceTierSelector({
                 {/* =======================================
                     PRICE BOX
                     ======================================= */}
-
                 <div
-                  className="
+                  className={`
                     mt-auto
                     flex
                     h-20
@@ -382,9 +272,11 @@ export function PriceTierSelector({
                     rounded-[10px]
                     bg-white
                     px-2
-                  ">
+                    transition-colors
+                    duration-300
+                    ${isSelected ? "border border-[#BE9B84]/30" : ""}
+                  `}>
                   {/* PRICE */}
-
                   <div
                     className="
                       flex
@@ -402,7 +294,6 @@ export function PriceTierSelector({
                       ">
                       {formatCurrency(price, currencyCode)}
                     </span>
-
                     <span
                       className="
                         ml-0.75
@@ -416,7 +307,6 @@ export function PriceTierSelector({
                   </div>
 
                   {/* QUANTITY */}
-
                   <p
                     className="
                       mt-2.25

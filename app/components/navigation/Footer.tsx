@@ -1,25 +1,15 @@
-"use client";
-import { getCategoryList } from "@/app/api/products/getCategoryProductList.api";
-import { CategoryPublic } from "@/app/types/categoryProduct.type";
+import { getPublicCategories } from "@/app/api/products/categoryProduct.api";
 import { Link } from "@/i18n/routing";
-import { useLocale, useTranslations } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import Image from "next/image";
-import { useEffect, useState } from "react";
 
-export default function Footer() {
-  const locale = useLocale();
-  const [categories, setCategories] = useState<CategoryPublic[]>([]);
-  const t = useTranslations("Footer");
+export default async function Footer() {
+  const locale = await getLocale();
+  const t = await getTranslations("Footer");
   const isEn = locale === "en";
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      const data = await getCategoryList(locale);
-      setCategories(data);
-    };
-
-    loadCategories();
-  }, [locale]);
+  // Mengambil data kategori langsung di sisi server
+  const categories = await getPublicCategories(locale);
   return (
     <footer className="mt-auto w-full bg-[#1c1c1c] text-white pt-16 pb-8 border-t border-gray-800">
       <div className="container ">
@@ -78,6 +68,7 @@ export default function Footer() {
             </div>
 
             {/* Group: Explore */}
+            {/* Group: Explore */}
             <div>
               <h3 className="font-bold text-white mb-4">Explore</h3>
               <ul className="space-y-2 text-sm text-gray-400">
@@ -91,7 +82,7 @@ export default function Footer() {
                 {categories.map((cat) => (
                   <li key={cat.id}>
                     <Link
-                      href={`/products?category=${cat.id}`}
+                      href={`/products?category=${cat.slug}`}
                       className="hover:text-white transition-colors capitalize">
                       {cat.name}
                     </Link>
