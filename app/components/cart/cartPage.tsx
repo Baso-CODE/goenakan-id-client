@@ -52,7 +52,7 @@ export default function CartPage() {
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
 
-  // ✨ Ambil currencyCode dari Zustand store
+  // Ambil currencyCode dari Zustand store
   const { cartItems, loading, fetchCart, updateQty, removeItem, currencyCode } =
     useCartStore();
 
@@ -162,7 +162,7 @@ export default function CartPage() {
                                   </p>
                                 )}
 
-                                {/* ✨ Tampilkan Atribut Tambahan / Modifier jika ada */}
+                                {/* Tampilkan Atribut Tambahan / Modifier jika ada */}
                                 {customData?.resolvedAttributes?.map(
                                   (attr: any, idx: number) => (
                                     <p key={idx}>
@@ -185,7 +185,7 @@ export default function CartPage() {
                                 )}
                               </div>
 
-                              {/* ✨ Gunakan formatCurrency dinamis */}
+                              {/* Gunakan formatCurrency dinamis */}
                               <p className="text-sm font-bold text-stone-800 mt-3">
                                 {formatCurrency(item.price, currencyCode)}
                               </p>
@@ -280,7 +280,7 @@ export default function CartPage() {
                     <p className="text-xs text-stone-500 uppercase tracking-widest">
                       {t("summary.subtotal", { count: totalItems })}
                     </p>
-                    {/* ✨ Gunakan formatCurrency dinamis untuk subtotal */}
+                    {/* Gunakan formatCurrency dinamis untuk subtotal */}
                     <p className="text-xl font-bold text-stone-900">
                       {formatCurrency(totalPrice, currencyCode)}
                     </p>

@@ -10,7 +10,7 @@ export interface ApiCartItem {
     basePrice: string | number;
     images?: { url: string }[];
 
-    // ✨ PERBAIKAN: Sesuai Prisma, ini adalah objek relasi, bukan sekadar string
+    // PERBAIKAN: Sesuai Prisma, ini adalah objek relasi, bukan sekadar string
     materialType?: {
       id: string;
       name: string;

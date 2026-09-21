@@ -1,13 +1,13 @@
 "use client";
 
 import Image from "next/image";
-// ✨ 1. Import Hover Card Shadcn UI
+// 1. Import Hover Card Shadcn UI
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-// ✨ 2. Import next-intl
+// 2. Import next-intl
 import { useTranslations } from "next-intl";
 
 const featuresConfig = [

@@ -7,7 +7,8 @@ import { useRouter } from "@/i18n/routing";
 import { MessageCircle, Sparkles, X, ZoomIn } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useLocale } from "next-intl";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PriceTierSelector } from "./priceTierSelector";
 import { ProductCustomizer } from "./productCustomizer";
@@ -16,6 +17,50 @@ import { ProductImageGallery } from "./productImageGallery";
 import { QuantitySelector } from "./quantitySelector";
 import { ShareBar } from "./sharebar";
 import { WhatsAppBanner } from "./whatsappBanner";
+
+// Prevent expensive child trees from re-rendering when unrelated state changes
+// (for example: quantity / price-tier clicks).
+const MemoProductCustomizer = memo(ProductCustomizer);
+const MemoProductImageGallery = memo(ProductImageGallery);
+const MemoProductDescription = memo(ProductDescription);
+const MemoShareBar = memo(ShareBar);
+const MemoWhatsAppBanner = memo(WhatsAppBanner);
+
+const CURRENCY_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>();
+const OPTION_KEY_SEPARATOR = "\u0001";
+
+function normalizeOptionValue(value: unknown): string {
+  return String(value ?? "")
+    .split("|")[0]
+    .toLowerCase()
+    .trim();
+}
+
+function makeOptionKey(name: string, value: unknown): string {
+  return `${name}${OPTION_KEY_SEPARATOR}${normalizeOptionValue(value)}`;
+}
+
+function areStringArraysEqual(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((value, index) => value === b[index]);
+}
+
+// Keep this outside the component so the function itself is not recreated on every render.
+function sortMediaItems(items: MediaItem[]): MediaItem[] {
+  return [...items].sort((a, b) => {
+    const isVideoA = a.type === "video";
+    const isVideoB = b.type === "video";
+
+    if (isVideoA !== isVideoB) return isVideoA ? -1 : 1;
+
+    const sortA = typeof a.sortOrder === "number" ? a.sortOrder : 9999;
+    const sortB = typeof b.sortOrder === "number" ? b.sortOrder : 9999;
+    if (sortA !== sortB) return sortA - sortB;
+
+    const featuredA = a.isFeatured ? 1 : 0;
+    const featuredB = b.isFeatured ? 1 : 0;
+    return featuredB - featuredA;
+  });
+}
 
 const PREDEFINED_COLORS: Record<string, { hex: string; cmyk: string }> = {
   hitam: { hex: "#000000", cmyk: "C:0 M:0 Y:0 K:100" },
@@ -104,6 +149,7 @@ function parseClientColorValue(val: string) {
 
   return { name: val, hex: "#cbd5e1", cmyk: "CMYK N/A" };
 }
+
 function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
   let locale = "id-ID";
   if (currencyCode === "USD") locale = "en-US";
@@ -111,12 +157,20 @@ function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
   else if (currencyCode === "JPY") locale = "ja-JP";
   else if (currencyCode === "MYR") locale = "ms-MY";
 
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-    maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-  }).format(amount);
+  const cacheKey = `${locale}:${currencyCode}`;
+  let formatter = CURRENCY_FORMATTER_CACHE.get(cacheKey);
+
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+      maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+    });
+    CURRENCY_FORMATTER_CACHE.set(cacheKey, formatter);
+  }
+
+  return formatter.format(amount);
 }
 interface ProductDetailPageProps {
   product: ProductDetail;
@@ -126,7 +180,6 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const router = useRouter();
   const locale = useLocale();
   const currencyCode = product.currencyCode || "IDR";
-  // Collect all attribute names used in variants (variant generators)
   const variantAttributeNames = useMemo(() => {
     return new Set(
       product.variants?.flatMap(
@@ -134,6 +187,16 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       ) || [],
     );
   }, [product.variants]);
+
+  // Keep the original variant-generator semantics: the first variant defines
+  // which attribute groups participate in variant matching.
+  const variantGeneratorAttributeNames = useMemo(
+    () =>
+      new Set(
+        product.variants?.[0]?.attributes?.map((attr: any) => attr.name) || [],
+      ),
+    [product.variants],
+  );
 
   const isPrintRelatedAttribute = useCallback(
     (type: string, name: string) => {
@@ -185,65 +248,64 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   } | null>(null);
 
   const handleCustomizingChange = (val: boolean) => {
-    setIsCustomizing(val);
+    // Do nothing when the already-active purchase type is clicked again.
+    if (val === isCustomizing) return;
+
+    const nextSelections = { ...selections };
+
     if (!val) {
+      attributeGroups.forEach((group) => {
+        if (isPrintRelatedAttribute(group.type, group.name)) {
+          delete nextSelections[group.name];
+        }
+      });
+
       setCustomization((prev: any) =>
         prev?.customColor ? { customColor: prev.customColor } : null,
       );
       setSelectedMockupPositions([]);
-      setSelections((prev) => {
-        const next = { ...prev };
-        attributeGroups.forEach((group) => {
-          if (isPrintRelatedAttribute(group.type, group.name)) {
-            delete next[group.name];
-          }
-        });
 
-        // Find the variant matching the cleared selections (lowest price first)
-        const variantAttrNames = new Set(
-          product.variants?.[0]?.attributes?.map((a: any) => a.name) || [],
+      // Pick the cheapest matching variant in one pass. Avoid filter + sort
+      // and avoid doing side effects from inside a setState updater.
+      const variantSelections = Object.entries(nextSelections)
+        .filter(([name]) => variantGeneratorAttributeNames.has(name))
+        .map(([name, value]) => [name, normalizeOptionValue(value)] as const);
+
+      let variantMatch: (typeof normalizedVariants)[number]["variant"] | null =
+        null;
+      let lowestPrice = Number.POSITIVE_INFINITY;
+
+      for (const record of normalizedVariants) {
+        const matches = variantSelections.every(
+          ([name, selectedValue]) =>
+            record.attributes.get(name) === selectedValue,
         );
-        const matchingVariants =
-          product.variants?.filter((v) => {
-            return Object.entries(next)
-              .filter(([name]) => variantAttrNames.has(name))
-              .every(([name, value]) => {
-                const attr = v.attributes?.find((a) => a.name === name);
-                const cleanVal = value?.split("|")[0]?.toLowerCase().trim();
-                const cleanAttrVal = attr?.value
-                  ?.split("|")[0]
-                  ?.toLowerCase()
-                  .trim();
-                return cleanAttrVal === cleanVal;
-              });
-          }) || [];
-        const variantMatch =
-          matchingVariants.length > 0
-            ? [...matchingVariants].sort(
-                (a, b) => (a.price ?? 0) - (b.price ?? 0),
-              )[0]
-            : null;
+        if (!matches) continue;
 
-        if (variantMatch) {
-          setSelectedVariantId(variantMatch.id);
+        const price = Number(record.variant.price ?? 0);
+        if (!variantMatch || price < lowestPrice) {
+          variantMatch = record.variant;
+          lowestPrice = price;
         }
+      }
 
-        return next;
-      });
+      setSelectedVariantId(variantMatch?.id ?? null);
     } else {
-      // Auto-select first option for print-related attributes when custom logo print is activated
-      setSelections((prev) => {
-        const next = { ...prev };
-        attributeGroups.forEach((group) => {
-          if (isPrintRelatedAttribute(group.type, group.name)) {
-            if (!next[group.name] && group.values.length > 0) {
-              next[group.name] = group.values[0];
-            }
-          }
-        });
-        return next;
+      // Auto-select first option for print-related attributes.
+      attributeGroups.forEach((group) => {
+        if (
+          isPrintRelatedAttribute(group.type, group.name) &&
+          !nextSelections[group.name] &&
+          group.values.length > 0
+        ) {
+          nextSelections[group.name] = group.values[0];
+        }
       });
     }
+
+    // React batches these event updates into one render.
+    setIsCustomizing(val);
+    setSelections(nextSelections);
   };
 
   const handleCustomColorChange = (hex: string) => {
@@ -291,8 +353,145 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       .sort((a, b) => a.attributePosition - b.attributePosition);
   }, [product.attributeValues]);
 
+  // Precompute variant structures once. The old code repeatedly scanned
+  // product.variants + attributes for every rendered option on every click.
+  const variantAttributeOrder = useMemo(
+    () =>
+      attributeGroups
+        .map((group) => group.name)
+        .filter((name) => variantGeneratorAttributeNames.has(name)),
+    [attributeGroups, variantGeneratorAttributeNames],
+  );
+
+  const normalizedVariants = useMemo(() => {
+    return (product.variants || []).map((variant) => {
+      const attributes = new Map<string, string>();
+      const attributeValueIds = new Map<string, string>();
+
+      variant.attributes?.forEach((attr: any) => {
+        attributes.set(attr.name, normalizeOptionValue(attr.value));
+        if (attr.attributeValueId) {
+          attributeValueIds.set(attr.name, attr.attributeValueId);
+        }
+      });
+
+      return { variant, attributes, attributeValueIds };
+    });
+  }, [product.variants]);
+
+  const variantById = useMemo(() => {
+    return new Map(
+      (product.variants || []).map((variant) => [variant.id, variant]),
+    );
+  }, [product.variants]);
+
+  const variantCandidatesByOption = useMemo(() => {
+    const index = new Map<string, typeof normalizedVariants>();
+
+    normalizedVariants.forEach((record) => {
+      record.attributes.forEach((normalizedValue, name) => {
+        const key = `${name}${OPTION_KEY_SEPARATOR}${normalizedValue}`;
+        const current = index.get(key);
+        if (current) current.push(record);
+        else index.set(key, [record]);
+      });
+    });
+
+    return index;
+  }, [normalizedVariants]);
+
+  const productAttributeValueIdsByOption = useMemo(() => {
+    const index = new Map<string, string[]>();
+
+    product.attributeValues?.forEach((av: any) => {
+      if (!av.attributeValueId) return;
+      const key = makeOptionKey(av.attributeName, av.value);
+      const current = index.get(key);
+      if (current) current.push(av.attributeValueId);
+      else index.set(key, [av.attributeValueId]);
+    });
+
+    return index;
+  }, [product.attributeValues]);
+
+  const variantAttributeValueIdsByOption = useMemo(() => {
+    const index = new Map<string, string[]>();
+
+    product.variants?.forEach((variant) => {
+      variant.attributes?.forEach((attr: any) => {
+        if (!attr.attributeValueId) return;
+        const key = makeOptionKey(attr.name, attr.value);
+        const current = index.get(key);
+        if (current) {
+          if (!current.includes(attr.attributeValueId)) {
+            current.push(attr.attributeValueId);
+          }
+        } else {
+          index.set(key, [attr.attributeValueId]);
+        }
+      });
+    });
+
+    return index;
+  }, [product.variants]);
+
   // 2. Selection state tracking
   const [selections, setSelections] = useState<Record<string, string>>({});
+
+  const normalizedSelections = useMemo(() => {
+    const result: Record<string, string> = {};
+    Object.entries(selections).forEach(([name, value]) => {
+      result[name] = normalizeOptionValue(value);
+    });
+    return result;
+  }, [selections]);
+
+  // Compute the availability matrix once per selection change, then every
+  // button only performs an O(1) Set lookup during render.
+  const disabledOptionKeys = useMemo(() => {
+    const disabled = new Set<string>();
+    if (normalizedVariants.length === 0) return disabled;
+
+    attributeGroups.forEach((group) => {
+      const attrIndex = variantAttributeOrder.indexOf(group.name);
+      if (attrIndex === -1) return;
+
+      group.values.forEach((value) => {
+        const key = makeOptionKey(group.name, value);
+        const candidates = variantCandidatesByOption.get(key) || [];
+
+        const hasMatchingVariant = candidates.some((record) => {
+          for (let i = 0; i < attrIndex; i++) {
+            const prevName = variantAttributeOrder[i];
+            const selectedValue = normalizedSelections[prevName];
+            if (
+              selectedValue &&
+              record.attributes.get(prevName) !== selectedValue
+            ) {
+              return false;
+            }
+          }
+          return true;
+        });
+
+        if (!hasMatchingVariant) disabled.add(key);
+      });
+    });
+
+    return disabled;
+  }, [
+    attributeGroups,
+    normalizedSelections,
+    normalizedVariants.length,
+    variantAttributeOrder,
+    variantCandidatesByOption,
+  ]);
+
+  const isOptionDisabled = useCallback(
+    (attrName: string, value: string) =>
+      disabledOptionKeys.has(makeOptionKey(attrName, value)),
+    [disabledOptionKeys],
+  );
 
   const isColorPickerActive = useMemo(() => {
     const colorKey = Object.keys(selections).find(
@@ -309,7 +508,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const activeColorHex = useMemo(() => {
     const colorKey = Object.keys(selections).find(
-      (key) => key.toLowerCase().includes("color") || key.toLowerCase().includes("warna")
+      (key) =>
+        key.toLowerCase().includes("color") ||
+        key.toLowerCase().includes("warna"),
     );
     if (!colorKey) return null;
     const selectedColorVal = selections[colorKey];
@@ -329,7 +530,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const availableMockupPositions = useMemo(() => {
     if (!product.media) return [];
 
-    const activeSelectedValueIds =
+    const activeSelectedValueIds = new Set(
       product.attributeValues
         ?.filter((av: any) => {
           const isGenerator =
@@ -341,14 +542,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           const cleanVal = av.value.split("|")[0].toLowerCase().trim();
           return cleanSelected === cleanVal;
         })
-        .map((av: any) => av.attributeValueId) || [];
+        .map((av: any) => av.attributeValueId) || [],
+    );
 
     const mockups = product.media.filter((img: any) => {
       const isMockup =
         img.mockupSideName || (img.mockupAreas && img.mockupAreas.length > 0);
       if (!isMockup) return false;
       if (img.attributeValueId) {
-        return activeSelectedValueIds.includes(img.attributeValueId);
+        return activeSelectedValueIds.has(img.attributeValueId);
       }
       return true;
     });
@@ -372,25 +574,26 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   }, [product.media, product.attributeValues, selections]);
 
   useEffect(() => {
-    if (isCustomizing && availableMockupPositions.length > 0) {
-      setSelectedMockupPositions((prev) => {
-        if (prev.length === 0) {
-          return availableMockupPositions.map(
-            (p) => p.printPositionValueId || p.name,
-          );
-        }
-        const validIds = new Set(
-          availableMockupPositions.map((p) => p.printPositionValueId || p.name),
-        );
+    if (!isCustomizing || availableMockupPositions.length === 0) return;
+
+    setSelectedMockupPositions((prev) => {
+      const availableIds = availableMockupPositions.map(
+        (p) => p.printPositionValueId || p.name,
+      );
+
+      let next: string[];
+      if (prev.length === 0) {
+        next = availableIds;
+      } else {
+        const validIds = new Set(availableIds);
         const filtered = prev.filter((id) => validIds.has(id));
-        return filtered.length > 0
-          ? filtered
-          : [
-              availableMockupPositions[0].printPositionValueId ||
-                availableMockupPositions[0].name,
-            ];
-      });
-    }
+        next = filtered.length > 0 ? filtered : [availableIds[0]];
+      }
+
+      // Important: return the old reference when nothing changed.
+      // Otherwise this effect creates a second unnecessary render after clicks.
+      return areStringArraysEqual(prev, next) ? prev : next;
+    });
   }, [isCustomizing, availableMockupPositions]);
 
   // 3. Tentukan Varian Default
@@ -406,102 +609,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
   }, [product.variants]);
 
-  const doesSizeHaveMockups = useCallback(
-    (sizeValue: string) => {
-      let sizeAttrValId: string | null = null;
-      const cleanSizeValue = sizeValue.split("|")[0].toLowerCase().trim();
-
-      // Cari di variants attributes
-      product.variants?.forEach((v) => {
-        v.attributes?.forEach((attr: any) => {
-          const cleanAttrVal = attr.value?.split("|")[0]?.toLowerCase().trim();
-          if (cleanAttrVal === cleanSizeValue && attr.attributeValueId) {
-            sizeAttrValId = attr.attributeValueId;
-          }
-        });
-      });
-
-      if (!sizeAttrValId) {
-        // Cari di product.attributeValues
-        const match = product.attributeValues?.find((av) => {
-          const cleanAvVal = av.value?.split("|")[0]?.toLowerCase().trim();
-          return cleanAvVal === cleanSizeValue;
-        });
-        if (match) {
-          sizeAttrValId = match.attributeValueId;
-        }
-      }
-
-      if (!sizeAttrValId) return false;
-
-      // Cek apakah ada image di parent media yang ditautkan ke sizeAttrValId ini dan memiliki area mockup
-      const hasAreas = product.media?.some(
-        (img) =>
-          img.attributeValueId === sizeAttrValId &&
-          img.mockupAreas &&
-          img.mockupAreas.length > 0,
-      );
-      return !!hasAreas;
-    },
-    [product.variants, product.attributeValues, product.media],
-  );
-
-  // 5. Availability matrix checker
-  const isOptionDisabled = (attrName: string, value: string) => {
-    if (!product.variants || product.variants.length === 0) return false;
-
-    // Get variant generator attribute names in their rendering order (from attributeGroups)
-    const variantAttrNames = attributeGroups
-      .map((g) => g.name)
-      .filter((name) =>
-        product.variants![0].attributes?.some((a: any) => a.name === name),
-      );
-
-    const attrIndex = variantAttrNames.indexOf(attrName);
-    if (attrIndex === -1) return false;
-
-    // Only check against selections of attributes that are rendered BEFORE the current attribute.
-    // This prevents locking (e.g. Type B stays clickable even when Color 1 is selected).
-    const precedingSelections: Record<string, string> = {};
-    for (let i = 0; i < attrIndex; i++) {
-      const prevName = variantAttrNames[i];
-      if (selections[prevName]) {
-        precedingSelections[prevName] = selections[prevName];
-      }
-    }
-
-    const cleanCheckVal = value.split("|")[0].toLowerCase().trim();
-
-    const hasMatchingVariant = product.variants.some((v) => {
-      // Must match the candidate value for this attribute
-      const targetAttr = v.attributes?.find((a) => a.name === attrName);
-      if (!targetAttr) return false;
-      const cleanTargetVal = targetAttr.value
-        .split("|")[0]
-        .toLowerCase()
-        .trim();
-      if (cleanTargetVal !== cleanCheckVal) return false;
-
-      // Must match all preceding selections
-      const matchesPreceding = Object.entries(precedingSelections).every(
-        ([name, val]) => {
-          const attr = v.attributes?.find((a) => a.name === name);
-          if (!attr) return false;
-          const cleanSelVal = val.split("|")[0].toLowerCase().trim();
-          const cleanAttrVal = attr.value.split("|")[0].toLowerCase().trim();
-          return cleanAttrVal === cleanSelVal;
-        },
-      );
-
-      return matchesPreceding;
-    });
-
-    return !hasMatchingVariant;
-  };
-
   // 6. Click handler
   const handleSelectOption = (attrName: string, value: string) => {
-    let nextSelections = { ...selections };
+    const nextSelections = { ...selections };
     const isTogglingOff = selections[attrName] === value;
 
     if (isTogglingOff) {
@@ -509,58 +619,44 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     } else {
       nextSelections[attrName] = value;
 
-      // Clear any subsequent selections that become incompatible with the new selection
-      const variantAttrNames = attributeGroups
-        .map((g) => g.name)
-        .filter((name) =>
-          product.variants?.[0]?.attributes?.some((a: any) => a.name === name),
-        );
-
-      const attrIndex = variantAttrNames.indexOf(attrName);
+      // Clear subsequent incompatible selections using the pre-normalized
+      // variant maps instead of repeatedly searching every attribute object.
+      const attrIndex = variantAttributeOrder.indexOf(attrName);
       if (attrIndex !== -1) {
-        for (let i = attrIndex + 1; i < variantAttrNames.length; i++) {
-          const postAttrName = variantAttrNames[i];
-          const postAttrVal = nextSelections[postAttrName];
-          if (postAttrVal) {
-            // Check compatibility of selections up to index i
-            const currentCheckSelections: Record<string, string> = {};
+        for (let i = attrIndex + 1; i < variantAttributeOrder.length; i++) {
+          const postAttrName = variantAttributeOrder[i];
+          if (!nextSelections[postAttrName]) continue;
+
+          let hasMatch = false;
+          variantLoop: for (const record of normalizedVariants) {
             for (let j = 0; j <= i; j++) {
-              const name = variantAttrNames[j];
-              if (nextSelections[name]) {
-                currentCheckSelections[name] = nextSelections[name];
+              const name = variantAttributeOrder[j];
+              const selectedValue = nextSelections[name];
+              if (!selectedValue) continue;
+
+              if (
+                record.attributes.get(name) !==
+                normalizeOptionValue(selectedValue)
+              ) {
+                continue variantLoop;
               }
             }
 
-            const hasMatch = product.variants?.some((v) => {
-              const matchesAll = Object.entries(currentCheckSelections).every(
-                ([name, val]) => {
-                  const attr = v.attributes?.find((a) => a.name === name);
-                  if (!attr) return false;
-                  const cleanSelVal = val.split("|")[0].toLowerCase().trim();
-                  const cleanAttrVal = attr.value
-                    .split("|")[0]
-                    .toLowerCase()
-                    .trim();
-                  return cleanAttrVal === cleanSelVal;
-                },
-              );
-              return matchesAll;
-            });
-
-            if (!hasMatch) {
-              delete nextSelections[postAttrName];
-            }
+            hasMatch = true;
+            break;
           }
+
+          if (!hasMatch) delete nextSelections[postAttrName];
         }
       }
     }
 
     setSelections(nextSelections);
 
-    // If they chose a Custom Color, make sure customization gets updated with the color
     const isCustomVal =
       value.toLowerCase().includes("custom") ||
       value.toLowerCase().includes("kustom");
+
     if (isCustomVal) {
       if (isTogglingOff) {
         setCustomization((prev: any) => {
@@ -576,7 +672,6 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         }));
       }
     } else {
-      // If they chose a non-custom color, remove customColor from customization
       setCustomization((prev: any) => {
         if (!prev) return null;
         const next = { ...prev };
@@ -585,36 +680,32 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       });
     }
 
-    // Find corresponding variant
-    const variantAttrNames = attributeGroups
-      .map((g) => g.name)
-      .filter((name) =>
-        product.variants?.[0]?.attributes?.some((a: any) => a.name === name),
+    // Find the cheapest matching variant in a single pass.
+    // The old implementation filtered the full array and then sorted it.
+    const variantSelections = Object.entries(nextSelections)
+      .filter(([name]) => variantGeneratorAttributeNames.has(name))
+      .map(
+        ([name, selectedValue]) =>
+          [name, normalizeOptionValue(selectedValue)] as const,
       );
 
-    const matchingVariants =
-      product.variants?.filter((v) => {
-        const allVariantNames = new Set(variantAttrNames);
-        const matchesVariant = Object.entries(nextSelections)
-          .filter(([name]) => allVariantNames.has(name))
-          .every(([name, val]) => {
-            const attr = v.attributes?.find((a) => a.name === name);
-            const cleanVal = val?.split("|")[0]?.toLowerCase().trim();
-            const cleanAttrVal = attr?.value
-              ?.split("|")[0]
-              ?.toLowerCase()
-              .trim();
-            return cleanAttrVal === cleanVal;
-          });
-        return matchesVariant;
-      }) || [];
+    let variantMatch: (typeof normalizedVariants)[number]["variant"] | null =
+      null;
+    let lowestPrice = Number.POSITIVE_INFINITY;
 
-    const variantMatch =
-      matchingVariants.length > 0
-        ? [...matchingVariants].sort(
-            (a, b) => (a.price ?? 0) - (b.price ?? 0),
-          )[0]
-        : null;
+    for (const record of normalizedVariants) {
+      const matches = variantSelections.every(
+        ([name, selectedValue]) =>
+          record.attributes.get(name) === selectedValue,
+      );
+      if (!matches) continue;
+
+      const price = Number(record.variant.price ?? 0);
+      if (!variantMatch || price < lowestPrice) {
+        variantMatch = record.variant;
+        lowestPrice = price;
+      }
+    }
 
     if (variantMatch) {
       handleVariantSelect(variantMatch.id);
@@ -624,65 +715,61 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   };
 
   const selectedVariant = useMemo(() => {
-    return product.variants?.find((v) => v.id === selectedVariantId);
-  }, [product.variants, selectedVariantId]);
+    return selectedVariantId ? variantById.get(selectedVariantId) : undefined;
+  }, [variantById, selectedVariantId]);
 
   const selectedAttributeValueIds = useMemo(() => {
-    const ids: string[] = [];
+    const ids = new Set<string>();
 
-    if (selectedVariant && selectedVariant.attributes) {
-      selectedVariant.attributes.forEach((attr: any) => {
-        if (attr.attributeValueId) {
-          ids.push(attr.attributeValueId);
-        } else {
-          const match = product.attributeValues?.find(
-            (av) => av.attributeName === attr.name && av.value === attr.value,
-          );
-          if (match) {
-            ids.push(match.attributeValueId);
-          }
-        }
-      });
-    }
+    selectedVariant?.attributes?.forEach((attr: any) => {
+      if (attr.attributeValueId) {
+        ids.add(attr.attributeValueId);
+        return;
+      }
 
-    Object.entries(selections).forEach(([groupName, val]) => {
-      product.attributeValues?.forEach((av: any) => {
-        if (av.attributeName === groupName && av.value === val) {
-          ids.push(av.attributeValueId);
-        }
-      });
-
-      product.variants?.forEach((v) => {
-        v.attributes?.forEach((attr: any) => {
-          if (
-            attr.name === groupName &&
-            attr.value === val &&
-            attr.attributeValueId
-          ) {
-            if (!ids.includes(attr.attributeValueId)) {
-              ids.push(attr.attributeValueId);
-            }
-          }
-        });
-      });
+      productAttributeValueIdsByOption
+        .get(makeOptionKey(attr.name, attr.value))
+        ?.forEach((id) => ids.add(id));
     });
 
-    return ids;
-  }, [selectedVariant, selections, product.attributeValues, product.variants]);
+    Object.entries(selections).forEach(([groupName, value]) => {
+      const key = makeOptionKey(groupName, value);
+      productAttributeValueIdsByOption.get(key)?.forEach((id) => ids.add(id));
+      variantAttributeValueIdsByOption.get(key)?.forEach((id) => ids.add(id));
+    });
+
+    return Array.from(ids);
+  }, [
+    selectedVariant,
+    selections,
+    productAttributeValueIdsByOption,
+    variantAttributeValueIdsByOption,
+  ]);
+
+  const selectedAttributeValueIdSet = useMemo(
+    () => new Set(selectedAttributeValueIds),
+    [selectedAttributeValueIds],
+  );
 
   const activeColorMaskUrl = useMemo(() => {
-    if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE") return null;
+    if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE")
+      return null;
 
-    const targetType = product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
+    const targetType =
+      product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
     const activeVal = product.attributeValues?.find((av: any) => {
       if (av.attributeType !== targetType) return false;
-      return selectedAttributeValueIds.includes(av.attributeValueId);
+      return selectedAttributeValueIdSet.has(av.attributeValueId);
     });
 
     if (!activeVal || !activeVal.value) return null;
     const parts = activeVal.value.split("|");
     return parts[2] || null;
-  }, [product.colorMockupTrigger, product.attributeValues, selectedAttributeValueIds]);
+  }, [
+    product.colorMockupTrigger,
+    product.attributeValues,
+    selectedAttributeValueIdSet,
+  ]);
 
   // Track if current selection (or entire product) is out of stock
   const isOutOfStock = useMemo(() => {
@@ -723,12 +810,12 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return activeTiers.length > 0 ? (activeTiers[0].minQty ?? 1) : 1;
   });
 
-  // ✨ PERBAIKAN 1: Pindahkan logika useEffect ke dalam fungsi onClick varian
+  // PERBAIKAN 1: Pindahkan logika useEffect ke dalam fungsi onClick varian
   const handleVariantSelect = (variantId: string) => {
     setSelectedVariantId(variantId);
 
     // Cari tahu tier mana yang akan aktif setelah varian ini dipilih
-    const variant = product.variants?.find((v) => v.id === variantId);
+    const variant = variantById.get(variantId);
     let newActiveTiers =
       variant?.priceTiers && variant.priceTiers.length > 0
         ? variant.priceTiers
@@ -759,7 +846,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
   };
 
-  // ✨ PERBAIKAN 2: Derive selectedTierIndex langsung dari quantity (Tanpa useState & useEffect)
+  // PERBAIKAN 2: Derive selectedTierIndex langsung dari quantity (Tanpa useState & useEffect)
   const selectedTierIndex = useMemo(() => {
     if (!activeTiers || activeTiers.length === 0) return 0;
 
@@ -775,15 +862,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const customOptionsPriceModifier = useMemo(() => {
     let totalModifier = 0;
-    console.log("--- START PRICING CALCULATION ---");
-    console.log("selections:", selections);
-    console.log("isCustomizing:", isCustomizing);
-    console.log("selectedMockupPositions:", selectedMockupPositions);
+    // console.log("--- START PRICING CALCULATION ---");
+    // console.log("selections:", selections);
+    // console.log("isCustomizing:", isCustomizing);
+    // console.log("selectedMockupPositions:", selectedMockupPositions);
 
     const variantAttrNames = new Set(
       selectedVariant?.attributes?.map((a: any) => a.name) || [],
     );
-    console.log("variantAttrNames:", Array.from(variantAttrNames));
+    // console.log("variantAttrNames:", Array.from(variantAttrNames));
 
     if (product.attributeValues) {
       product.attributeValues.forEach((av: any) => {
@@ -807,9 +894,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             const cleanValue = av.value.split("|")[0].toLowerCase().trim();
             if (cleanSelected === cleanValue) {
               totalModifier += av.priceModifier ?? 0;
-              console.log(
-                `Matched custom option: ${av.attributeName} = ${av.value}. Adding priceModifier = ${av.priceModifier}. Running total = ${totalModifier}`,
-              );
+              // console.log(
+              //   `Matched custom option: ${av.attributeName} = ${av.value}. Adding priceModifier = ${av.priceModifier}. Running total = ${totalModifier}`,
+              // );
             }
           }
         }
@@ -839,16 +926,16 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
           if (matchedPositionAttr) {
             totalModifier += matchedPositionAttr.priceModifier ?? 0;
-            console.log(
-              `Matched position modifier for ${posKey}: Adding priceModifier = ${matchedPositionAttr.priceModifier}. Running total = ${totalModifier}`,
-            );
+            // console.log(
+            //   `Matched position modifier for ${posKey}: Adding priceModifier = ${matchedPositionAttr.priceModifier}. Running total = ${totalModifier}`,
+            // );
           }
         });
       }
     }
 
-    console.log("Final computed customOptionsPriceModifier =", totalModifier);
-    console.log("--- END PRICING CALCULATION ---");
+    // console.log("Final computed customOptionsPriceModifier =", totalModifier);
+    // console.log("--- END PRICING CALCULATION ---");
     return totalModifier;
   }, [
     isCustomizing,
@@ -976,9 +1063,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           const name = match.attributeName || "";
           if (isPrintRelatedAttribute(type, name)) {
             price -= match.priceModifier ?? 0;
-            console.log(
-              `Beli Polosan active: Subtracting print modifier ${match.priceModifier} for attribute ${attr.name}=${attr.value}. New base price = ${price}`,
-            );
+            // console.log(
+            //   `Beli Polosan active: Subtracting print modifier ${match.priceModifier} for attribute ${attr.name}=${attr.value}. New base price = ${price}`,
+            // );
           }
         }
       });
@@ -989,7 +1076,16 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const finalPrice = basePrice + customOptionsPriceModifier;
 
-  // ✨ PERBAIKAN 3: Cukup ubah quantity, dan selectedTierIndex akan otomatis mengikuti
+  const displayPriceTiers = useMemo(
+    () =>
+      activeTiers.map((tier) => ({
+        ...tier,
+        pricePerPcs: (tier.pricePerPcs ?? 0) + customOptionsPriceModifier,
+      })),
+    [activeTiers, customOptionsPriceModifier],
+  );
+
+  // PERBAIKAN 3: Cukup ubah quantity, dan selectedTierIndex akan otomatis mengikuti
   const handleTierSelect = (index: number) => {
     const min = activeTiers[index]?.minQty ?? 1;
     setQuantity(min);
@@ -997,44 +1093,20 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const adminWhatsApp = "6282387902238";
 
-  // Order media: video first, then photos; each ordered by sortOrder with isFeatured fallback
-  const sortMediaItems = (items: MediaItem[]): MediaItem[] => {
-    return [...items].sort((a, b) => {
-      const isVideoA = a.type === "video";
-      const isVideoB = b.type === "video";
-
-      // 1. Grouping: videos first, then photos
-      if (isVideoA !== isVideoB) {
-        return isVideoA ? -1 : 1;
-      }
-
-      // 2. Within each group (video or photo), follow admin drag-and-drop sortOrder
-      const sortA = typeof a.sortOrder === "number" ? a.sortOrder : 9999;
-      const sortB = typeof b.sortOrder === "number" ? b.sortOrder : 9999;
-      if (sortA !== sortB) {
-        return sortA - sortB;
-      }
-
-      // 3. Fallback: featured item comes first if sortOrders are identical
-      const featuredA = a.isFeatured ? 1 : 0;
-      const featuredB = b.isFeatured ? 1 : 0;
-      return featuredB - featuredA;
-    });
-  };
-
   const attributeMockupMedia = useMemo(() => {
     if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE") {
-      console.log("DEBUG attributeMockupMedia: Trigger is NONE or undefined");
+      // console.log("DEBUG attributeMockupMedia: Trigger is NONE or undefined");
       return null;
     }
 
-    const targetType = product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
+    const targetType =
+      product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
     const activeVal = product.attributeValues?.find((av: any) => {
       if (av.attributeType !== targetType) return false;
-      return selectedAttributeValueIds.includes(av.attributeValueId);
+      return selectedAttributeValueIdSet.has(av.attributeValueId);
     });
 
-    console.log("DEBUG attributeMockupMedia: activeVal found =", activeVal);
+    // console.log("DEBUG attributeMockupMedia: activeVal found =", activeVal);
 
     if (!activeVal || !activeVal.value) return null;
     const parts = activeVal.value.split("|");
@@ -1042,7 +1114,14 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     const imageUrl = parts[1] || "";
     const colorMaskUrl = parts[2] || "";
 
-    console.log("DEBUG attributeMockupMedia parsed: name =", name, "imageUrl =", imageUrl, "colorMaskUrl =", colorMaskUrl);
+    // console.log(
+    //   "DEBUG attributeMockupMedia parsed: name =",
+    //   name,
+    //   "imageUrl =",
+    //   imageUrl,
+    //   "colorMaskUrl =",
+    //   colorMaskUrl,
+    // );
 
     if (!imageUrl) return null;
 
@@ -1054,12 +1133,16 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       altText: "Mockup Image",
       type: "image",
     } as MediaItem;
-  }, [product.colorMockupTrigger, product.attributeValues, selectedAttributeValueIds]);
+  }, [
+    product.colorMockupTrigger,
+    product.attributeValues,
+    selectedAttributeValueIdSet,
+  ]);
 
   const allGalleryMediaForSize = useMemo(() => {
     let currentMedia: MediaItem[] = [];
     if (selectedVariantId && product.variants) {
-      const variant = product.variants.find((v) => v.id === selectedVariantId);
+      const variant = variantById.get(selectedVariantId);
       if (variant && variant.images) {
         currentMedia = variant.images.map((img) => ({
           ...img,
@@ -1069,47 +1152,62 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
 
     const hasConfiguredMockups = (product.media || []).some(
-      (img) => img.mockupAreas && img.mockupAreas.length > 0
+      (img) => img.mockupAreas && img.mockupAreas.length > 0,
     );
 
-    console.log("DEBUG: hasConfiguredMockups =", hasConfiguredMockups, "attributeMockupMedia =", attributeMockupMedia);
+    // console.log(
+    //   "DEBUG: hasConfiguredMockups =",
+    //   hasConfiguredMockups,
+    //   "attributeMockupMedia =",
+    //   attributeMockupMedia,
+    // );
 
     let productMedia: MediaItem[] = [];
 
     if (hasConfiguredMockups) {
-      productMedia = (product.media || []).filter((img) => {
-        const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl;
-        if (isMockup) {
-          // Mockup kustom wajib ditautkan ke varian untuk ditampilkan
-          if (!img.attributeValueId) return false;
-          return selectedAttributeValueIds.includes(img.attributeValueId);
-        } else {
-          // Gambar produk biasa
-          if (!img.attributeValueId) return true;
-          return selectedAttributeValueIds.includes(img.attributeValueId);
-        }
-      }).map((img) => {
-        const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl || img.altText === "Mockup Image";
-        const isColorCustomLink = isMockup && (
-          (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE")
-            ? (!!img.attributeValueId && selectedAttributeValueIds.includes(img.attributeValueId))
-            : true
-        );
-        return {
-          ...img,
-          isColorCustomizable: !!isColorCustomLink,
-        };
-      });
+      productMedia = (product.media || [])
+        .filter((img) => {
+          const isMockup =
+            (img.mockupAreas && img.mockupAreas.length > 0) ||
+            !!img.colorMaskUrl;
+          if (isMockup) {
+            // Mockup kustom wajib ditautkan ke varian untuk ditampilkan
+            if (!img.attributeValueId) return false;
+            return selectedAttributeValueIdSet.has(img.attributeValueId);
+          } else {
+            // Gambar produk biasa
+            if (!img.attributeValueId) return true;
+            return selectedAttributeValueIdSet.has(img.attributeValueId);
+          }
+        })
+        .map((img) => {
+          const isMockup =
+            (img.mockupAreas && img.mockupAreas.length > 0) ||
+            !!img.colorMaskUrl ||
+            img.altText === "Mockup Image";
+          const isColorCustomLink =
+            isMockup &&
+            (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE"
+              ? !!img.attributeValueId &&
+                selectedAttributeValueIdSet.has(img.attributeValueId)
+              : true);
+          return {
+            ...img,
+            isColorCustomizable: !!isColorCustomLink,
+          };
+        });
     } else {
       if (attributeMockupMedia) {
         productMedia.push(attributeMockupMedia);
       }
-      const genericPhotos = (product.media || []).filter(
-        (img) => !img.attributeValueId && img.altText !== "Mockup Image"
-      ).map((img) => ({
-        ...img,
-        isColorCustomizable: false,
-      }));
+      const genericPhotos = (product.media || [])
+        .filter(
+          (img) => !img.attributeValueId && img.altText !== "Mockup Image",
+        )
+        .map((img) => ({
+          ...img,
+          isColorCustomizable: false,
+        }));
       productMedia.push(...genericPhotos);
     }
 
@@ -1125,16 +1223,23 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     });
 
     return sortMediaItems(uniqueMedia);
-  }, [selectedVariantId, product, selectedAttributeValueIds, product.colorMockupTrigger, attributeMockupMedia]);
+  }, [
+    selectedVariantId,
+    variantById,
+    product.media,
+    selectedAttributeValueIdSet,
+    product.colorMockupTrigger,
+    attributeMockupMedia,
+  ]);
 
   const hasMockupAreas = useMemo(() => {
     const result = allGalleryMediaForSize.some(
       (m) => m.mockupAreas && m.mockupAreas.length > 0,
     );
-    console.log(
-      "DEBUG: hasMockupAreas check on allGalleryMediaForSize =",
-      result,
-    );
+    // console.log(
+    //   "DEBUG: hasMockupAreas check on allGalleryMediaForSize =",
+    //   result,
+    // );
     return result;
   }, [allGalleryMediaForSize]);
 
@@ -1147,14 +1252,18 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         (img) => img.mockupAreas && img.mockupAreas.length > 0,
       );
     } else {
-      const useMockupFlow = product.colorMockupTrigger && product.colorMockupTrigger !== "NONE";
+      const useMockupFlow =
+        product.colorMockupTrigger && product.colorMockupTrigger !== "NONE";
 
       if (useMockupFlow) {
         // Tampilkan gambar yang sesuai dengan filter ukuran/model
         // Tapi filter out gambar mockup tambahan (kedua, ketiga, dst) di galeri polosan
         let hasFoundMockup = false;
         result = allGalleryMediaForSize.filter((img) => {
-          const isMockup = (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl || img.altText === "Mockup Image";
+          const isMockup =
+            (img.mockupAreas && img.mockupAreas.length > 0) ||
+            !!img.colorMaskUrl ||
+            img.altText === "Mockup Image";
           if (isMockup) {
             if (!hasFoundMockup) {
               hasFoundMockup = true;
@@ -1168,38 +1277,46 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         // Tampilkan semua gambar tanpa filter ukuran (polosan type)
         const currentMedia =
           selectedVariantId && product.variants
-            ? (product.variants.find((v) => v.id === selectedVariantId)?.images || []).map((img) => ({
+            ? (variantById.get(selectedVariantId)?.images || []).map((img) => ({
                 ...img,
                 isColorCustomizable: isColorPickerActive || !!activeColorHex,
               }))
             : [];
-        const productMedia = (product.media || []).filter(
-          (img) => !img.attributeValueId && img.altText !== "Mockup Image",
-        ).map((img) => ({
-          ...img,
-          isColorCustomizable: false,
-        }));
+        const productMedia = (product.media || [])
+          .filter(
+            (img) => !img.attributeValueId && img.altText !== "Mockup Image",
+          )
+          .map((img) => ({
+            ...img,
+            isColorCustomizable: false,
+          }));
         const mergedMedia = [...currentMedia, ...productMedia];
         result = sortMediaItems(mergedMedia);
       }
     }
 
-    console.log("DEBUG: activeGalleryMedia content =", result.map(m => ({
-      id: m.id,
-      url: m.url,
-      altText: m.altText,
-      attributeValueId: m.attributeValueId,
-      isColorCustomizable: m.isColorCustomizable,
-      colorMaskUrl: m.colorMaskUrl,
-      hasMockupAreas: m.mockupAreas && m.mockupAreas.length > 0,
-    })));
+    // console.log(
+    //   "DEBUG: activeGalleryMedia content =",
+    //   result.map((m) => ({
+    //     id: m.id,
+    //     url: m.url,
+    //     altText: m.altText,
+    //     attributeValueId: m.attributeValueId,
+    //     isColorCustomizable: m.isColorCustomizable,
+    //     colorMaskUrl: m.colorMaskUrl,
+    //     hasMockupAreas: m.mockupAreas && m.mockupAreas.length > 0,
+    //   })),
+    // );
 
     return result;
   }, [
     allGalleryMediaForSize,
     isCustomizing,
     selectedVariantId,
-    product,
+    variantById,
+    product.variants,
+    product.media,
+    product.colorMockupTrigger,
     isColorPickerActive,
     activeColorHex,
   ]);
@@ -1220,10 +1337,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       return true;
     }
     return false;
-  }, [
-    isCustomizing,
-    hasMockupAreas,
-  ]);
+  }, [isCustomizing, hasMockupAreas]);
 
   // Dynamically build callout banner content for WhatsApp orders
   const waBoxContent = useMemo(() => {
@@ -1237,7 +1351,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     attributeGroups.forEach((group) => {
       if (
         group.parentValueId &&
-        !selectedAttributeValueIds.includes(group.parentValueId)
+        !selectedAttributeValueIdSet.has(group.parentValueId)
       ) {
         return;
       }
@@ -1283,7 +1397,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     product.stock,
     selections,
     attributeGroups,
-    selectedAttributeValueIds,
+    selectedAttributeValueIdSet,
   ]);
 
   const hasAnyMockupAreas = useMemo(() => {
@@ -1344,12 +1458,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   }, [selectedVariant, product.attributeValues]);
 
   const handleAddToCart = async (): Promise<boolean> => {
-    console.log("🔍 [DEBUG FRONTEND] selections saat ini:", selections);
-    // Validate that all visible attribute selections are made
     const visibleGroups = attributeGroups.filter((group) => {
       if (
         group.parentValueId &&
-        !selectedAttributeValueIds.includes(group.parentValueId)
+        !selectedAttributeValueIdSet.has(group.parentValueId)
       ) {
         return false;
       }
@@ -1364,11 +1476,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
     for (const group of visibleGroups) {
       if (!selections[group.name]) {
-        toast.error(`Silakan pilih ${group.name} terlebih dahulu!`);
+        toast.error(
+          locale === "en"
+            ? `Please select ${group.name} first!`
+            : `Silakan pilih ${group.name} terlebih dahulu!`,
+        );
+
         return false;
       }
     }
-
     const variantWeight = resolvedVariantDetails
       ? resolvedVariantDetails.weight
       : selectedVariant?.weightString || product.weight;
@@ -1460,9 +1576,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           : null,
       selectedAttributes: selections || null,
     };
-    console.log("📦 [DEBUG FRONTEND] Payload addToCart yang dikirim:", payload);
-    await addToCart(payload, quantity, token);
-    return true;
+    const success = await addToCart(payload, quantity, token, locale);
+
+    return success;
   };
 
   const handleOrderNow = async () => {
@@ -1474,7 +1590,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const selectedCustomOptionDimensions = useMemo(() => {
     if (!product.attributeValues) return null;
-    
+
     for (const [groupName, selectedVal] of Object.entries(selections)) {
       const match = product.attributeValues.find((av: any) => {
         const isSizeOrCapacityAttr =
@@ -1487,7 +1603,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         const cleanVal = selectedVal.split("|")[0].trim().toLowerCase();
         const cleanAvAv = av.value.split("|")[0].trim().toLowerCase();
 
-        return isSizeOrCapacityAttr && av.attributeName === groupName && cleanAvAv === cleanVal;
+        return (
+          isSizeOrCapacityAttr &&
+          av.attributeName === groupName &&
+          cleanAvAv === cleanVal
+        );
       });
 
       if (match && (match.width || match.height || match.length)) {
@@ -1499,7 +1619,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const selectedCustomOptionWeight = useMemo(() => {
     if (!product.attributeValues) return null;
-    
+
     for (const [groupName, selectedVal] of Object.entries(selections)) {
       const match = product.attributeValues.find((av: any) => {
         const isSizeOrCapacityAttr =
@@ -1512,7 +1632,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         const cleanVal = selectedVal.split("|")[0].trim().toLowerCase();
         const cleanAvAv = av.value.split("|")[0].trim().toLowerCase();
 
-        return isSizeOrCapacityAttr && av.attributeName === groupName && cleanAvAv === cleanVal;
+        return (
+          isSizeOrCapacityAttr &&
+          av.attributeName === groupName &&
+          cleanAvAv === cleanVal
+        );
       });
 
       if (match && match.weight) {
@@ -1522,17 +1646,21 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return null;
   }, [selections, product.attributeValues]);
 
-  const displayWeight = selectedCustomOptionWeight || (resolvedVariantDetails
-    ? resolvedVariantDetails.weight
-    : selectedVariant
-      ? selectedVariant.weightString
-      : product.weight);
+  const displayWeight =
+    selectedCustomOptionWeight ||
+    (resolvedVariantDetails
+      ? resolvedVariantDetails.weight
+      : selectedVariant
+        ? selectedVariant.weightString
+        : product.weight);
 
-  const displayDimensions = selectedCustomOptionDimensions || (resolvedVariantDetails
-    ? resolvedVariantDetails.dimensions
-    : selectedVariant
-      ? selectedVariant.dimensionsString
-      : product.dimensions);
+  const displayDimensions =
+    selectedCustomOptionDimensions ||
+    (resolvedVariantDetails
+      ? resolvedVariantDetails.dimensions
+      : selectedVariant
+        ? selectedVariant.dimensionsString
+        : product.dimensions);
 
   const minAllowedQty =
     activeTiers.length > 0 ? (activeTiers[0].minQty ?? 1) : 1;
@@ -1558,7 +1686,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       return (
         <div key={group.name} className="mt-1 space-y-2">
           <p className="text-sm font-medium text-stone-900">
-            Pilih {group.name}:{" "}
+            {locale === "en" ? "Select" : "Pilih"} {group.name}:{" "}
             <span className="font-bold text-stone-600 capitalize">
               {activeDisplayName}
             </span>
@@ -1621,7 +1749,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                     className="flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none animate-pulse">
                     {colorButton}
                     <span className="text-[9px] font-extrabold text-indigo-700 uppercase tracking-widest leading-none">
-                      🌈 Bisa Custom Warna
+                      {locale === "en"
+                        ? "🌈 Customizable Color"
+                        : "🌈 Bisa Custom Warna"}
                     </span>
                   </div>
                 );
@@ -1635,7 +1765,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           {isCustomValSelected && (
             <div className="mt-3 p-3 bg-stone-50 border border-stone-200 rounded-sm flex flex-col gap-2 max-w-sm animate-fade-in">
               <label className="text-xs font-bold text-stone-700 uppercase tracking-wider">
-                Pilih Warna Kustom Anda:
+                {locale === "en"
+                  ? "Choose Your Custom Color:"
+                  : "Pilih Warna Kustom Anda:"}
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -1665,8 +1797,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           {/* CMYK profile display */}
           {(() => {
             const parsed = parseClientColorValue(activeVal);
-            const cmykStr = isCustomValSelected
-              ? `C: ${hexToCmyk(selectedCustomColor).c} | M: ${hexToCmyk(selectedCustomColor).m} | Y: ${hexToCmyk(selectedCustomColor).y} | K: ${hexToCmyk(selectedCustomColor).k}`
+            const customCmyk = isCustomValSelected
+              ? hexToCmyk(selectedCustomColor)
+              : null;
+            const cmykStr = customCmyk
+              ? `C: ${customCmyk.c} | M: ${customCmyk.m} | Y: ${customCmyk.y} | K: ${customCmyk.k}`
               : parsed.cmyk;
             const hexDisplay = isCustomValSelected
               ? selectedCustomColor.toUpperCase()
@@ -1677,7 +1812,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             return (
               <div className="bg-stone-50 border border-stone-200/85 p-2 px-3 rounded-sm flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-stone-700 animate-fade-in gap-1.5 max-w-sm">
                 <span className="font-bold text-[10px] text-stone-400 uppercase tracking-wider">
-                  Profil Cetak:
+                  {locale === "en" ? "Print Profile:" : "Profil Cetak:"}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span className="bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded-sm">
@@ -1705,7 +1840,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       return (
         <div key={group.name} className="mt-1">
           <p className="text-sm font-medium text-stone-900 mb-2">
-            Pilih {group.name}:
+            {locale === "en" ? "Select" : "Pilih"} {group.name}:
           </p>
           <div className="flex flex-wrap gap-3">
             {group.values.map((val: string) => {
@@ -1752,7 +1887,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                           setPreviewImage({ url: mUrl, name: mName });
                         }}
                         className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-150 flex items-center justify-center text-white"
-                        title="Perbesar gambar">
+                        title={
+                          locale === "en" ? "Zoom Image" : "Perbesar gambar"
+                        }>
                         <ZoomIn className="w-4 h-4" />
                       </button>
                     </div>
@@ -1780,7 +1917,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return (
       <div key={group.name} className="mt-1">
         <p className="text-sm font-medium text-stone-900 mb-2">
-          Pilih {group.name}:
+          {locale === "en" ? "Select" : "Pilih"} {group.name}:
         </p>
         <div className="flex flex-wrap gap-2">
           {group.values.map((val: string) => {
@@ -1811,12 +1948,12 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   };
 
   return (
-    <div className="max-w-8xl mx-auto px-4 sm:px-6 py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
+    <div className="max-w-8xl mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-6">
         {/* ── Left: Image Gallery ── */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 md:sticky md:top-24 md:h-fit z-10">
           {product.isCustom && isCustomizing && hasMockupAreas ? (
-            <ProductCustomizer
+            <MemoProductCustomizer
               media={customizerMedia}
               productName={product.name}
               isMultiFace={product.isMultiFace}
@@ -1832,7 +1969,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               colorMaskUrl={activeColorMaskUrl || undefined}
             />
           ) : (
-            <ProductImageGallery
+            <MemoProductImageGallery
               media={activeGalleryMedia}
               productName={product.name}
               customColor={activeColorHex || selectedCustomColor}
@@ -1841,7 +1978,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               colorMaskUrl={activeColorMaskUrl || undefined}
             />
           )}
-          <ShareBar productName={product.name} />
+          <MemoShareBar productName={product.name} locale={locale} />
         </div>
 
         {/* ── Right: Product Info ── */}
@@ -1867,7 +2004,12 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   ? "Select Purchase Type"
                   : "Pilih Tipe Pembelian"}
               </p>
-              <div className={hasAnyMockupAreas ? "grid grid-cols-2 gap-3" : "grid grid-cols-1"}>
+              <div
+                className={
+                  hasAnyMockupAreas
+                    ? "grid grid-cols-2 gap-3"
+                    : "grid grid-cols-1"
+                }>
                 {/* Option 1: Buy Polosan */}
                 <button
                   type="button"
@@ -1961,7 +2103,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                 .filter((group) => {
                   if (
                     group.parentValueId &&
-                    !selectedAttributeValueIds.includes(group.parentValueId)
+                    !selectedAttributeValueIdSet.has(group.parentValueId)
                   ) {
                     return false;
                   }
@@ -2082,7 +2224,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   .filter((group) => {
                     if (
                       group.parentValueId &&
-                      !selectedAttributeValueIds.includes(group.parentValueId)
+                      !selectedAttributeValueIdSet.has(group.parentValueId)
                     ) {
                       return false;
                     }
@@ -2108,14 +2250,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           {activeTiers.length > 0 && (
             <div className="mt-1">
               <PriceTierSelector
-                tiers={activeTiers.map((t) => ({
-                  ...t,
-                  pricePerPcs:
-                    (t.pricePerPcs ?? 0) + customOptionsPriceModifier,
-                }))}
+                tiers={displayPriceTiers}
                 selectedIndex={selectedTierIndex}
                 onSelect={handleTierSelect}
                 currencyCode={currencyCode}
+                locale={locale}
               />
             </div>
           )}
@@ -2293,17 +2432,18 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           )}
 
           {!isWaOnly && (
-            <WhatsAppBanner
+            <MemoWhatsAppBanner
+              locale={locale}
               whatsappNumber={adminWhatsApp}
               productName={product.name}
             />
           )}
 
-          <ProductDescription
+          <MemoProductDescription
             description={product.description}
             weight={displayWeight}
+            locale={locale}
             dimensions={displayDimensions}
-            accessories={product.accessories}
           />
         </div>
       </div>
@@ -2322,7 +2462,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               <X className="w-4 h-4" />
             </button>
             <div className="w-full aspect-square rounded-md overflow-hidden bg-stone-50 flex items-center justify-center border border-stone-100 dark:border-stone-800">
-              <img
+              <Image
                 src={previewImage.url}
                 alt={previewImage.name}
                 className="w-full h-full object-contain"

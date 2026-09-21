@@ -39,7 +39,7 @@ export interface Article {
 }
 
 export default function Articles() {
-  const locale = useLocale(); // ✨ DETEKSI BAHASA AKTIF ("id" atau "en")
+  const locale = useLocale(); // DETEKSI BAHASA AKTIF ("id" atau "en")
 
   const plugin = React.useRef(
     Autoplay({ delay: 4000, stopOnInteraction: true }),
@@ -48,7 +48,7 @@ export default function Articles() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ✨ TEKS STATIS MULTIBAHASA
+  // TEKS STATIS MULTIBAHASA
   const dict = {
     title: locale === "en" ? "Articles" : "Artikel",
     loading: locale === "en" ? "Loading articles..." : "Memuat artikel...",

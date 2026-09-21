@@ -8,6 +8,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { Link } from "@/i18n/routing";
+import { ImageOff } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
 
@@ -64,7 +65,7 @@ export function RelatedProducts({
 
   return (
     <section
-      className="w-full py-8 border-t border-stone- 100 max-w-8xl mx-auto px-4 sm:px-6  "
+      className="w-full py-8 border-t border-stone-100 max-w-8xl mx-auto px-4 sm:px-6"
       onMouseEnter={stopAutoplay}
       onMouseLeave={startAutoplay}>
       {/* Title */}
@@ -95,15 +96,25 @@ function RelatedProductCard({ product }: { product: Product }) {
   return (
     <Link href={`/products/${product.slug}`} className="group block">
       <div className="flex flex-col gap-2">
-        {/* Image */}
-        <div className="relative aspect-square w-full bg-stone-50 overflow-hidden rounded-sm">
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-          />
+        {/* Image / Fallback Container */}
+        <div className="relative aspect-square w-full bg-stone-50 overflow-hidden rounded-sm flex items-center justify-center">
+          {product.image ? (
+            /* Jika gambar ada, render komponen Image Next.js */
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            />
+          ) : (
+            <div className="flex flex-col items-center text-stone-400 transition-transform duration-500 group-hover:scale-105">
+              <ImageOff className="w-8 h-8 mb-2 stroke-[1.5]" />
+              <span className="text-[10px] font-medium uppercase tracking-wider">
+                No Image
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Info */}

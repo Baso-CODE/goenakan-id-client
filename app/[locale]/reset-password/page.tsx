@@ -38,7 +38,7 @@ function ResetPasswordForm() {
 
     setIsLoading(true);
     try {
-      // ✨ Mengarahkan fetch langsung ke ${apiUrl}/auth-web-client/reset-password
+      // Mengarahkan fetch langsung ke ${apiUrl}/auth-web-client/reset-password
       const res = await fetch(`${apiUrl}/auth-web-client/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ShareBarProps {
   productName: string;
+  locale?: string;
 }
 
-export function ShareBar({ productName }: ShareBarProps) {
+export function ShareBar({ productName, locale = "id" }: ShareBarProps) {
   const [url, setUrl] = useState("");
+
+  const isEn = locale === "en";
 
   useEffect(() => {
     setUrl(window.location.href);
@@ -42,9 +45,12 @@ export function ShareBar({ productName }: ShareBarProps) {
       ),
     },
     {
-      name: "Copy link",
+      name: isEn ? "Copy link" : "Salin tautan",
       href: "#",
-      onClick: () => navigator.clipboard.writeText(url),
+      onClick: (e: React.MouseEvent) => {
+        e.preventDefault();
+        navigator.clipboard.writeText(url);
+      },
       icon: (
         <svg
           width="15"
@@ -62,7 +68,9 @@ export function ShareBar({ productName }: ShareBarProps) {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-stone-500">Share:</span>
+      <span className="text-sm text-stone-500">
+        {isEn ? "Share:" : "Bagikan:"}
+      </span>
       <div className="flex gap-2">
         {shares.map((s) => (
           <a
@@ -70,7 +78,7 @@ export function ShareBar({ productName }: ShareBarProps) {
             href={s.href}
             target={s.href !== "#" ? "_blank" : undefined}
             rel="noopener noreferrer"
-            onClick={s.onClick}
+            onClick={s.onClick as any}
             title={s.name}
             className="w-7 h-7 flex items-center justify-center text-stone-500 hover:text-stone-800 transition-colors">
             {s.icon}

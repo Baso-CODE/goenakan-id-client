@@ -1,6 +1,6 @@
 import { ArticleDetail } from "@/app/types/articles/articleDetail.type";
 import { Link } from "@/i18n/routing";
-import { useLocale } from "next-intl"; // ✨ IMPORT HOOK LOCALE
+import { useLocale } from "next-intl"; // IMPORT HOOK LOCALE
 import Image from "next/image";
 import { ArticleContent } from "./articleContent";
 import { ArticleNavigation } from "./articleNavigation";
@@ -14,9 +14,9 @@ interface ArticleDetailPageProps {
 }
 
 export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
-  const locale = useLocale(); // ✨ DETEKSI BAHASA AKTIF
+  const locale = useLocale(); // DETEKSI BAHASA AKTIF
 
-  // ✨ KAMUS TEKS STATIS
+  // KAMUS TEKS STATIS
   const dict = {
     breadcrumbRoot: locale === "en" ? "Article" : "Artikel",
     by: locale === "en" ? "By" : "Oleh",

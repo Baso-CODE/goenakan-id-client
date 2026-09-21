@@ -1,4 +1,4 @@
-"use client"; // ✨ Wajib ada karena menggunakan useTranslations
+"use client"; // Wajib ada karena menggunakan useTranslations
 
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -35,7 +35,7 @@ const stepsConfig = [
 ];
 
 export default function HowItWorks() {
-  // ✨ Panggil fungsi translasi untuk object "HowItWorks"
+  // Panggil fungsi translasi untuk object "HowItWorks"
   const t = useTranslations("HowItWorks");
 
   return (

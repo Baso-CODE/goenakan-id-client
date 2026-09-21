@@ -1,10 +1,15 @@
 import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
-export const getCategoryList = async (): Promise<CategoryPublic[]> => {
+export const getCategoryList = async (
+  lang: string = "id",
+): Promise<CategoryPublic[]> => {
   try {
-    const res = await fetch(`${apiUrl}/product-categories/list`, {
-      cache: "no-store",
+    const res = await fetch(`${apiUrl}/product-categories/list?lang=${lang}`, {
+      next: {
+        revalidate: 300,
+        tags: ["categories"],
+      },
     });
 
     if (!res.ok) {

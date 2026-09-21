@@ -29,7 +29,7 @@ export function LoadMoreButton({
             Loading...
           </>
         ) : (
-          "load more products"
+          "load more"
         )}
       </Button>
     </div>

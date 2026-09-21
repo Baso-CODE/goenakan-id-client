@@ -5,12 +5,15 @@ import { getCategoryList } from "@/app/api/products/getCategoryProductList.api";
 import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { ContactPayload } from "@/app/types/contactMessage.type";
 import { Link } from "@/i18n/routing";
+import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const WHATSAPP_NUMBER = "6282387902238";
 
 export function ContactForm() {
+  const locale = useLocale();
+
   const [form, setForm] = useState<ContactPayload>({
     name: "",
     email: "",
@@ -26,20 +29,19 @@ export function ContactForm() {
   const [categories, setCategories] = useState<CategoryPublic[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✨ Fetch SEMUA kategori beserta item-nya dalam sekali tarik
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const data = await getCategoryList();
+        const data = await getCategoryList(locale);
         setCategories(data);
       } catch (error) {
         console.error("Failed to load categories", error);
       }
     };
     loadCategories();
-  }, []);
+  }, [locale]);
 
-  // ✨ Logika Pintar: Ambil item categories berdasarkan product category yang sedang aktif
+  // Logika Pintar: Ambil item categories berdasarkan product category yang sedang aktif
   const activeItemCategories =
     categories.find((cat) => cat.name === productCategoryName)
       ?.itemCategories || [];

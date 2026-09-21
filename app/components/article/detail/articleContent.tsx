@@ -13,23 +13,23 @@ export function ArticleContent({ content }: ArticleContentProps) {
     if (!html) return "";
     return (
       html
-        // ✨ STEP 1: Hapus lazy loading
+        // STEP 1: Hapus lazy loading
         .replace(/src="[^"]*lazy\.svg"/g, "")
         .replace(/data-src=/g, "src=")
 
-        // ✨ STEP 2: Hapus width/height attributes yang buat sizing aneh
+        // STEP 2: Hapus width/height attributes yang buat sizing aneh
         .replace(/width="\d+"/g, "")
         .replace(/height="\d+"/g, "")
 
-        // ✨ STEP 3: Hapus SEMUA inline styles yang conflikt
+        // STEP 3: Hapus SEMUA inline styles yang conflikt
         .replace(/style="[^"]*"/g, "")
 
-        // ✨ STEP 4: Hapus WordPress-specific classes yang bikin styling aneh
+        // STEP 4: Hapus WordPress-specific classes yang bikin styling aneh
         .replace(/class="[^"]*wp-[^"]*"/g, 'class="article-image"')
         .replace(/class="[^"]*is-resized[^"]*"/g, 'class="article-image"')
         .replace(/class="[^"]*size-full[^"]*"/g, 'class="article-image"')
 
-        // ✨ STEP 5: Collapse whitespace di antara tag (penting!)
+        // STEP 5: Collapse whitespace di antara tag (penting!)
         .replace(/>\s+</g, "><")
         .replace(/(<figure[^>]*>)\s+/g, "$1")
         .replace(/\s+(<\/figure>)/g, "$1")
@@ -41,7 +41,7 @@ export function ArticleContent({ content }: ArticleContentProps) {
   useEffect(() => {
     if (!ref.current) return;
 
-    // ✨ STEP 6: Fix figure heights dengan JavaScript
+    // STEP 6: Fix figure heights dengan JavaScript
     const figures = ref.current.querySelectorAll("figure");
     figures.forEach((fig) => {
       // Set figure ke block container yang flushable
@@ -71,7 +71,7 @@ export function ArticleContent({ content }: ArticleContentProps) {
       }
     });
 
-    // ✨ STEP 7: ID untuk headings
+    // STEP 7: ID untuk headings
     const headings = ref.current.querySelectorAll("h1, h2, h3");
     headings.forEach((el, i) => {
       if (!el.id) el.id = `heading-${i}`;
@@ -101,7 +101,7 @@ export function ArticleContent({ content }: ArticleContentProps) {
           prose-h2:text-2xl prose-h2:border-b prose-h2:border-stone-200 prose-h2:pb-3 prose-h2:mt-6 prose-h2:mb-3
           prose-h3:text-lg prose-h3:mt-3 prose-h3:mb-2
           
-          /* ✨ AGGRESSIVE Figure Override */
+          /* AGGRESSIVE Figure Override */
           prose-figure:my-0! prose-figure:mx-0! prose-figure:p-0! prose-figure:block!
           prose-img:my-0! prose-img:mx-0! prose-img:max-h-none! prose-img:h-auto! prose-img:w-full! prose-img:block!
           prose-figcaption:my-2! prose-figcaption:mx-0! prose-figcaption:p-0!

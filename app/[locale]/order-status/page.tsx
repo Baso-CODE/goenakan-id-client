@@ -56,7 +56,7 @@ function OrderStatusContent() {
             Belanja Lagi
           </Link>
 
-          {/* ✨ PERBAIKAN: Disamakan rutenya ke /profile/order/[id] */}
+          {/* PERBAIKAN: Disamakan rutenya ke /profile/order/[id] */}
           <Link
             href={`/profile/order/${orderId}`}
             className="px-6 py-2 bg-[#463b34] text-white rounded-md hover:bg-[#342b26] transition-colors">

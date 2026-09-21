@@ -6,7 +6,7 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-// ✨ Generate Metadata Dinamis untuk halaman Login
+// Generate Metadata Dinamis untuk halaman Login
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
 

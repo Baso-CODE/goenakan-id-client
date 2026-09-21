@@ -1,6 +1,6 @@
 import { getArticleData } from "@/app/api/articles/getArticleBySlug.api";
 import { ArticleDetailPage } from "@/app/components/article/detail/articleDetailPage";
-import { getLocale } from "next-intl/server"; // ✨ IMPORT SERVER LOCALE
+import { getLocale } from "next-intl/server"; // IMPORT SERVER LOCALE
 import { notFound } from "next/navigation";
 
 interface ArticlePageProps {
