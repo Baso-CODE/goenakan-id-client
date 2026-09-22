@@ -33,16 +33,15 @@ import { Link, usePathname, useRouter } from "@/i18n/routing";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
-
   // State untuk fitur Search
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
 
   const cartItems = useCartStore((state) => state.cartItems);
-  const totalItems = cartItems.reduce(
-    (total, item) => total + item.quantity,
-    0,
-  );
+
+  // PERUBAHAN DI SINI: Hanya menghitung jumlah jenis produk di dalam keranjang
+  const totalItems = cartItems.length;
+
   const t = useTranslations("Navbar");
   const locale = useLocale();
   const router = useRouter();
