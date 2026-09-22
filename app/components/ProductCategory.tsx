@@ -1,18 +1,69 @@
+"use client";
+
 import { Link } from "@/i18n/routing";
-import { getLocale, getTranslations } from "next-intl/server";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 import { getPublicCategories } from "../api/products/categoryProduct.api";
 
-export default async function ProductCategory() {
-  const [locale, t] = await Promise.all([
-    getLocale(),
-    getTranslations("ProductCategory"),
-  ]);
+type Category = Awaited<ReturnType<typeof getPublicCategories>>[number];
 
-  const categories = await getPublicCategories(locale);
+export default function ProductCategory() {
+  const locale = useLocale();
+  const t = useTranslations("ProductCategory");
 
-  if (!categories?.length) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCategories = async () => {
+      try {
+        setIsLoading(true);
+
+        const data = await getPublicCategories(locale);
+
+        if (isMounted) {
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch product categories:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchCategories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [locale]);
+
+  if (isLoading) {
+    return (
+      <section className="w-full py-20 bg-white">
+        <div className="container">
+          <div className="h-10 w-64 mx-auto bg-stone-100 animate-pulse mb-16" />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="w-full aspect-square bg-stone-100 animate-pulse rounded-sm"
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!categories.length) {
     return null;
   }
 
