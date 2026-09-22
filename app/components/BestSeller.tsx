@@ -7,10 +7,10 @@ import { ImageOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+
 import { getBestSellerProductsAPI } from "../api/products/getBestSellerProduct.api";
 import { BestSellerProduct } from "../types/bestSellerProduct.type";
 
-// Fungsi format Rupiah
 function formatRupiah(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
@@ -24,41 +24,56 @@ function formatRupiah(amount: number): string {
 }
 
 export default function BestSeller() {
+  const t = useTranslations("BestSeller");
+
   const [products, setProducts] = useState<BestSellerProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const t = useTranslations("BestSeller");
-
   useEffect(() => {
+    let isMounted = true;
+
     const fetchBestSellers = async () => {
-      setIsLoading(true);
-      const data = await getBestSellerProductsAPI();
-      setProducts(data);
-      setIsLoading(false);
+      try {
+        setIsLoading(true);
+
+        const data = await getBestSellerProductsAPI();
+
+        if (isMounted) {
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch best seller products:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     };
 
     fetchBestSellers();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
     <section className="w-full py-20 bg-gray-50/50">
-      <div className="container ">
-        {/* --- Header Section --- */}
+      <div className="container">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl text-gray-900 uppercase tracking-wide">
             {t("title")}
           </h2>
         </div>
 
-        {/* --- Grid Produk --- */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {isLoading ? (
-            /* --- Loading State (Skeleton) --- */
             Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
                 className="bg-white border border-gray-200 rounded-none shadow-sm animate-pulse">
                 <div className="aspect-square bg-gray-200" />
+
                 <div className="p-6">
                   <div className="h-5 bg-gray-200 rounded w-3/4 mb-3" />
                   <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
@@ -68,7 +83,6 @@ export default function BestSeller() {
               </div>
             ))
           ) : products.length > 0 ? (
-            /* --- Data Produk Nyata --- */
             products.map((product) => (
               <Link
                 href={`/products/${product.slug}`}
@@ -76,7 +90,6 @@ export default function BestSeller() {
                 className="group cursor-pointer">
                 <Card className="bg-white border border-gray-200 rounded-none shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden h-full">
                   <CardContent className="p-0 flex flex-col h-full">
-                    {/* Bagian Gambar dengan Pengecekan Fallback */}
                     <div className="relative aspect-square bg-gray-50 flex items-center justify-center border-b border-gray-100 overflow-hidden">
                       {product.image ? (
                         <Image
@@ -84,11 +97,12 @@ export default function BestSeller() {
                           alt={product.name}
                           fill
                           className="object-cover p-4 group-hover:scale-105 transition-transform duration-500"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         />
                       ) : (
                         <div className="flex flex-col items-center justify-center text-gray-400 p-4">
                           <ImageOff className="w-10 h-10 mb-2 stroke-[1.5]" />
+
                           <span className="text-xs uppercase tracking-wider font-medium">
                             No Image
                           </span>
@@ -96,7 +110,6 @@ export default function BestSeller() {
                       )}
                     </div>
 
-                    {/* Bagian Informasi Produk */}
                     <div className="p-6 text-left flex flex-col grow">
                       <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2">
                         {product.name}
@@ -107,13 +120,12 @@ export default function BestSeller() {
                       </p>
 
                       <p className="text-sm font-semibold text-gray-900 mb-6">
-                        {formatRupiah(product.bulkPrice)}/{t("pcs")}{" "}
+                        {formatRupiah(product.bulkPrice)}/{t("pcs")}
                         <span className="font-normal text-gray-500 text-xs ml-1">
                           {t("min")} {product.minOrder} {t("pcs")}
                         </span>
                       </p>
 
-                      {/* Spacer agar tulisan 'Sold' selalu ada di bawah */}
                       <div className="mt-auto pt-4">
                         <p className="text-xs text-[#C4A48E] font-bold uppercase tracking-wider">
                           {product.sold.toLocaleString("id-ID")} {t("sold")}
@@ -125,14 +137,12 @@ export default function BestSeller() {
               </Link>
             ))
           ) : (
-            /* --- Empty State --- */
             <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">
               {t("emptyState")}
             </div>
           )}
         </div>
 
-        {/* --- Tombol View All --- */}
         <div className="flex justify-center md:justify-end">
           <Link href="/products">
             <Button className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-10 py-6 text-base uppercase tracking-widest cursor-pointer transition-colors">

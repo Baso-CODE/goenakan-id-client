@@ -15,9 +15,9 @@ import { useLocale } from "next-intl";
 import Image from "next/image";
 import * as React from "react";
 import { useEffect, useState } from "react";
+
 import { ArticleApiItem } from "../types/articles/articleApiItem.type";
 
-// --- DATA DUMMY BANNER (Tetap) ---
 const bannerSlides = [
   { id: 1, image: "/images/blog/banner-article.png" },
   { id: 2, image: "/images/blog/banner-article.png" },
@@ -25,8 +25,12 @@ const bannerSlides = [
 ];
 
 const stripHtml = (html: string) => {
-  if (typeof document === "undefined") return html.replace(/<[^>]+>/g, "");
+  if (typeof document === "undefined") {
+    return html.replace(/<[^>]+>/g, "");
+  }
+
   const doc = new DOMParser().parseFromString(html, "text/html");
+
   return doc.body.textContent || "";
 };
 
@@ -39,16 +43,18 @@ export interface Article {
 }
 
 export default function Articles() {
-  const locale = useLocale(); // DETEKSI BAHASA AKTIF ("id" atau "en")
+  const locale = useLocale();
 
   const plugin = React.useRef(
-    Autoplay({ delay: 4000, stopOnInteraction: true }),
+    Autoplay({
+      delay: 4000,
+      stopOnInteraction: true,
+    }),
   );
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // TEKS STATIS MULTIBAHASA
   const dict = {
     title: locale === "en" ? "Articles" : "Artikel",
     loading: locale === "en" ? "Loading articles..." : "Memuat artikel...",
@@ -60,17 +66,26 @@ export default function Articles() {
   };
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchArticles = async () => {
       try {
-        // Ambil 6 artikel terbaru
-        const res = await fetch(`${apiUrl}/articles/list?take=6&sort=newest`);
-        if (!res.ok) throw new Error("Gagal mengambil data artikel");
+        setIsLoading(true);
+
+        const res = await fetch(`${apiUrl}/articles/list?take=6&sort=newest`, {
+          signal: controller.signal,
+        });
+
+        if (!res.ok) {
+          throw new Error("Gagal mengambil data artikel");
+        }
 
         const json = await res.json();
 
         const formatted: Article[] = json.data.map((item: ArticleApiItem) => {
           const mappedTitle =
             locale === "en" && item.title_en ? item.title_en : item.title_id;
+
           const mappedContent =
             locale === "en" && item.content_en
               ? item.content_en
@@ -83,7 +98,7 @@ export default function Articles() {
             title: mappedTitle,
             excerpt:
               plainText.length > 120
-                ? plainText.substring(0, 120) + "..."
+                ? `${plainText.substring(0, 120)}...`
                 : plainText,
             image: item.coverImage,
             slug: item.slug || item.id,
@@ -92,27 +107,36 @@ export default function Articles() {
 
         setArticles(formatted);
       } catch (error) {
-        console.error(error);
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        console.error("Failed to fetch articles:", error);
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchArticles();
-  }, [locale]); // Menambahkan locale di dependency array agar re-render jika bahasa diganti
+
+    return () => {
+      controller.abort();
+    };
+  }, [locale]);
 
   return (
     <section className="w-full bg-white pb-24">
-      {/* =========================================
-          BAGIAN 1: TOP SLIDER BANNER (TIDAK DIUBAH)
-         ========================================= */}
       <div className="w-full h-100 md:h-125 relative mb-16 bg-gray-100">
         <Carousel
           plugins={[plugin.current]}
           className="w-full h-full"
           onMouseEnter={plugin.current.stop}
           onMouseLeave={plugin.current.reset}
-          opts={{ loop: true }}>
+          opts={{
+            loop: true,
+          }}>
           <CarouselContent>
             {bannerSlides.map((slide) => (
               <CarouselItem
@@ -123,8 +147,8 @@ export default function Articles() {
                     src={slide.image}
                     alt="Blog Banner"
                     fill
+                    sizes="100vw"
                     className="object-cover"
-                    priority={slide.id === 1}
                   />
                 </div>
               </CarouselItem>
@@ -132,19 +156,18 @@ export default function Articles() {
           </CarouselContent>
 
           <CarouselPrevious className="left-4 bg-white/50 border-none hover:bg-white hidden md:flex" />
+
           <CarouselNext className="right-4 bg-white/50 border-none hover:bg-white hidden md:flex" />
         </Carousel>
       </div>
 
-      {/* =========================================
-          BAGIAN 2: ARTICLE GRID
-         ========================================= */}
       <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl text-gray-900 uppercase tracking-wide">
             {dict.title}
           </h2>
         </div>
+
         {isLoading ? (
           <div className="text-center py-20 text-gray-500 animate-pulse">
             {dict.loading}
@@ -158,13 +181,13 @@ export default function Articles() {
                 href={`/article/${article.slug}`}
                 key={article.id}
                 className="group cursor-pointer flex flex-col h-full">
-                {/* Gambar Artikel */}
                 <div className="relative aspect-square w-full bg-gray-200 mb-6 overflow-hidden">
                   {article.image ? (
                     <Image
                       src={article.image}
                       alt={article.title}
                       fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                   ) : (
@@ -174,11 +197,11 @@ export default function Articles() {
                   )}
                 </div>
 
-                {/* Konten Teks */}
                 <div className="flex flex-col grow">
                   <h3 className="text-lg font-bold text-gray-900 leading-snug mb-3 line-clamp-2 group-hover:text-[#C4A48E] transition-colors">
                     {article.title}
                   </h3>
+
                   <p className="text-sm text-gray-500 leading-relaxed line-clamp-3">
                     {article.excerpt}
                   </p>
@@ -188,7 +211,6 @@ export default function Articles() {
           </div>
         )}
 
-        {/* Tombol Read More */}
         <div className="flex justify-center">
           <Link href="/article">
             <Button className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-10 py-6 text-base font-medium">

@@ -1,7 +1,5 @@
-"use client";
-
 import { Link } from "@/i18n/routing";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import Image from "next/image";
 
 interface PlanningLargerOrderProps {
@@ -10,16 +8,24 @@ interface PlanningLargerOrderProps {
   ctaHref?: string;
 }
 
-export function PlanningLargerOrder({
+export async function PlanningLargerOrder({
   image = "/images/article/banner-dummy.png",
   imageAlt = "Goenakan Indonesia Products",
   ctaHref = "/contact",
 }: PlanningLargerOrderProps) {
-  // Inisialisasi fungsi translasi
-  const t = useTranslations("PlanningLargerOrder");
+  const t = await getTranslations("PlanningLargerOrder");
 
   return (
-    <section className="w-full grid grid-cols-1 md:grid-cols-2 min-h-130">
+    <section
+      className="
+        w-full
+        grid
+        grid-cols-1
+        md:grid-cols-2
+        min-h-130
+        [content-visibility:auto]
+        [contain-intrinsic-size:auto_520px]
+      ">
       {/* Left — Image */}
       <div className="relative w-full min-h-85 md:min-h-130 overflow-hidden bg-stone-100">
         <Image
@@ -28,7 +34,6 @@ export function PlanningLargerOrder({
           fill
           className="object-cover object-center"
           sizes="(max-width: 768px) 100vw, 50vw"
-          priority
         />
       </div>
 
@@ -43,6 +48,7 @@ export function PlanningLargerOrder({
             <p className="text-stone-600 text-base leading-relaxed">
               {t("paragraph1")}
             </p>
+
             <p className="text-stone-600 text-base leading-relaxed">
               {t("paragraph2")}
             </p>

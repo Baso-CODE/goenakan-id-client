@@ -134,6 +134,7 @@ export default function PortfolioEventsAndClients() {
                             src={item.image}
                             alt={item.title}
                             fill
+                            loading="lazy"
                             className="object-cover group-hover:scale-105 transition-transform duration-700"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           />
@@ -197,6 +198,7 @@ export default function PortfolioEventsAndClients() {
                           src={client.logo}
                           alt={client.name || "Client Logo"}
                           fill
+                          loading="lazy"
                           className="object-contain p-4 group-hover:brightness-200 transition-all"
                           sizes="(max-width: 768px) 33vw, 15vw"
                         />

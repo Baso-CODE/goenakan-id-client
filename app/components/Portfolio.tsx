@@ -8,6 +8,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Skeleton } from "@/components/ui/skeleton";
 import Autoplay from "embla-carousel-autoplay";
 import { FileQuestion } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
@@ -51,7 +52,6 @@ export default function Portfolio() {
             alt="Our Portfolio Background"
             fill
             className="object-cover"
-            priority
           />
           <div className="absolute inset-0 bg-linear-to-r from-transparent via-black/40 to-black/90" />
         </div>
@@ -66,8 +66,21 @@ export default function Portfolio() {
       {/* --- BAGIAN BAWAH: Carousel Card atau Empty State --- */}
       <div className="container relative">
         {isLoading ? (
-          <div className="w-full py-24 text-center text-stone-400">
-            {t("loading")}
+          // Skeleton Loading State yang meniru bentuk Carousel
+          <div className="flex w-full overflow-hidden -ml-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="pl-4 w-full md:basis-1/3 lg:basis-1/3 shrink-0">
+                <div className="p-1">
+                  <div className="relative aspect-4/5 w-full bg-stone-100 rounded-sm mb-4 animate-pulse" />
+                  <div className="flex flex-col items-center gap-2">
+                    <Skeleton className="h-6 w-3/4 bg-stone-200" />
+                    <Skeleton className="h-4 w-1/2 bg-stone-200" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : portfolios.length > 0 ? (
           <Carousel
@@ -90,6 +103,7 @@ export default function Portfolio() {
                             src={item.image}
                             alt={item.title}
                             fill
+                            loading="lazy"
                             className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
                           />
@@ -118,6 +132,7 @@ export default function Portfolio() {
             <CarouselNext className="hidden md:flex -right-12 bg-white border-gray-200 hover:bg-gray-100" />
           </Carousel>
         ) : (
+          // Empty State
           <div className="w-full py-24 flex flex-col items-center justify-center border border-dashed border-stone-200 rounded-sm bg-stone-50/50">
             <FileQuestion className="w-12 h-12 text-stone-300 mb-4 stroke-[1.5]" />
             <h3 className="text-lg font-medium text-stone-600 tracking-wide uppercase">
