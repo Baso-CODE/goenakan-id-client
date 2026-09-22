@@ -1,6 +1,7 @@
 "use client";
 
 import { MediaItem } from "@/app/types/productDetail.type";
+import { getCloudinaryVideoPoster, getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
 import { PlayCircle } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -42,9 +43,11 @@ export function ProductImageGallery({
 
   const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
 
-  const colorOverlayUrl = (colorMockupTrigger && colorMockupTrigger !== "NONE")
+  const rawColorOverlayUrl = (colorMockupTrigger && colorMockupTrigger !== "NONE")
     ? activeMask
     : activeMedia.url;
+
+  const colorOverlayUrl = rawColorOverlayUrl ? getOptimizedImageUrl(rawColorOverlayUrl, 1200) : "";
 
   const showColorOverlay = !!customColor && !!activeMask && activeMedia.isColorCustomizable;
 
@@ -59,6 +62,8 @@ export function ProductImageGallery({
             autoPlay
             muted
             loop
+            preload="metadata"
+            poster={getCloudinaryVideoPoster(activeMedia.url, 800, 800) || undefined}
             className="w-full h-full object-contain"
           />
         ) : (
@@ -115,23 +120,25 @@ export function ProductImageGallery({
             }`}>
             {item.type === "video" ? (
               // Tampilan Thumbnail Video
-              <div className="relative w-full h-full bg-stone-200 flex items-center justify-center">
-                <video
-                  src={item.url}
-                  className="w-full h-full object-cover"
-                  preload="metadata"
-                  muted
-                  playsInline
-                />
-                <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                  <PlayCircle className="text-white w-6 h-6 z-10 opacity-90" />
+              <div className="relative w-full h-full bg-stone-900 flex items-center justify-center">
+                {getCloudinaryVideoPoster(item.url) ? (
+                  <Image
+                    src={getCloudinaryVideoPoster(item.url)!}
+                    alt={`${productName} video thumbnail ${i + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="80px"
+                  />
+                ) : null}
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                  <PlayCircle className="text-white w-6 h-6 z-10 opacity-90 drop-shadow-sm" />
                 </div>
               </div>
             ) : (
               isColorPickerActive && customColor && item.isColorCustomizable ? (
                 <div className="relative w-full h-full aspect-square">
                   <Image
-                    src={item.url}
+                    src={getOptimizedImageUrl(item.url, 160)}
                     alt={`${productName} thumbnail - base`}
                     fill
                     className="object-cover p-1 bg-stone-50"
@@ -142,11 +149,11 @@ export function ProductImageGallery({
                     style={{
                       backgroundColor: customColor,
                       mixBlendMode: "multiply",
-                      maskImage: `url(${item.url})`,
+                      maskImage: `url(${getOptimizedImageUrl(item.url, 160)})`,
                       maskSize: "cover",
                       maskRepeat: "no-repeat",
                       maskPosition: "center",
-                      WebkitMaskImage: `url(${item.url})`,
+                      WebkitMaskImage: `url(${getOptimizedImageUrl(item.url, 160)})`,
                       WebkitMaskSize: "cover",
                       WebkitMaskRepeat: "no-repeat",
                       WebkitMaskPosition: "center",
@@ -156,7 +163,7 @@ export function ProductImageGallery({
                 </div>
               ) : (
                 <Image
-                  src={item.url}
+                  src={getOptimizedImageUrl(item.url, 160)}
                   alt={`${productName} thumbnail ${i + 1}`}
                   fill
                   className="object-cover p-1 bg-stone-50"

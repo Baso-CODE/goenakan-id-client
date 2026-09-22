@@ -316,6 +316,18 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }));
   };
 
+  const handleCustomizerChange = useCallback((customizerData: any) => {
+    setCustomization((prev: any) => {
+      if (!customizerData) {
+        return prev?.customColor ? { customColor: prev.customColor } : null;
+      }
+      return {
+        ...customizerData,
+        ...(prev?.customColor ? { customColor: prev.customColor } : {}),
+      };
+    });
+  }, []);
+
   // 1. Group unique attributes and values
   const attributeGroups = useMemo(() => {
     const groups: Record<
@@ -1960,7 +1972,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               mockupFrontImageId={product.mockupFrontImageId}
               mockupBackImageId={product.mockupBackImageId}
               selectedAttributeValueIds={selectedAttributeValueIds}
-              onChange={setCustomization}
+              onChange={handleCustomizerChange}
               attributeValues={product.attributeValues}
               customColor={activeColorHex || selectedCustomColor}
               isColorPickerActive={isColorPickerActive || !!activeColorHex}
