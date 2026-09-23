@@ -2,6 +2,7 @@
 
 import { Article } from "@/app/types/articles/articleList.type";
 import { Link } from "@/i18n/routing";
+import { ImageOff } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -60,18 +61,31 @@ export function RelevantArticle({
     </section>
   );
 }
+
 function RelevantArticleCard({ article }: { article: Article }) {
   return (
     <Link href={article.href} className="group flex flex-col gap-3">
-      {/* Container Image dengan Rasio Tetap */}
-      <div className="relative w-full aspect-16/10 bg-stone-100 overflow-hidden rounded-md border border-stone-50">
-        <Image
-          src={article.image || "/images/placeholder.jpg"} // Fallback image
-          alt={article.title}
-          fill
-          className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        />
+      {/* Container Image dengan Rasio Tetap (16:10) */}
+      <div className="relative w-full aspect-16/10 bg-stone-100 overflow-hidden rounded-md border border-stone-50 flex items-center justify-center">
+        {/*  PENGKONDISIAN GAMBAR */}
+        {article.image ? (
+          <Image
+            src={article.image}
+            alt={article.title}
+            fill
+            className="object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+        ) : (
+          /*  TAMPILAN JIKA TIDAK ADA GAMBAR */
+          <div className="flex flex-col items-center justify-center text-stone-400 p-4">
+            {/* Ukuran ikon sedikit diperkecil (w-8 h-8) agar proporsional dengan kartu ini */}
+            <ImageOff className="w-8 h-8 mb-2 stroke-[1.5]" />
+            <span className="text-[11px] uppercase tracking-wider font-medium">
+              No Image
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Konten Teks */}

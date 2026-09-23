@@ -1,5 +1,3 @@
-// src/app/types/product.type.ts
-
 export interface Product {
   id: string;
   name: string;

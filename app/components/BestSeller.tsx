@@ -4,27 +4,50 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "@/i18n/routing";
 import { ImageOff } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
 import { getBestSellerProductsAPI } from "../api/products/getBestSellerProduct.api";
 import { BestSellerProduct } from "../types/bestSellerProduct.type";
 
-function formatRupiah(amount: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })
-    .format(amount)
-    .replace("IDR", "Rp")
-    .trim();
+const CURRENCY_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>();
+
+function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
+  let locale = "id-ID";
+  if (currencyCode === "USD") locale = "en-US";
+  else if (currencyCode === "EUR") locale = "de-DE";
+  else if (currencyCode === "JPY") locale = "ja-JP";
+  else if (currencyCode === "MYR") locale = "ms-MY";
+
+  const cacheKey = `${locale}:${currencyCode}`;
+  let formatter = CURRENCY_FORMATTER_CACHE.get(cacheKey);
+
+  if (!formatter) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+      maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+    });
+    CURRENCY_FORMATTER_CACHE.set(cacheKey, formatter);
+  }
+
+  return formatter.format(amount);
+}
+
+//  3. Helper untuk membaca Cookie di Client Side (Browser)
+function getClientCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+  return null;
 }
 
 export default function BestSeller() {
   const t = useTranslations("BestSeller");
+  const locale = useLocale(); //  Ambil bahasa yang sedang aktif
 
   const [products, setProducts] = useState<BestSellerProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +59,9 @@ export default function BestSeller() {
       try {
         setIsLoading(true);
 
-        const data = await getBestSellerProductsAPI();
+        const userCountry = getClientCookie("USER_COUNTRY") || "ID";
+
+        const data = await getBestSellerProductsAPI(userCountry, locale);
 
         if (isMounted) {
           setProducts(data);
@@ -55,7 +80,7 @@ export default function BestSeller() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [locale]);
 
   return (
     <section className="w-full py-20 bg-gray-50/50">
@@ -73,7 +98,6 @@ export default function BestSeller() {
                 key={i}
                 className="bg-white border border-gray-200 rounded-none shadow-sm animate-pulse">
                 <div className="aspect-square bg-gray-200" />
-
                 <div className="p-6">
                   <div className="h-5 bg-gray-200 rounded w-3/4 mb-3" />
                   <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
@@ -83,59 +107,67 @@ export default function BestSeller() {
               </div>
             ))
           ) : products.length > 0 ? (
-            products.map((product) => (
-              <Link
-                href={`/products/${product.slug}`}
-                key={product.id}
-                className="group cursor-pointer">
-                <Card className="bg-white border border-gray-200 rounded-none shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden h-full">
-                  <CardContent className="p-0 flex flex-col h-full">
-                    <div className="relative aspect-square bg-gray-50 flex items-center justify-center border-b border-gray-100 overflow-hidden">
-                      {product.image ? (
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-cover p-4 group-hover:scale-105 transition-transform duration-500"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-gray-400 p-4">
-                          <ImageOff className="w-10 h-10 mb-2 stroke-[1.5]" />
+            products.map((product) => {
+              //  Ambil currency dari produk, atau default ke IDR
+              const currency = product.currencyCode || "IDR";
 
-                          <span className="text-xs uppercase tracking-wider font-medium">
-                            No Image
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-6 text-left flex flex-col grow">
-                      <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2">
-                        {product.name}
-                      </h3>
-
-                      <p className="text-sm text-gray-400 line-through mb-1">
-                        {formatRupiah(product.regularPrice)}/{t("pcs")}
-                      </p>
-
-                      <p className="text-sm font-semibold text-gray-900 mb-6">
-                        {formatRupiah(product.bulkPrice)}/{t("pcs")}
-                        <span className="font-normal text-gray-500 text-xs ml-1">
-                          {t("min")} {product.minOrder} {t("pcs")}
-                        </span>
-                      </p>
-
-                      <div className="mt-auto pt-4">
-                        <p className="text-xs text-[#C4A48E] font-bold uppercase tracking-wider">
-                          {product.sold.toLocaleString("id-ID")} {t("sold")}
-                        </p>
+              return (
+                <Link
+                  href={`/products/${product.slug}`}
+                  key={product.id}
+                  className="group cursor-pointer">
+                  <Card className="bg-white border border-gray-200 rounded-none shadow-sm hover:shadow-lg transition-shadow duration-300 overflow-hidden h-full">
+                    <CardContent className="p-0 flex flex-col h-full">
+                      <div className="relative aspect-square bg-gray-50 flex items-center justify-center border-b border-gray-100 overflow-hidden">
+                        {product.image ? (
+                          <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            className="object-cover p-4 group-hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-gray-400 p-4">
+                            <ImageOff className="w-10 h-10 mb-2 stroke-[1.5]" />
+                            <span className="text-xs uppercase tracking-wider font-medium">
+                              No Image
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))
+
+                      <div className="p-6 text-left flex flex-col grow">
+                        <h3 className="text-lg font-medium text-gray-900 mb-2 line-clamp-2">
+                          {product.name}
+                        </h3>
+
+                        <p className="text-sm text-gray-400 line-through mb-1">
+                          {/*  Gunakan formatCurrency di sini */}
+                          {formatCurrency(product.regularPrice, currency)}/
+                          {t("pcs")}
+                        </p>
+
+                        <p className="text-sm font-semibold text-gray-900 mb-6">
+                          {/*  Gunakan formatCurrency di sini */}
+                          {formatCurrency(product.bulkPrice, currency)}/
+                          {t("pcs")}
+                          <span className="font-normal text-gray-500 text-xs ml-1">
+                            {t("min")} {product.minOrder} {t("pcs")}
+                          </span>
+                        </p>
+
+                        <div className="mt-auto pt-4">
+                          <p className="text-xs text-[#C4A48E] font-bold uppercase tracking-wider">
+                            {product.sold.toLocaleString("id-ID")} {t("sold")}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })
           ) : (
             <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-12 text-gray-500">
               {t("emptyState")}
