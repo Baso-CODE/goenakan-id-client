@@ -1,10 +1,10 @@
 "use client";
 
 import { MediaItem, MockupArea } from "@/app/types/productDetail.type";
-<<<<<<< Updated upstream
-import { getCloudinaryVideoPoster, getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
-import { Upload, Trash2, ImageIcon, Sparkles, RefreshCw, Check, Plus, Download, Ruler, Printer, FileImage, Maximize2, Move } from "lucide-react";
-=======
+import {
+  getCloudinaryVideoPoster,
+  getOptimizedImageUrl,
+} from "@/app/utils/mediaOptimization";
 import {
   Download,
   Maximize2,
@@ -15,7 +15,6 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
->>>>>>> Stashed changes
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -674,120 +673,36 @@ export function ProductCustomizer({
 
   // Efek samping untuk mengirimkan state customization ke parent component
   useEffect(() => {
-<<<<<<< Updated upstream
     if (!onChange) return;
-    const activeUploads = Object.entries(uploads).filter(([_, list]) => list.length > 0);
+    const activeUploads = Object.entries(uploads).filter(
+      ([_, list]) => list.length > 0,
+    );
     if (activeUploads.length === 0) {
       if (hadUploadsRef.current) {
         hadUploadsRef.current = false;
         onChange(null);
-=======
-    if (onChange) {
-      const activeUploads = Object.entries(uploads).filter(
-        ([_, list]) => list.length > 0,
-      );
-      if (activeUploads.length === 0) {
-        onChange(null);
-      } else {
-        const zonesObj: Record<
-          string,
-          {
-            label: string;
-            logos: any[];
-            logoCount: number;
-            printPositionValueId?: string | null;
-            rotation?: number;
-          }
-        > = {};
-        for (const [areaId, list] of activeUploads) {
-          const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
-          const label = activeMedia.mockupSideName || area?.label || "Kustom";
-          const totalCount = list.reduce(
-            (sum, item) => sum + (item.logoCount || 1),
-            0,
-          );
-
-          // Enrich logos with physical calculations so they are persisted in cart/checkout
-          const enrichedLogos = list.map((logo) => {
-            const scale = logo.scale ?? 10;
-            const xOffset = logo.xOffset ?? (area?.x || 0);
-            const yOffset = logo.yOffset ?? (area?.y || 0);
-            const aspect = logo.aspectRatio || 1.0;
-            const logoHeight = scale / aspect;
-
-            const leftDistance = xOffset - (area?.x || 0);
-            const rightDistance =
-              (area?.x || 0) + (area?.width || 0) - (xOffset + scale);
-            const topDistance = yOffset - (area?.y || 0);
-            const bottomDistance =
-              (area?.y || 0) + (area?.height || 0) - (yOffset + logoHeight);
-
-            const getCmVal = (
-              distPct: number,
-              physicalSize?: number,
-              baseSize?: number,
-            ) => {
-              if (physicalSize && baseSize) {
-                const cmVal = distPct * (physicalSize / baseSize);
-                return `${Math.round(cmVal * 10) / 10}${area?.unit || "cm"}`;
-              }
-              return `${Math.round(distPct)}%`;
-            };
-
-            const logoWidthCm = area?.physicalWidth
-              ? (scale / area.width) * area.physicalWidth
-              : null;
-            const logoHeightCm =
-              logoWidthCm && aspect ? logoWidthCm / aspect : null;
-
-            const physicalDimensions =
-              logoWidthCm && logoHeightCm
-                ? `${Math.round(logoWidthCm * 10) / 10} x ${Math.round(logoHeightCm * 10) / 10} ${area?.unit || "cm"}`
-                : `${Math.round(scale)}%`;
-
-            return {
-              ...logo,
-              logoPhysicalDimensions: physicalDimensions,
-              logoPositionDistance: {
-                left: getCmVal(leftDistance, area?.physicalWidth, area?.width),
-                right: getCmVal(
-                  rightDistance,
-                  area?.physicalWidth,
-                  area?.width,
-                ),
-                top: getCmVal(topDistance, area?.physicalHeight, area?.height),
-                bottom: getCmVal(
-                  bottomDistance,
-                  area?.physicalHeight,
-                  area?.height,
-                ),
-              },
-              printingMethod: selectedPrintingMethod || "Custom Cetak",
-            };
-          });
-
-          zonesObj[areaId] = {
-            label,
-            logos: enrichedLogos,
-            logoCount: totalCount,
-            printPositionValueId: activeMedia.printPositionValueId,
-            rotation: area?.rotation || 0,
-          };
-        }
-        onChange({
-          zones: zonesObj,
-        });
->>>>>>> Stashed changes
       }
       return;
     }
 
     hadUploadsRef.current = true;
-    const zonesObj: Record<string, { label: string; logos: any[]; logoCount: number; printPositionValueId?: string | null; rotation?: number; }> = {};
+    const zonesObj: Record<
+      string,
+      {
+        label: string;
+        logos: any[];
+        logoCount: number;
+        printPositionValueId?: string | null;
+        rotation?: number;
+      }
+    > = {};
     for (const [areaId, list] of activeUploads) {
       const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
       const label = activeMedia.mockupSideName || area?.label || "Kustom";
-      const totalCount = list.reduce((sum, item) => sum + (item.logoCount || 1), 0);
+      const totalCount = list.reduce(
+        (sum, item) => sum + (item.logoCount || 1),
+        0,
+      );
 
       // Enrich logos with physical calculations so they are persisted in cart/checkout
       const enrichedLogos = list.map((logo) => {
@@ -798,11 +713,17 @@ export function ProductCustomizer({
         const logoHeight = scale / aspect;
 
         const leftDistance = xOffset - (area?.x || 0);
-        const rightDistance = ((area?.x || 0) + (area?.width || 0)) - (xOffset + scale);
+        const rightDistance =
+          (area?.x || 0) + (area?.width || 0) - (xOffset + scale);
         const topDistance = yOffset - (area?.y || 0);
-        const bottomDistance = ((area?.y || 0) + (area?.height || 0)) - (yOffset + logoHeight);
+        const bottomDistance =
+          (area?.y || 0) + (area?.height || 0) - (yOffset + logoHeight);
 
-        const getCmVal = (distPct: number, physicalSize?: number, baseSize?: number) => {
+        const getCmVal = (
+          distPct: number,
+          physicalSize?: number,
+          baseSize?: number,
+        ) => {
           if (physicalSize && baseSize) {
             const cmVal = distPct * (physicalSize / baseSize);
             return `${Math.round(cmVal * 10) / 10}${area?.unit || "cm"}`;
@@ -813,13 +734,13 @@ export function ProductCustomizer({
         const logoWidthCm = area?.physicalWidth
           ? (scale / area.width) * area.physicalWidth
           : null;
-        const logoHeightCm = logoWidthCm && aspect
-          ? logoWidthCm / aspect
-          : null;
-        
-        const physicalDimensions = logoWidthCm && logoHeightCm
-          ? `${Math.round(logoWidthCm * 10) / 10} x ${Math.round(logoHeightCm * 10) / 10} ${area?.unit || "cm"}`
-          : `${Math.round(scale)}%`;
+        const logoHeightCm =
+          logoWidthCm && aspect ? logoWidthCm / aspect : null;
+
+        const physicalDimensions =
+          logoWidthCm && logoHeightCm
+            ? `${Math.round(logoWidthCm * 10) / 10} x ${Math.round(logoHeightCm * 10) / 10} ${area?.unit || "cm"}`
+            : `${Math.round(scale)}%`;
 
         return {
           ...logo,
@@ -828,7 +749,11 @@ export function ProductCustomizer({
             left: getCmVal(leftDistance, area?.physicalWidth, area?.width),
             right: getCmVal(rightDistance, area?.physicalWidth, area?.width),
             top: getCmVal(topDistance, area?.physicalHeight, area?.height),
-            bottom: getCmVal(bottomDistance, area?.physicalHeight, area?.height),
+            bottom: getCmVal(
+              bottomDistance,
+              area?.physicalHeight,
+              area?.height,
+            ),
           },
           printingMethod: selectedPrintingMethod || "Custom Cetak",
         };
@@ -1133,7 +1058,7 @@ export function ProductCustomizer({
         100 * scaleFactor,
       );
       ctx.fillText(
-        " VISUAL PREVIEW PRODUK (MOCKUP)",
+        "✨ VISUAL PREVIEW PRODUK (MOCKUP)",
         528 * scaleFactor,
         100 * scaleFactor,
       );
@@ -1237,93 +1162,6 @@ export function ProductCustomizer({
         {/* Left Column: Preview Canvas & Gallery Thumbnails */}
         <div className="lg:col-span-7 flex flex-col gap-4 w-full">
           {/* ── Area Preview Utama + Overlay Interaktif ── */}
-<<<<<<< Updated upstream
-          <div ref={canvasRef} className="relative aspect-square w-full bg-stone-50 rounded-sm overflow-hidden border border-stone-200 flex items-center justify-center select-none">
-        {activeMedia.type === "video" ? (
-          <video
-            src={getMockupBackgroundUrl(activeMedia)}
-            controls
-            preload="none"
-            poster={getCloudinaryVideoPoster(getMockupBackgroundUrl(activeMedia), 800, 800) || undefined}
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <div className="relative w-full h-full">
-            {/* Gambar Produk Dasar */}
-            <img
-              src={getOptimizedImageUrl(getMockupBackgroundUrl(activeMedia), 1200)}
-              alt={`${productName} - view`}
-              className="w-full h-full object-contain p-2 select-none pointer-events-none"
-            />
-            {/* Unified Specification Details Card (Top Right Overlay) */}
-            <div className="absolute top-2.5 right-2.5 z-20 mockup-spec-box bg-stone-900/90 text-white text-[7.5px] sm:text-[8px] font-medium tracking-wide p-1.5 rounded-sm shadow-md select-none pointer-events-none flex flex-col gap-1 border border-stone-850 max-w-[165px] leading-tight">
-              {productDimensions && (
-                <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
-                  <Ruler className="w-2 h-2 text-blue-400 shrink-0" />
-                  <span><strong>Dimensi Produk:</strong> {productDimensions}</span>
-                </div>
-              )}
-              {activeLogoDetails && (
-                <>
-                  {logoDimensionStr && (
-                    <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
-                      <Maximize2 className="w-2 h-2 text-amber-400 shrink-0" />
-                      <span><strong>Dimensi Logo:</strong> {logoDimensionStr}</span>
-                    </div>
-                  )}
-                  {distanceStr && (
-                    <div className="flex flex-col gap-0.5 border-b border-stone-800/60 pb-0.5">
-                      <div className="flex items-center gap-1 text-stone-300">
-                        <Move className="w-2 h-2 text-teal-400 shrink-0" />
-                        <span><strong>Jarak Sisi:</strong></span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5 pl-3 font-mono text-[7px] sm:text-[7.5px] text-stone-300">
-                        <span>Atas: {distanceStr.top}</span>
-                        <span>Bawah: {distanceStr.bottom}</span>
-                        <span>Kiri: {distanceStr.left}</span>
-                        <span>Kanan: {distanceStr.right}</span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-              {selectedPrintingMethod && (
-                <div className="flex items-center gap-1 pt-0.5">
-                  <Printer className="w-2 h-2 text-indigo-400 shrink-0" />
-                  <span><strong>Metode Cetak:</strong> {selectedPrintingMethod}</span>
-                </div>
-              )}
-            </div>
-            {(() => {
-              const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
-              const rawOverlayUrl = (colorMockupTrigger && colorMockupTrigger !== "NONE")
-                ? activeMask
-                : getMockupBackgroundUrl(activeMedia);
-              const colorOverlayUrl = rawOverlayUrl ? getOptimizedImageUrl(rawOverlayUrl, 1200) : "";
-
-              const showColorOverlay = (colorMockupTrigger && colorMockupTrigger !== "NONE")
-                ? (!!customColor && !!activeMask)
-                : (isColorPickerActive && !!customColor);
-
-              if (!showColorOverlay || !colorOverlayUrl) return null;
-
-              return (
-                <div
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  style={{
-                    backgroundColor: customColor,
-                    mixBlendMode: "multiply",
-                    maskImage: `url(${colorOverlayUrl})`,
-                    maskSize: "contain",
-                    maskRepeat: "no-repeat",
-                    maskPosition: "center",
-                    WebkitMaskImage: `url(${colorOverlayUrl})`,
-                    WebkitMaskSize: "contain",
-                    WebkitMaskRepeat: "no-repeat",
-                    WebkitMaskPosition: "center",
-                    padding: "8px",
-                  }}
-=======
           <div
             ref={canvasRef}
             className="relative aspect-square w-full bg-stone-50 rounded-sm overflow-hidden border border-stone-200 flex items-center justify-center select-none">
@@ -1331,16 +1169,26 @@ export function ProductCustomizer({
               <video
                 src={getMockupBackgroundUrl(activeMedia)}
                 controls
+                preload="none"
+                poster={
+                  getCloudinaryVideoPoster(
+                    getMockupBackgroundUrl(activeMedia),
+                    800,
+                    800,
+                  ) || undefined
+                }
                 className="w-full h-full object-contain"
               />
             ) : (
               <div className="relative w-full h-full">
                 {/* Gambar Produk Dasar */}
                 <img
-                  src={getMockupBackgroundUrl(activeMedia)}
+                  src={getOptimizedImageUrl(
+                    getMockupBackgroundUrl(activeMedia),
+                    1200,
+                  )}
                   alt={`${productName} - view`}
                   className="w-full h-full object-contain p-2 select-none pointer-events-none"
->>>>>>> Stashed changes
                 />
                 {/* Unified Specification Details Card (Top Right Overlay) */}
                 <div className="absolute top-2.5 right-2.5 z-20 mockup-spec-box bg-stone-900/90 text-white text-[7.5px] sm:text-[8px] font-medium tracking-wide p-1.5 rounded-sm shadow-md select-none pointer-events-none flex flex-col gap-1 border border-stone-850 max-w-[165px] leading-tight">
@@ -1391,10 +1239,13 @@ export function ProductCustomizer({
                 </div>
                 {(() => {
                   const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
-                  const colorOverlayUrl =
+                  const rawOverlayUrl =
                     colorMockupTrigger && colorMockupTrigger !== "NONE"
                       ? activeMask
                       : getMockupBackgroundUrl(activeMedia);
+                  const colorOverlayUrl = rawOverlayUrl
+                    ? getOptimizedImageUrl(rawOverlayUrl, 1200)
+                    : "";
 
                   const showColorOverlay =
                     colorMockupTrigger && colorMockupTrigger !== "NONE"
@@ -1946,7 +1797,6 @@ export function ProductCustomizer({
                       : "border-stone-200 hover:border-stone-400"
                   }`}>
                   {item.type === "video" ? (
-<<<<<<< Updated upstream
                     <div className="relative w-full h-full bg-stone-900 flex items-center justify-center">
                       {getCloudinaryVideoPoster(item.url) ? (
                         <Image
@@ -1957,18 +1807,17 @@ export function ProductCustomizer({
                           sizes="80px"
                         />
                       ) : null}
-                      <span className="relative z-10 text-[9px] font-semibold text-white bg-black/60 px-1.5 py-0.5 rounded">Video</span>
-=======
-                    <div className="w-full h-full bg-stone-200 flex items-center justify-center">
-                      <span className="text-[9px] font-semibold text-stone-600">
+                      <span className="relative z-10 text-[9px] font-semibold text-white bg-black/60 px-1.5 py-0.5 rounded">
                         Video
                       </span>
->>>>>>> Stashed changes
                     </div>
                   ) : (
                     <>
                       <Image
-                        src={getOptimizedImageUrl(getMockupBackgroundUrl(item), 160)}
+                        src={getOptimizedImageUrl(
+                          getMockupBackgroundUrl(item),
+                          160,
+                        )}
                         alt={`${productName} thumbnail ${i + 1}`}
                         fill
                         className="object-cover p-1 bg-stone-50"
