@@ -226,13 +226,10 @@ export default function Navbar() {
                     <SheetTitle className="text-left flex items-center gap-3">
                       <Image
                         alt="Logo"
-                        src={"/images/GG.png"}
-                        width={28}
-                        height={28}
+                        src={"/images/gg-nav-menu.webp"}
+                        width={128}
+                        height={80}
                       />
-                      <span className="tracking-widest text-lg text-gray-900">
-                        GOENAKAN
-                      </span>
                     </SheetTitle>
                   </SheetHeader>
 
