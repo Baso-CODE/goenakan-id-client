@@ -5,12 +5,14 @@ export async function getPublicCategories(
   lang: string = "id",
 ): Promise<CategoryPublic[]> {
   try {
-    const res = await fetch(`${apiUrl}/product-categories/public`, {
-      cache: "no-store",
-      headers: {
-        "x-language": lang,
+    const res = await fetch(
+      `${apiUrl}/product-categories/public?lang=${lang}`,
+      {
+        next: {
+          revalidate: 300,
+        },
       },
-    });
+    );
 
     if (!res.ok) return [];
     const json = await res.json();
