@@ -16,7 +16,7 @@ import { LoadMoreButton } from "@/app/components/products/Loadmorebutton";
 import { ProductGrid } from "@/app/components/products/Productgrid";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// ✨ TAMBAHAN: Import komponen Tabs dari shadcn
+//  TAMBAHAN: Import komponen Tabs dari shadcn
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // =====================================================================
@@ -64,7 +64,7 @@ export default function GlobalSearchPage() {
 
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-  // ✨ TAMBAHAN: State untuk mengatur tab mana yang sedang aktif
+  //  TAMBAHAN: State untuk mengatur tab mana yang sedang aktif
   const [activeTab, setActiveTab] = useState("products");
 
   // --- STATE UNTUK PRODUK ---
@@ -204,7 +204,7 @@ export default function GlobalSearchPage() {
             <Skeleton className="h-64 w-full" />
           </div>
         ) : (
-          /* ✨ UBAH: Layout yang awalnya numpuk vertikal kini digabung menggunakan Tabs */
+          /*  UBAH: Layout yang awalnya numpuk vertikal kini digabung menggunakan Tabs */
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}

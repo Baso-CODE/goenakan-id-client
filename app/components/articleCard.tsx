@@ -1,3 +1,4 @@
+import { ImageOff } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -21,14 +22,26 @@ export function ArticleCard({ article }: ArticleCardProps) {
       href={article.href}
       className="group flex flex-col h-full bg-white rounded-xl overflow-hidden border border-stone-100 shadow-sm hover:shadow-md transition-shadow duration-300">
       {/* Container Gambar */}
-      <div className="relative w-full aspect-4/3 overflow-hidden bg-stone-100">
-        <Image
-          src={article.image || "/images/placeholder.jpg"}
-          alt={article.title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-        />
+      <div className="relative w-full aspect-4/3 overflow-hidden bg-stone-100 flex items-center justify-center">
+        {/*  PENGKONDISIAN GAMBAR: Cek apakah article.image ada */}
+        {article.image ? (
+          <Image
+            src={article.image}
+            alt={article.title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        ) : (
+          /*  TAMPILAN JIKA TIDAK ADA GAMBAR */
+          <div className="flex flex-col items-center justify-center text-stone-400 p-4">
+            <ImageOff className="w-10 h-10 mb-2 stroke-[1.5]" />
+            <span className="text-xs uppercase tracking-wider font-medium">
+              No Image
+            </span>
+          </div>
+        )}
+
         {/* Badge Kategori di atas gambar */}
         <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-stone-700 rounded-sm">
           {article.category}

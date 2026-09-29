@@ -9,4 +9,5 @@ export interface BestSellerProduct {
   sold: number;
   isCustom: boolean;
   categoryName: string;
+  currencyCode?: string;
 }

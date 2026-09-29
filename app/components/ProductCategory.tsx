@@ -42,7 +42,7 @@ export default function ProductCategory() {
     return () => {
       isMounted = false;
     };
-  }, [locale]);
+  }, [locale]); // 3. useEffect akan dijalankan ulang jika 'locale' (bahasa) berubah
 
   if (isLoading) {
     return (

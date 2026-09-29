@@ -74,7 +74,7 @@ export default function FilterProduct() {
   // Handle Fetch data dari Page 1 sampai Page aktif saat ini
   useEffect(() => {
     const fetchProductsData = async () => {
-      // ✨ 2. Jika URL berubah karena tombol Load More, batalkan fetch ulang ini!
+      //  2. Jika URL berubah karena tombol Load More, batalkan fetch ulang ini!
       if (isLoadMoreRef.current) {
         isLoadMoreRef.current = false; // Turunkan kembali benderanya
         return;
@@ -130,7 +130,7 @@ export default function FilterProduct() {
     keyOrObj: keyof FilterState | Partial<FilterState>,
     value?: string,
   ) => {
-    // ✨ 3. Pastikan flag dimatikan jika user mengubah filter agar loading screen muncul kembali
+    //  3. Pastikan flag dimatikan jika user mengubah filter agar loading screen muncul kembali
     isLoadMoreRef.current = false;
 
     let updatedFilters = filters;

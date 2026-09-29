@@ -1,15 +1,21 @@
 import { BestSellerProduct } from "@/app/types/bestSellerProduct.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
-export async function getBestSellerProductsAPI(): Promise<BestSellerProduct[]> {
+export async function getBestSellerProductsAPI(
+  country: string = "ID",
+  locale: string = "id",
+): Promise<BestSellerProduct[]> {
   try {
-    const res = await fetch(`${apiUrl}/products/best-sellers`, {
-      method: "GET",
-      next: {
-        revalidate: 300,
-        tags: ["best-sellers"],
+    const res = await fetch(
+      `${apiUrl}/products/best-sellers?country=${country}&lang=${locale}`,
+      {
+        method: "GET",
+        next: {
+          revalidate: 300,
+          tags: ["best-sellers"],
+        },
       },
-    });
+    );
 
     if (!res.ok) throw new Error("Failed to fetch best seller products");
 
