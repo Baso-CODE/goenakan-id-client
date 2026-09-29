@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 
 export interface LogoItem {
@@ -189,6 +190,9 @@ export function ProductCustomizer({
   colorMockupTrigger,
   colorMaskUrl,
 }: ProductCustomizerProps) {
+  const locale = useLocale();
+  const isEn = locale === "en";
+
   const isImageCustomizable = (item: MediaItem) => {
     return !!(item.mockupAreas && item.mockupAreas.length > 0);
   };
@@ -873,7 +877,9 @@ export function ProductCustomizer({
   const handleDownloadMockup = async () => {
     if (!canvasRef.current || !media[activeIndex]) return;
 
-    const toastId = toast.loading("Sedang menyiapkan unduhan mockup...");
+    const toastId = toast.loading(
+      isEn ? "Preparing mockup download..." : "Sedang menyiapkan unduhan mockup...",
+    );
     try {
       const { toPng } = await import("html-to-image");
       const scaleFactor = 3;
@@ -896,11 +902,11 @@ export function ProductCustomizer({
       setIsDownloading(true);
 
       const view = media[activeIndex];
-      const sideName =
-        view.mockupSideName ||
-        (isMultiFace && view.id === mockupBackImageId
-          ? "Tampak Belakang"
-          : "Tampak Depan");
+      const defaultSideName =
+        view.id === mockupBackImageId
+          ? (isEn ? "Back View" : "Tampak Belakang")
+          : (isEn ? "Front View" : "Tampak Depan");
+      const sideName = view.mockupSideName || defaultSideName;
 
       // Target visual overlay elements on the current canvas DOM
       const guides = canvasRef.current.querySelectorAll(".mockup-guide-area");
@@ -1018,7 +1024,9 @@ export function ProductCustomizer({
       ctx.fillStyle = "#78716c";
       ctx.font = `600 ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
       ctx.fillText(
-        `SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`,
+        isEn
+          ? `SIDE/POSITION: ${sideName.toUpperCase()} | MOCKUP SPECIFICATION SHEET`
+          : `SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`,
         24 * scaleFactor,
         60 * scaleFactor,
       );
@@ -1049,16 +1057,28 @@ export function ProductCustomizer({
         cleanImg.onload = resolve;
       });
 
+      // Load watermark image
+      const watermarkImg = new window.Image();
+      watermarkImg.src = "/images/watermark.png";
+      await new Promise((resolve) => {
+        watermarkImg.onload = resolve;
+        watermarkImg.onerror = resolve; // Graceful fallback
+      });
+
       // Column Labels
       ctx.fillStyle = "#44403c";
       ctx.font = `bold ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
       ctx.fillText(
-        "📐 SPESIFIKASI & UKURAN PENEMPATAN",
+        isEn
+          ? "📐 SPECIFICATIONS & PLACEMENT"
+          : "📐 SPESIFIKASI & UKURAN PENEMPATAN",
         24 * scaleFactor,
         100 * scaleFactor,
       );
       ctx.fillText(
-        "✨ VISUAL PREVIEW PRODUK (MOCKUP)",
+        isEn
+          ? "✨ PRODUCT VISUAL PREVIEW (MOCKUP)"
+          : "✨ VISUAL PREVIEW PRODUK (MOCKUP)",
         528 * scaleFactor,
         100 * scaleFactor,
       );
@@ -1095,6 +1115,20 @@ export function ProductCustomizer({
         488 * scaleFactor,
       );
 
+      // Draw Watermark over Right Clean Preview
+      if (watermarkImg.complete && watermarkImg.naturalWidth > 0) {
+        const wmAspect = watermarkImg.naturalWidth / watermarkImg.naturalHeight;
+        const targetWmWidth = 488 * scaleFactor * 0.55;
+        const targetWmHeight = targetWmWidth / wmAspect;
+        const wmX = 528 * scaleFactor + (488 * scaleFactor - targetWmWidth) / 2;
+        const wmY = 115 * scaleFactor + (488 * scaleFactor - targetWmHeight) / 2;
+
+        ctx.save();
+        ctx.globalAlpha = 0.35;
+        ctx.drawImage(watermarkImg, wmX, wmY, targetWmWidth, targetWmHeight);
+        ctx.restore();
+      }
+
       // Trigger Download
       const finalDataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
@@ -1103,15 +1137,25 @@ export function ProductCustomizer({
       link.click();
 
       setIsDownloading(false);
-      toast.success(`Berhasil mengunduh mockup (${sideName})!`, {
-        id: toastId,
-      });
+      toast.success(
+        isEn
+          ? `Mockup (${sideName}) downloaded successfully!`
+          : `Berhasil mengunduh mockup (${sideName})!`,
+        {
+          id: toastId,
+        },
+      );
     } catch (err) {
       console.error(err);
       setIsDownloading(false);
-      toast.error("Gagal mengunduh mockup. Silakan coba lagi.", {
-        id: toastId,
-      });
+      toast.error(
+        isEn
+          ? "Failed to download mockup. Please try again."
+          : "Gagal mengunduh mockup. Silakan coba lagi.",
+        {
+          id: toastId,
+        },
+      );
     }
   };
 
@@ -1196,7 +1240,7 @@ export function ProductCustomizer({
                     <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
                       <Ruler className="w-2 h-2 text-blue-400 shrink-0" />
                       <span>
-                        <strong>Dimensi Produk:</strong> {productDimensions}
+                        <strong>{isEn ? "Product Dimensions:" : "Dimensi Produk:"}</strong> {productDimensions}
                       </span>
                     </div>
                   )}
@@ -1206,7 +1250,7 @@ export function ProductCustomizer({
                         <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
                           <Maximize2 className="w-2 h-2 text-amber-400 shrink-0" />
                           <span>
-                            <strong>Dimensi Logo:</strong> {logoDimensionStr}
+                            <strong>{isEn ? "Logo Dimensions:" : "Dimensi Logo:"}</strong> {logoDimensionStr}
                           </span>
                         </div>
                       )}
@@ -1215,14 +1259,14 @@ export function ProductCustomizer({
                           <div className="flex items-center gap-1 text-stone-300">
                             <Move className="w-2 h-2 text-teal-400 shrink-0" />
                             <span>
-                              <strong>Jarak Sisi:</strong>
+                              <strong>{isEn ? "Edge Distance:" : "Jarak Sisi:"}</strong>
                             </span>
                           </div>
                           <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5 pl-3 font-mono text-[7px] sm:text-[7.5px] text-stone-300">
-                            <span>Atas: {distanceStr.top}</span>
-                            <span>Bawah: {distanceStr.bottom}</span>
-                            <span>Kiri: {distanceStr.left}</span>
-                            <span>Kanan: {distanceStr.right}</span>
+                            <span>{isEn ? "Top:" : "Atas:"} {distanceStr.top}</span>
+                            <span>{isEn ? "Bottom:" : "Bawah:"} {distanceStr.bottom}</span>
+                            <span>{isEn ? "Left:" : "Kiri:"} {distanceStr.left}</span>
+                            <span>{isEn ? "Right:" : "Kanan:"} {distanceStr.right}</span>
                           </div>
                         </div>
                       )}
@@ -1232,7 +1276,7 @@ export function ProductCustomizer({
                     <div className="flex items-center gap-1 pt-0.5">
                       <Printer className="w-2 h-2 text-indigo-400 shrink-0" />
                       <span>
-                        <strong>Metode Cetak:</strong> {selectedPrintingMethod}
+                        <strong>{isEn ? "Printing Method:" : "Metode Cetak:"}</strong> {selectedPrintingMethod}
                       </span>
                     </div>
                   )}
@@ -1860,8 +1904,8 @@ export function ProductCustomizer({
                 type="button"
                 onClick={handleDownloadMockup}
                 className="flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition-colors cursor-pointer uppercase tracking-wider shadow-2xs"
-                title="Unduh mockup hasil kustomisasi">
-                <Download className="w-3 h-3" /> Unduh Mockup
+                title={isEn ? "Download customized mockup" : "Unduh mockup hasil kustomisasi"}>
+                <Download className="w-3 h-3" /> {isEn ? "Download Mockup" : "Unduh Mockup"}
               </button>
             </h3>
             {isImageCustomizable(activeMedia) &&
