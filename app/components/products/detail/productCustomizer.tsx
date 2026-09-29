@@ -1038,14 +1038,16 @@ export function ProductCustomizer({
             </div>
             {(() => {
               const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
-              const rawOverlayUrl = (colorMockupTrigger && colorMockupTrigger !== "NONE")
-                ? activeMask
-                : getMockupBackgroundUrl(activeMedia);
+              const rawOverlayUrl = activeMask || (
+                (colorMockupTrigger && colorMockupTrigger !== "NONE")
+                  ? activeMask
+                  : getMockupBackgroundUrl(activeMedia)
+              );
               const colorOverlayUrl = rawOverlayUrl ? getOptimizedImageUrl(rawOverlayUrl, 1200) : "";
 
-              const showColorOverlay = (colorMockupTrigger && colorMockupTrigger !== "NONE")
-                ? (!!customColor && !!activeMask)
-                : (isColorPickerActive && !!customColor);
+              const showColorOverlay = !!customColor && (
+                !!activeMask || (isColorPickerActive && (colorMockupTrigger === "NONE" || !colorMockupTrigger))
+              );
 
               if (!showColorOverlay || !colorOverlayUrl) return null;
 
@@ -1059,10 +1061,14 @@ export function ProductCustomizer({
                     maskSize: "contain",
                     maskRepeat: "no-repeat",
                     maskPosition: "center",
+                    maskOrigin: "content-box",
+                    maskClip: "content-box",
                     WebkitMaskImage: `url(${colorOverlayUrl})`,
                     WebkitMaskSize: "contain",
                     WebkitMaskRepeat: "no-repeat",
                     WebkitMaskPosition: "center",
+                    WebkitMaskOrigin: "content-box",
+                    WebkitMaskClip: "content-box",
                     padding: "8px",
                   }}
                 />

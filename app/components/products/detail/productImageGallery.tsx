@@ -43,9 +43,11 @@ export function ProductImageGallery({
 
   const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
 
-  const rawColorOverlayUrl = (colorMockupTrigger && colorMockupTrigger !== "NONE")
-    ? activeMask
-    : activeMedia.url;
+  const rawColorOverlayUrl = activeMask || (
+    (colorMockupTrigger && colorMockupTrigger !== "NONE")
+      ? activeMask
+      : activeMedia.url
+  );
 
   const colorOverlayUrl = rawColorOverlayUrl ? getOptimizedImageUrl(rawColorOverlayUrl, 1200) : "";
 
@@ -86,10 +88,14 @@ export function ProductImageGallery({
                   maskSize: "contain",
                   maskRepeat: "no-repeat",
                   maskPosition: "center",
+                  maskOrigin: "content-box",
+                  maskClip: "content-box",
                   WebkitMaskImage: `url(${colorOverlayUrl})`,
                   WebkitMaskSize: "contain",
                   WebkitMaskRepeat: "no-repeat",
                   WebkitMaskPosition: "center",
+                  WebkitMaskOrigin: "content-box",
+                  WebkitMaskClip: "content-box",
                   padding: "24px",
                 }}
               />
