@@ -1201,15 +1201,29 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     let productMedia: MediaItem[] = [];
 
     if (hasConfiguredMockups) {
+      // Periksa apakah ada mockup yang cocok dengan varian/atribut yang dipilih saat ini
+      const hasMatchingMockup = (product.media || []).some(
+        (img) =>
+          ((img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl) &&
+          img.attributeValueId &&
+          selectedAttributeValueIdSet.has(img.attributeValueId),
+      );
+
       productMedia = (product.media || [])
         .filter((img) => {
           const isMockup =
             (img.mockupAreas && img.mockupAreas.length > 0) ||
             !!img.colorMaskUrl;
           if (isMockup) {
-            // Mockup kustom wajib ditautkan ke varian untuk ditampilkan
-            if (!img.attributeValueId) return false;
-            return selectedAttributeValueIdSet.has(img.attributeValueId);
+            // Mockup tanpa attributeValueId berlaku untuk semua varian
+            if (!img.attributeValueId) return true;
+            // Jika ada mockup yang cocok dengan varian terpilih, tampilkan yang cocok saja
+            if (hasMatchingMockup) {
+              return selectedAttributeValueIdSet.has(img.attributeValueId);
+            }
+            // Fallback: jika belum ada varian yang dipilih, jangan hilangkan mockup
+            // agar customizer tetap dapat dibuka dan diakses oleh user
+            return true;
           } else {
             // Gambar produk biasa
             if (!img.attributeValueId) return true;

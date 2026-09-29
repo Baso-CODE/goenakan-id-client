@@ -1,7 +1,11 @@
 "use client";
 
 import { MediaItem } from "@/app/types/productDetail.type";
-import { getCloudinaryVideoPoster, getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
+import {
+  getCloudinaryVideoPoster,
+  getOptimizedImageUrl,
+  getOptimizedVideoUrl,
+} from "@/app/utils/mediaOptimization";
 import { PlayCircle } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -25,6 +29,9 @@ export function ProductImageGallery({
 }: ProductImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const mediaIdsKey =
+    media?.map((item) => item.id || item.url).join(",") || "";
+
   useEffect(() => {
     if (!media || media.length === 0) return;
     // Auto-select the first image that is color customizable when media list changes
@@ -32,9 +39,9 @@ export function ProductImageGallery({
     if (customIndex !== -1) {
       setActiveIndex(customIndex);
     } else {
-      setActiveIndex(0);
+      setActiveIndex((prev) => (prev < media.length ? prev : 0));
     }
-  }, [media]);
+  }, [mediaIdsKey]);
 
   // Jika tidak ada media, jangan render apa-apa
   if (!media || media.length === 0) return null;
@@ -59,12 +66,11 @@ export function ProductImageGallery({
       <div className="relative aspect-square w-full bg-stone-50 rounded-sm overflow-hidden border border-stone-100 flex items-center justify-center">
         {activeMedia.type === "video" ? (
           <video
-            src={activeMedia.url}
+            key={activeMedia.id || activeMedia.url}
+            src={getOptimizedVideoUrl(activeMedia.url) || activeMedia.url}
             controls
-            autoPlay
-            muted
-            loop
-            preload="metadata"
+            preload="none"
+            playsInline
             poster={getCloudinaryVideoPoster(activeMedia.url, 800, 800) || undefined}
             className="w-full h-full object-contain"
           />
@@ -72,7 +78,7 @@ export function ProductImageGallery({
           showColorOverlay && colorOverlayUrl ? (
             <div className="relative w-full h-full">
               <Image
-                src={activeMedia.url}
+                src={getOptimizedImageUrl(activeMedia.url, 1200)}
                 alt={`${productName} - base`}
                 fill
                 className="object-contain p-6"
@@ -102,7 +108,7 @@ export function ProductImageGallery({
             </div>
           ) : (
             <Image
-              src={activeMedia.url}
+              src={getOptimizedImageUrl(activeMedia.url, 1200)}
               alt={`${productName} - media ${activeIndex + 1}`}
               fill
               className="object-contain p-6"

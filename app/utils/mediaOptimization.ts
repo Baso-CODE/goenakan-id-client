@@ -43,3 +43,23 @@ export function getOptimizedImageUrl(
   }
   return url;
 }
+
+/**
+ * Returns an optimized Cloudinary video URL with adaptive bitrate compression,
+ * auto codec selection (H.264/WebM), and max resolution cap.
+ */
+export function getOptimizedVideoUrl(
+  url: string | null | undefined,
+  width = 1080
+): string {
+  if (!url) return "";
+  if (url.includes("/video/upload/")) {
+    if (!url.includes("/video/upload/q_") && !url.includes("/video/upload/w_")) {
+      return url.replace(
+        "/video/upload/",
+        `/video/upload/q_auto,w_${width},vc_auto/`
+      );
+    }
+  }
+  return url;
+}
