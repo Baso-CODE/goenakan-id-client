@@ -764,19 +764,37 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   );
 
   const activeColorMaskUrl = useMemo(() => {
-    if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE")
-      return null;
+    let maskUrl: string | null = null;
 
-    const targetType =
-      product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
-    const activeVal = product.attributeValues?.find((av: any) => {
-      if (av.attributeType !== targetType) return false;
-      return selectedAttributeValueIdSet.has(av.attributeValueId);
-    });
+    if (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE") {
+      const targetType =
+        product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
+      const activeVal = product.attributeValues?.find((av: any) => {
+        if (av.attributeType !== targetType) return false;
+        return selectedAttributeValueIdSet.has(av.attributeValueId);
+      });
 
-    if (!activeVal || !activeVal.value) return null;
-    const parts = activeVal.value.split("|");
-    return parts[2] || null;
+      if (activeVal?.value) {
+        const parts = activeVal.value.split("|");
+        if (parts[2]) maskUrl = parts[2];
+      }
+    }
+
+    // Fallback: Check if any currently selected attribute value contains a mask in parts[2]
+    if (!maskUrl && product.attributeValues) {
+      const activeValWithMask = product.attributeValues.find((av: any) => {
+        if (!selectedAttributeValueIdSet.has(av.attributeValueId)) return false;
+        if (!av.value || typeof av.value !== "string") return false;
+        const parts = av.value.split("|");
+        return parts.length >= 3 && !!parts[2];
+      });
+      if (activeValWithMask?.value) {
+        const parts = activeValWithMask.value.split("|");
+        if (parts[2]) maskUrl = parts[2];
+      }
+    }
+
+    return maskUrl;
   }, [
     product.colorMockupTrigger,
     product.attributeValues,
@@ -1106,19 +1124,25 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const adminWhatsApp = "6282387902238";
 
   const attributeMockupMedia = useMemo(() => {
-    if (!product.colorMockupTrigger || product.colorMockupTrigger === "NONE") {
-      // console.log("DEBUG attributeMockupMedia: Trigger is NONE or undefined");
-      return null;
+    let activeVal: any = null;
+
+    if (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE") {
+      const targetType =
+        product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
+      activeVal = product.attributeValues?.find((av: any) => {
+        if (av.attributeType !== targetType) return false;
+        return selectedAttributeValueIdSet.has(av.attributeValueId);
+      });
     }
 
-    const targetType =
-      product.colorMockupTrigger === "SIZE" ? "SIZE" : "MODEL_SHAPE";
-    const activeVal = product.attributeValues?.find((av: any) => {
-      if (av.attributeType !== targetType) return false;
-      return selectedAttributeValueIdSet.has(av.attributeValueId);
-    });
-
-    // console.log("DEBUG attributeMockupMedia: activeVal found =", activeVal);
+    if (!activeVal && product.attributeValues) {
+      activeVal = product.attributeValues.find((av: any) => {
+        if (!selectedAttributeValueIdSet.has(av.attributeValueId)) return false;
+        if (!av.value || typeof av.value !== "string") return false;
+        const parts = av.value.split("|");
+        return parts.length >= 2 && !!parts[1];
+      });
+    }
 
     if (!activeVal || !activeVal.value) return null;
     const parts = activeVal.value.split("|");

@@ -1200,7 +1200,78 @@ export function ProductCustomizer({
                       </span>
                     </div>
                   )}
-                  {activeLogoDetails && (
+                </>
+              )}
+              {selectedPrintingMethod && (
+                <div className="flex items-center gap-1 pt-0.5">
+                  <Printer className="w-2 h-2 text-indigo-400 shrink-0" />
+                  <span><strong>Metode Cetak:</strong> {selectedPrintingMethod}</span>
+                </div>
+              )}
+            </div>
+            {(() => {
+              const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
+              const rawOverlayUrl = activeMask || (
+                (colorMockupTrigger && colorMockupTrigger !== "NONE")
+                  ? activeMask
+                  : getMockupBackgroundUrl(activeMedia)
+              );
+              const colorOverlayUrl = rawOverlayUrl ? getOptimizedImageUrl(rawOverlayUrl, 1200) : "";
+
+              const showColorOverlay = !!customColor && (
+                !!activeMask || (isColorPickerActive && (colorMockupTrigger === "NONE" || !colorMockupTrigger))
+              );
+
+              if (!showColorOverlay || !colorOverlayUrl) return null;
+
+              return (
+                <div
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  style={{
+                    backgroundColor: customColor,
+                    mixBlendMode: "multiply",
+                    maskImage: `url(${colorOverlayUrl})`,
+                    maskSize: "contain",
+                    maskRepeat: "no-repeat",
+                    maskPosition: "center",
+                    maskOrigin: "content-box",
+                    maskClip: "content-box",
+                    WebkitMaskImage: `url(${colorOverlayUrl})`,
+                    WebkitMaskSize: "contain",
+                    WebkitMaskRepeat: "no-repeat",
+                    WebkitMaskPosition: "center",
+                    WebkitMaskOrigin: "content-box",
+                    WebkitMaskClip: "content-box",
+                    padding: "8px",
+                  }}
+                />
+              );
+            })()}
+
+            {/* Render Overlay Mockup Area Guides */}
+            {isImageCustomizable(activeMedia) && activeMedia.mockupAreas?.map((area) => {
+              const logoList = uploads[area.id] || [];
+              return (
+                <div
+                  key={`guide-${area.id}`}
+                  style={{
+                    position: "absolute",
+                    left: `${area.x}%`,
+                    top: `${area.y}%`,
+                    width: `${area.width}%`,
+                    height: `${area.height}%`,
+                    transform: `rotate(${area.rotation || 0}deg)`,
+                  }}
+                  onClick={() => triggerUpload(area.id)}
+                  className={`mockup-guide-area border-2 border-dashed flex flex-col items-center justify-center p-1 rounded-sm group transition-colors select-none ${
+                    logoList.length > 0
+                      ? "border-green-400/50 bg-green-500/2"
+                      : "border-blue-400/60 bg-blue-500/3 hover:bg-blue-500/6 cursor-pointer"
+                  }`}
+                  title={logoList.length > 0 ? `Klik untuk tambah logo ke area: ${activeMedia.mockupSideName || area.label}` : `Klik untuk unggah logo ke area: ${activeMedia.mockupSideName || area.label}`}
+                >
+                  {/* Bounding box dimension labels (inside top-center and inside right-center) */}
+                  {area.physicalWidth && area.physicalHeight && (
                     <>
                       {logoDimensionStr && (
                         <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
