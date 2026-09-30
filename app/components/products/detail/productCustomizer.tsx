@@ -1011,30 +1011,57 @@ export function ProductCustomizer({
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Load branding logo
+      const logoImg = new window.Image();
+      logoImg.src = "/images/gg-nav-menu.webp";
+      await new Promise((resolve) => {
+        logoImg.onload = resolve;
+        logoImg.onerror = resolve; // Graceful fallback
+      });
+
+      // Draw Branding Logo (Right Top)
+      const logoAspect =
+        logoImg.complete && logoImg.naturalWidth && logoImg.naturalHeight
+          ? logoImg.naturalWidth / logoImg.naturalHeight
+          : 793 / 255;
+      const logoH = 34 * scaleFactor;
+      const logoW = logoH * logoAspect;
+      const logoX = 1016 * scaleFactor - logoW;
+      const logoY = 22 * scaleFactor;
+
+      if (logoImg.complete && logoImg.naturalWidth > 0) {
+        ctx.drawImage(logoImg, logoX, logoY, logoW, logoH);
+      }
+
+      // Helper to truncate text with ellipsis if it exceeds maxWidth
+      const fitText = (text: string, maxWidth: number) => {
+        if (ctx.measureText(text).width <= maxWidth) return text;
+        let truncated = text;
+        while (
+          truncated.length > 0 &&
+          ctx.measureText(truncated + "…").width > maxWidth
+        ) {
+          truncated = truncated.slice(0, -1);
+        }
+        return truncated + "…";
+      };
+
+      const maxTitleWidth = logoX - 24 * scaleFactor - 16 * scaleFactor;
+
       // Header Title
       ctx.fillStyle = "#1c1917";
-      ctx.font = `bold ${18 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText(
-        productName.toUpperCase(),
-        24 * scaleFactor,
-        40 * scaleFactor,
-      );
+      ctx.font = `bold ${17 * scaleFactor}px system-ui, -apple-system, sans-serif`;
+      const displayTitle = fitText(productName.toUpperCase(), maxTitleWidth);
+      ctx.fillText(displayTitle, 24 * scaleFactor, 40 * scaleFactor);
 
       // Subtitle
       ctx.fillStyle = "#78716c";
       ctx.font = `600 ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText(
-        isEn
-          ? `SIDE/POSITION: ${sideName.toUpperCase()} | MOCKUP SPECIFICATION SHEET`
-          : `SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`,
-        24 * scaleFactor,
-        60 * scaleFactor,
-      );
-
-      // Branding
-      ctx.fillStyle = "#4f46e5";
-      ctx.font = `bold ${12 * scaleFactor}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText("GOENAKAN.ID", 920 * scaleFactor, 45 * scaleFactor);
+      const rawSubtitle = isEn
+        ? `SIDE/POSITION: ${sideName.toUpperCase()} | MOCKUP SPECIFICATION SHEET`
+        : `SISI/POSISI: ${sideName.toUpperCase()} | LEMBAR SPESIFIKASI MOCKUP`;
+      const displaySubtitle = fitText(rawSubtitle, maxTitleWidth);
+      ctx.fillText(displaySubtitle, 24 * scaleFactor, 60 * scaleFactor);
 
       // Divider
       ctx.strokeStyle = "#f5f5f4";
@@ -1065,20 +1092,20 @@ export function ProductCustomizer({
         watermarkImg.onerror = resolve; // Graceful fallback
       });
 
-      // Column Labels
+      // Column Labels (No Emojis)
       ctx.fillStyle = "#44403c";
       ctx.font = `bold ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
       ctx.fillText(
         isEn
-          ? "📐 SPECIFICATIONS & PLACEMENT"
-          : "📐 SPESIFIKASI & UKURAN PENEMPATAN",
+          ? "SPECIFICATIONS & PLACEMENT"
+          : "SPESIFIKASI & UKURAN PENEMPATAN",
         24 * scaleFactor,
         100 * scaleFactor,
       );
       ctx.fillText(
         isEn
-          ? "✨ PRODUCT VISUAL PREVIEW (MOCKUP)"
-          : "✨ VISUAL PREVIEW PRODUK (MOCKUP)",
+          ? "PRODUCT VISUAL PREVIEW (MOCKUP)"
+          : "VISUAL PREVIEW PRODUK (MOCKUP)",
         528 * scaleFactor,
         100 * scaleFactor,
       );
