@@ -1115,18 +1115,66 @@ export function ProductCustomizer({
         488 * scaleFactor,
       );
 
-      // Draw Watermark over Right Clean Preview
+      // Draw Tiled 45-degree Watermark over both preview boxes
       if (watermarkImg.complete && watermarkImg.naturalWidth > 0) {
         const wmAspect = watermarkImg.naturalWidth / watermarkImg.naturalHeight;
-        const targetWmWidth = 488 * scaleFactor * 0.55;
-        const targetWmHeight = targetWmWidth / wmAspect;
-        const wmX = 528 * scaleFactor + (488 * scaleFactor - targetWmWidth) / 2;
-        const wmY = 115 * scaleFactor + (488 * scaleFactor - targetWmHeight) / 2;
+        const targetW = 120 * scaleFactor;
+        const targetH = targetW / wmAspect;
+        const stepX = 160 * scaleFactor;
+        const stepY = 110 * scaleFactor;
 
-        ctx.save();
-        ctx.globalAlpha = 0.35;
-        ctx.drawImage(watermarkImg, wmX, wmY, targetWmWidth, targetWmHeight);
-        ctx.restore();
+        const drawTiledWatermark = (
+          boxX: number,
+          boxY: number,
+          boxW: number,
+          boxH: number,
+        ) => {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(boxX, boxY, boxW, boxH);
+          ctx.clip();
+          ctx.globalAlpha = 0.2;
+
+          let rowIndex = 0;
+          for (let y = boxY - stepY; y <= boxY + boxH + stepY; y += stepY) {
+            const xOffset = (rowIndex % 2) * (stepX / 2);
+            for (
+              let x = boxX - stepX + xOffset;
+              x <= boxX + boxW + stepX;
+              x += stepX
+            ) {
+              ctx.save();
+              ctx.translate(x, y);
+              ctx.rotate((-45 * Math.PI) / 180);
+              ctx.drawImage(
+                watermarkImg,
+                -targetW / 2,
+                -targetH / 2,
+                targetW,
+                targetH,
+              );
+              ctx.restore();
+            }
+            rowIndex++;
+          }
+          ctx.restore();
+        };
+
+        // Draw on Left Spec View
+        drawTiledWatermark(
+          24 * scaleFactor,
+          115 * scaleFactor,
+          488 * scaleFactor,
+          488 * scaleFactor,
+        );
+
+        // Draw on Right Clean Preview
+        drawTiledWatermark(
+          528 * scaleFactor,
+          115 * scaleFactor,
+          488 * scaleFactor,
+          488 * scaleFactor,
+        );
       }
 
       // Trigger Download
