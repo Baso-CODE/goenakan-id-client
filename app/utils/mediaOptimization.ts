@@ -57,7 +57,7 @@ export function getOptimizedVideoUrl(
     if (!url.includes("/video/upload/q_") && !url.includes("/video/upload/w_")) {
       return url.replace(
         "/video/upload/",
-        `/video/upload/q_auto,w_${width},vc_auto/`
+        `/video/upload/q_auto,w_${width},c_limit,vc_auto/`
       );
     }
   }

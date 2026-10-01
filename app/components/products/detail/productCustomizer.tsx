@@ -884,20 +884,16 @@ export function ProductCustomizer({
       const { toPng } = await import("html-to-image");
       const scaleFactor = 3;
 
-      const captureOptions = {
-        pixelRatio: scaleFactor,
-        cacheBust: true,
-        filter: (node: any) => {
-          if (!node.classList) return true;
-          const classList = Array.from(node.classList);
-          const isExclude = classList.some(
-            (c: any) =>
-              c.includes("z-30") || // Alignment floating toolbar
-              c.includes("z-35"), // Nudge controls D-Pad
-          );
-          return !isExclude;
-        },
-      };
+      // Ensure active logo is set if any logos exist on current view for spec sheet details
+      if (!activeLogoId && activeMedia?.mockupAreas) {
+        for (const area of activeMedia.mockupAreas) {
+          const list = uploads[area.id] || [];
+          if (list.length > 0) {
+            setActiveLogoId(list[0].id);
+            break;
+          }
+        }
+      }
 
       setIsDownloading(true);
 
@@ -908,93 +904,80 @@ export function ProductCustomizer({
           : (isEn ? "Front View" : "Tampak Depan");
       const sideName = view.mockupSideName || defaultSideName;
 
-      // Target visual overlay elements on the current canvas DOM
-      const guides = canvasRef.current.querySelectorAll(".mockup-guide-area");
-      const metricLines = canvasRef.current.querySelectorAll(".z-15");
+      // Helper to safely extract class name string across HTML and SVG elements
+      const getElementClassString = (node: any): string => {
+        if (!node) return "";
+        if (typeof node.className === "string") return node.className;
+        if (node.className && typeof node.className.baseVal === "string") {
+          return node.className.baseVal;
+        }
+        if (node.classList) {
+          return Array.from(node.classList).join(" ");
+        }
+        return "";
+      };
+
+      // 1. Capture Options for Spec View (Left Side)
+      // Preserves technical spec card (.mockup-spec-box), dashed area guides (.mockup-guide-area), and distance lines (.z-15)
+      // Excludes editing controls (toolbars, D-pad, area badges, file inputs)
+      const specCaptureOptions = {
+        pixelRatio: scaleFactor,
+        cacheBust: true,
+        filter: (node: any) => {
+          if (!node || node.nodeType !== 1) return true;
+          if (node.tagName === "INPUT") return false;
+          const classStr = getElementClassString(node);
+          if (
+            classStr.includes("z-30") || // Floating alignment toolbar
+            classStr.includes("z-35") || // Nudge controls D-Pad
+            classStr.includes("bg-blue-600") // Selection area badge
+          ) {
+            return false;
+          }
+          return true;
+        },
+      };
+
+      // 2. Capture Options for Clean Visual View (Right Side)
+      // Strictly excludes all technical overlays: spec card, guide boxes, distance lines, and UI controls
+      const cleanCaptureOptions = {
+        pixelRatio: scaleFactor,
+        cacheBust: true,
+        filter: (node: any) => {
+          if (!node || node.nodeType !== 1) return true;
+          if (node.tagName === "INPUT") return false;
+          const classStr = getElementClassString(node);
+          if (
+            classStr.includes("mockup-spec-box") || // Technical specification card
+            classStr.includes("mockup-guide-area") || // Mockup guide dashed boxes & inside dimension tags
+            classStr.includes("z-15") || // Distance lines & distance badges
+            classStr.includes("z-30") || // Floating alignment toolbar
+            classStr.includes("z-35") || // Nudge controls D-Pad
+            classStr.includes("bg-blue-600") // Selection area badge
+          ) {
+            return false;
+          }
+          return true;
+        },
+      };
+
+      // Ensure any current logo container borders or shadows are cleared in DOM immediately
       const logoContainers = canvasRef.current.querySelectorAll(
         ".customizer-logo-container",
       );
-      const badgeLabels = canvasRef.current.querySelectorAll(
-        ".customizer-logo-container > div",
-      );
-      const specBoxes = canvasRef.current.querySelectorAll(".mockup-spec-box");
-
-      // 1. Hide active logo selection borders, handles, and labels for Spec sheet view
-      const originalBorders: string[] = [];
-      const originalShadows: string[] = [];
       logoContainers.forEach((el: any) => {
-        originalBorders.push(el.style.borderColor || "");
-        originalShadows.push(el.style.boxShadow || "");
-        el.style.setProperty("border-color", "transparent", "important");
-        el.style.setProperty("box-shadow", "none", "important");
+        el.style.borderColor = "transparent";
+        el.style.boxShadow = "none";
       });
 
-      const originalBadgesDisplay: string[] = [];
-      badgeLabels.forEach((el: any) => {
-        originalBadgesDisplay.push(el.style.display || "");
-        if (el.className.includes("bg-blue-600")) {
-          el.style.setProperty("display", "none", "important");
-        }
-      });
+      // Brief wait to allow React state (isDownloading: true) to settle
+      await new Promise((resolve) => setTimeout(resolve, 80));
 
-      // Wait a tiny frame for browser repaint
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      // 1. Capture Technical Spec View
+      const specDataUrl = await toPng(canvasRef.current, specCaptureOptions);
 
-      // Capture Spec View
-      const specDataUrl = await toPng(canvasRef.current, {
-        ...captureOptions,
-        cacheBust: true,
-      });
-
-      // 2. Hide guides and metric lines to prepare the Clean Visual view
-      const originalGuidesDisplay: string[] = [];
-      guides.forEach((el: any) => {
-        originalGuidesDisplay.push(el.style.display || "");
-        el.style.setProperty("display", "none", "important");
-      });
-
-      const originalMetricsDisplay: string[] = [];
-      metricLines.forEach((el: any) => {
-        originalMetricsDisplay.push(el.style.display || "");
-        el.style.setProperty("display", "none", "important");
-      });
-
-      const originalSpecsDisplay: string[] = [];
-      specBoxes.forEach((el: any) => {
-        originalSpecsDisplay.push(el.style.display || "");
-        el.style.setProperty("display", "none", "important");
-      });
-
-      // Wait another frame for browser repaint
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      // Capture Clean View
-      const cleanDataUrl = await toPng(canvasRef.current, {
-        ...captureOptions,
-        cacheBust: true,
-      });
-
-      // Restore canvas elements back for visual fidelity
-      logoContainers.forEach((el: any, idx) => {
-        el.style.borderColor = originalBorders[idx];
-        el.style.boxShadow = originalShadows[idx];
-      });
-
-      badgeLabels.forEach((el: any, idx) => {
-        el.style.display = originalBadgesDisplay[idx];
-      });
-
-      guides.forEach((el: any, idx) => {
-        el.style.display = originalGuidesDisplay[idx];
-      });
-
-      metricLines.forEach((el: any, idx) => {
-        el.style.display = originalMetricsDisplay[idx];
-      });
-
-      specBoxes.forEach((el: any, idx) => {
-        el.style.display = originalSpecsDisplay[idx];
-      });
+      // 2. Capture Clean Visual View (strictly filtered)
+      const cleanDataUrl = await toPng(canvasRef.current, cleanCaptureOptions);
 
       // Draw side-by-side spec sheet using offscreen canvas
       const canvas = document.createElement("canvas");
@@ -1211,7 +1194,6 @@ export function ProductCustomizer({
       link.href = finalDataUrl;
       link.click();
 
-      setIsDownloading(false);
       toast.success(
         isEn
           ? `Mockup (${sideName}) downloaded successfully!`
@@ -1222,7 +1204,6 @@ export function ProductCustomizer({
       );
     } catch (err) {
       console.error(err);
-      setIsDownloading(false);
       toast.error(
         isEn
           ? "Failed to download mockup. Please try again."
@@ -1231,6 +1212,15 @@ export function ProductCustomizer({
           id: toastId,
         },
       );
+    } finally {
+      setIsDownloading(false);
+      const logoContainers = canvasRef.current?.querySelectorAll(
+        ".customizer-logo-container",
+      );
+      logoContainers?.forEach((el: any) => {
+        el.style.borderColor = "";
+        el.style.boxShadow = "";
+      });
     }
   };
 
@@ -1493,9 +1483,11 @@ export function ProductCustomizer({
                             setActiveLogoId(logo.id);
                           }}
                           className={`customizer-logo-container absolute group p-0.5 border-2 transition-shadow select-none ${
-                            isActive
-                              ? "border-blue-500 shadow-md shadow-blue-500/20"
-                              : "border-transparent hover:border-blue-300"
+                            isDownloading
+                              ? "border-transparent!"
+                              : isActive
+                                ? "border-blue-500 shadow-md shadow-blue-500/20"
+                                : "border-transparent hover:border-blue-300"
                           }`}
                           style={{
                             position: "absolute",
@@ -1505,7 +1497,7 @@ export function ProductCustomizer({
                             transform: `rotate(${(logo.rotate || 0) + (area.rotation || 0)}deg)`,
                             opacity: (logo.opacity ?? 100) / 100,
                             cursor:
-                              isDragging && isActive ? "grabbing" : "grab",
+                              isDragging && isActive && !isDownloading ? "grabbing" : "grab",
                             touchAction: "none",
                             zIndex: isActive ? 20 : 10,
                           }}>
@@ -1515,13 +1507,13 @@ export function ProductCustomizer({
                             className="w-full h-auto object-contain select-none pointer-events-none"
                           />
                           {/* Badge Label Area */}
-                          {isActive && (
+                          {isActive && !isDownloading && (
                             <div className="absolute -top-5 left-0 bg-blue-600 text-white text-[7px] font-bold px-1.5 py-0.5 rounded uppercase select-none pointer-events-none leading-none whitespace-nowrap z-10">
                               {activeMedia.mockupSideName || area.label}
                             </div>
                           )}
                           {/* Floating Alignment Shortcuts Toolbar */}
-                          {isActive && (
+                          {isActive && !isDownloading && (
                             <div
                               className="absolute left-1/2 -translate-x-1/2 bg-stone-900/90 text-white rounded shadow-lg px-2 py-1 flex items-center gap-1.5 z-30 select-none backdrop-blur-xs"
                               style={{
@@ -1772,7 +1764,7 @@ export function ProductCustomizer({
                       }
                     }
                   }
-                  if (!activeLogo || !activeArea) return null;
+                  if (!activeLogo || !activeArea || isDownloading) return null;
 
                   const area = activeArea;
                   const logo = activeLogo;

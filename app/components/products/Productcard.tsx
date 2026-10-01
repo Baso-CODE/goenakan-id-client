@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Product } from "@/app/types/product.type";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "@/i18n/routing";
+import { getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
 
 // 1. Impor komponen Tooltip dari Shadcn UI
 import {
@@ -46,7 +47,7 @@ export function ProductCard({ product }: ProductCardProps) {
         {/* Bagian Gambar */}
         <div className="relative aspect-4/5 bg-stone-50 overflow-hidden shrink-0">
           <Image
-            src={product.image}
+            src={getOptimizedImageUrl(product.image, 600) || product.image}
             alt={product.name}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
