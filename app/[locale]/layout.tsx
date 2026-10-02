@@ -1,6 +1,7 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
 import { NextAuthProvider } from "@/providers/NextAuthProvider";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -20,6 +21,9 @@ const gilda = Gilda_Display({
 export const metadata: Metadata = {
   title: "Goenakan Indonesia",
   description: "Platform Goenakan Indonesia",
+  verification: {
+    google: "dQ0SQHPYDEbIYJ_huBVCJGjQvrFVKXba-xyr5MDBV18",
+  },
 };
 
 export default async function RootLayout({
@@ -49,6 +53,8 @@ export default async function RootLayout({
             <Footer />
           </NextIntlClientProvider>
         </NextAuthProvider>
+
+        <GoogleAnalytics gaId="G-V764HW819M" />
       </body>
     </html>
   );

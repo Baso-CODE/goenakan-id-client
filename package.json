@@ -20,6 +20,7 @@
   "dependencies": {
     "@clerk/nextjs": "^6.36.8",
     "@next-auth/prisma-adapter": "^1.0.7",
+    "@next/third-parties": "^16.3.8",
     "@prisma/adapter-mariadb": "^7.7.0",
     "@prisma/client": "^7.7.0",
     "@radix-ui/react-accordion": "^1.2.12",
