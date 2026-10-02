@@ -1,4 +1,4 @@
-import type { PublicAppSettings } from "@/app/api/app-settings/getAppSettings.api";
+import { PublicAppSettings } from "@/app/api/app-setting/getAppSettings.api";
 import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
 import Script from "next/script";
 
