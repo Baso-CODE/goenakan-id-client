@@ -1,15 +1,17 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
 import { NextAuthProvider } from "@/providers/NextAuthProvider";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { Gilda_Display } from "next/font/google";
 import { notFound } from "next/navigation";
 import { Toaster } from "sonner";
+
+import { getPublicAppSettings } from "../api/app-setting/getAppSettings.api";
 import Footer from "../components/navigation/Footer";
 import Navbar from "../components/navigation/Navbar";
+import TrackingScripts from "../components/tracking/trackingScripts";
 import "../globals.css";
 
 const gilda = Gilda_Display({
@@ -18,20 +20,29 @@ const gilda = Gilda_Display({
   variable: "--font-gilda",
 });
 
-export const metadata: Metadata = {
-  title: "Goenakan Indonesia",
-  description: "Platform Goenakan Indonesia",
-  verification: {
-    google: "dQ0SQHPYDEbIYJ_huBVCJGjQvrFVKXba-xyr5MDBV18",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPublicAppSettings();
+
+  return {
+    title: "Goenakan Indonesia",
+    description: "Platform Goenakan Indonesia",
+
+    verification: settings.googleSiteVerification
+      ? {
+          google: settings.googleSiteVerification,
+        }
+      : undefined,
+  };
+}
 
 export default async function RootLayout({
   children,
   params,
 }: Readonly<{
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
+  params: Promise<{
+    locale: string;
+  }>;
 }>) {
   const { locale } = await params;
 
@@ -39,7 +50,10 @@ export default async function RootLayout({
     notFound();
   }
 
-  const messages = await getMessages();
+  const [messages, settings] = await Promise.all([
+    getMessages(),
+    getPublicAppSettings(),
+  ]);
 
   return (
     <html lang={locale}>
@@ -48,13 +62,16 @@ export default async function RootLayout({
         <NextAuthProvider>
           <NextIntlClientProvider messages={messages}>
             <Navbar />
+
             <TooltipProvider>{children}</TooltipProvider>
+
             <Toaster position="top-center" richColors />
+
             <Footer />
           </NextIntlClientProvider>
         </NextAuthProvider>
 
-        <GoogleAnalytics gaId="G-V764HW819M" />
+        <TrackingScripts settings={settings} />
       </body>
     </html>
   );
