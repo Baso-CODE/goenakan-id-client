@@ -45,7 +45,7 @@ export interface Article {
 export default function Articles() {
   const locale = useLocale();
 
-  const plugin = React.useRef(
+  const [autoplay] = React.useState(() =>
     Autoplay({
       delay: 4000,
       stopOnInteraction: true,
@@ -130,10 +130,10 @@ export default function Articles() {
     <section className="w-full bg-white pb-24">
       <div className="w-full h-100 md:h-125 relative mb-16 bg-gray-100">
         <Carousel
-          plugins={[plugin.current]}
+          plugins={[autoplay]}
           className="w-full h-full"
-          onMouseEnter={plugin.current.stop}
-          onMouseLeave={plugin.current.reset}
+          onMouseEnter={() => autoplay.stop()}
+          onMouseLeave={() => autoplay.reset()}
           opts={{
             loop: true,
           }}>

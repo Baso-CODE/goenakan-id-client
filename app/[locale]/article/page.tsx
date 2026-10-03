@@ -10,7 +10,11 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "Metadata" });
+
+  const t = await getTranslations({
+    locale,
+    namespace: "Metadata",
+  });
 
   return {
     title: t("articleTitle"),
@@ -23,14 +27,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function AllArticle() {
-  const banners = await getActiveBanners();
+export default async function AllArticle({ params }: Props) {
+  const { locale } = await params;
+
+  const lang = locale === "en" ? "en" : "id";
+
+  const banners = await getActiveBanners(lang);
 
   return (
     <>
       {banners.length > 0 && (
         <ArticleBannerCarousel articles={banners} interval={5000} />
       )}
+
       <ArticleList />
     </>
   );
