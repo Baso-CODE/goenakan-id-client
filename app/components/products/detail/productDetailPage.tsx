@@ -2398,56 +2398,58 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             )}
 
           {/* ── 5. Freight Mode Selector (Sea vs Air) ── */}
-          <div className="mt-1">
-            <p className="text-sm font-medium text-stone-900 mb-2">
-              {locale === "en" ? "Shipping Method:" : "Jalur Pengiriman:"}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {[
-                {
-                  mode: "SEA" as const,
-                  label:
-                    locale === "en" ? "Sea Freight (SEA)" : "Jalur Laut (SEA)",
-                  available:
-                    product.availableFreightModes === "SEA" ||
-                    product.availableFreightModes === "BOTH" ||
-                    !product.availableFreightModes,
-                },
-                {
-                  mode: "AIR" as const,
-                  label:
-                    locale === "en" ? "Air Freight (AIR)" : "Jalur Udara (AIR)",
-                  available:
-                    product.availableFreightModes === "AIR" ||
-                    product.availableFreightModes === "BOTH",
-                },
-              ].map((opt) => {
-                const isSelected = selectedFreightMode === opt.mode;
-                const isDisabled = !opt.available;
+          {product.showFreightSelector && (
+            <div className="mt-1">
+              <p className="text-sm font-medium text-stone-900 mb-2">
+                {locale === "en" ? "Shipping Method:" : "Jalur Pengiriman:"}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  {
+                    mode: "SEA" as const,
+                    label:
+                      locale === "en" ? "Sea Freight (SEA)" : "Jalur Laut (SEA)",
+                    available:
+                      product.availableFreightModes === "SEA" ||
+                      product.availableFreightModes === "BOTH" ||
+                      !product.availableFreightModes,
+                  },
+                  {
+                    mode: "AIR" as const,
+                    label:
+                      locale === "en" ? "Air Freight (AIR)" : "Jalur Udara (AIR)",
+                    available:
+                      product.availableFreightModes === "AIR" ||
+                      product.availableFreightModes === "BOTH",
+                  },
+                ].map((opt) => {
+                  const isSelected = selectedFreightMode === opt.mode;
+                  const isDisabled = !opt.available;
 
-                return (
-                  <button
-                    key={opt.mode}
-                    type="button"
-                    disabled={isDisabled}
-                    onClick={() => {
-                      if (!isDisabled) {
-                        setSelectedFreightMode(opt.mode);
-                      }
-                    }}
-                    className={`px-4 py-2 border rounded-sm text-sm transition-all duration-200 ${
-                      isSelected && !isDisabled
-                        ? "border-stone-900 bg-stone-900 text-white cursor-default"
-                        : isDisabled
-                          ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
-                          : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
-                    }`}>
-                    {opt.label}
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={opt.mode}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => {
+                        if (!isDisabled) {
+                          setSelectedFreightMode(opt.mode);
+                        }
+                      }}
+                      className={`px-4 py-2 border rounded-sm text-sm transition-all duration-200 ${
+                        isSelected && !isDisabled
+                          ? "border-stone-900 bg-stone-900 text-white cursor-default"
+                          : isDisabled
+                            ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                            : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
+                      }`}>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {activeTiers.length > 0 && (
             <div className="mt-1">

@@ -78,6 +78,7 @@ export interface ProductDetail {
   basePrice: number;
   basePriceAir?: number | null;
   availableFreightModes?: "SEA" | "AIR" | "BOTH";
+  showFreightSelector?: boolean;
   currencyCode?: string;
   sold: number;
   media: MediaItem[];
