@@ -162,6 +162,19 @@ export default function CartPage() {
                                   </p>
                                 )}
 
+                                {customData?.freightMode && (
+                                  <p>
+                                    <span className="font-medium text-stone-600">
+                                      {t("table.shippingMethod")}:
+                                    </span>{" "}
+                                    <span className="font-semibold text-stone-700">
+                                      {customData.freightMode === "AIR"
+                                        ? t("table.airFreight")
+                                        : t("table.seaFreight")}
+                                    </span>
+                                  </p>
+                                )}
+
                                 {/* Tampilkan Atribut Tambahan / Modifier jika ada */}
                                 {customData?.resolvedAttributes?.map(
                                   (attr: any, idx: number) => (

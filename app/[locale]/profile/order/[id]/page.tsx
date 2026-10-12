@@ -17,6 +17,7 @@ import {
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -71,6 +72,7 @@ interface OrderItem {
   price: number | string;
   product?: Product;
   variant?: ProductVariant | null;
+  customization?: any;
 }
 
 interface OrderDetail {
@@ -110,6 +112,7 @@ function getDisplayImage(item: OrderItem): string {
 // 3. KOMPONEN UTAMA
 // ==========================================
 export default function OrderDetailPage() {
+  const locale = useLocale();
   const params = useParams();
   const orderId = params.id as string;
 
@@ -276,6 +279,32 @@ export default function OrderDetailPage() {
                       <p className="text-[10px] text-stone-400 mt-1">
                         SKU: {item.variant?.sku || item.product?.sku || "-"}
                       </p>
+
+                      {(() => {
+                        const customData =
+                          typeof item.customization === "string"
+                            ? JSON.parse(item.customization)
+                            : item.customization;
+                        if (!customData?.freightMode) return null;
+                        return (
+                          <p className="text-[10px] text-stone-600 mt-1">
+                            <span className="font-medium text-stone-500">
+                              {locale === "en"
+                                ? "Shipping Method:"
+                                : "Jalur Pengiriman:"}
+                            </span>{" "}
+                            <span className="font-semibold text-stone-700">
+                              {customData.freightMode === "AIR"
+                                ? locale === "en"
+                                  ? "Air Freight (AIR)"
+                                  : "Jalur Udara (AIR)"
+                                : locale === "en"
+                                  ? "Sea Freight (SEA)"
+                                  : "Jalur Laut (SEA)"}
+                            </span>
+                          </p>
+                        );
+                      })()}
 
                       <p className="text-xs text-stone-500 mt-2">
                         {item.quantity} x {formatRupiah(Number(item.price))}
