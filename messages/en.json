@@ -165,7 +165,10 @@
       "dimensions": "Dimensions",
       "weight": "Weight",
       "qty": "Qty",
-      "remove": "Remove"
+      "remove": "Remove",
+      "shippingMethod": "Shipping Method",
+      "seaFreight": "Sea Freight (SEA)",
+      "airFreight": "Air Freight (AIR)"
     },
     "summary": {
       "subtotal": "Subtotal ({count} items)",

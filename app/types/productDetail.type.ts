@@ -45,6 +45,7 @@ export interface PriceTier {
   minQty: number;
   maxQty: number | null;
   badge?: string;
+  freightMode?: "SEA" | "AIR" | null;
 }
 
 export interface ProductVariantDisplay {
@@ -52,10 +53,12 @@ export interface ProductVariantDisplay {
   name: string;
   sku: string;
   price: number | null;
+  priceAir?: number | null;
   images: MediaItem[];
   attributes: AttributeDisplay[];
 
   priceTiers?: PriceTier[];
+  priceTiersAir?: PriceTier[];
   stock: number;
 
   rawWeight: number | null;
@@ -73,11 +76,14 @@ export interface ProductDetail {
   category: string;
   name: string;
   basePrice: number;
+  basePriceAir?: number | null;
+  availableFreightModes?: "SEA" | "AIR" | "BOTH";
   currencyCode?: string;
   sold: number;
   media: MediaItem[];
   variants?: ProductVariantDisplay[];
   priceTiers: PriceTier[];
+  priceTiersAir?: PriceTier[];
   description: string;
   stock: number;
 

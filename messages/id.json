@@ -170,7 +170,10 @@
       "dimensions": "Dimensi",
       "weight": "Berat",
       "qty": "Jumlah",
-      "remove": "Hapus"
+      "remove": "Hapus",
+      "shippingMethod": "Jalur Pengiriman",
+      "seaFreight": "Jalur Laut (SEA)",
+      "airFreight": "Jalur Udara (AIR)"
     },
     "summary": {
       "subtotal": "Subtotal ({count} barang)",

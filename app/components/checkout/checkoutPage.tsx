@@ -41,6 +41,7 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Script from "next/script";
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { toast } from "sonner";
 
 declare global {
@@ -192,6 +193,7 @@ function getCustomizationDetails(
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const locale = useLocale();
   const { data: session } = useSession();
   const token = session?.user?.accessToken;
 
@@ -1101,6 +1103,26 @@ export default function CheckoutPage() {
                         <p className="text-[10px] text-stone-400 italic">
                           {item.materialType}
                         </p>
+
+                        {(() => {
+                          const customData =
+                            typeof item.customization === "string"
+                              ? JSON.parse(item.customization)
+                              : item.customization;
+                          if (!customData?.freightMode) return null;
+                          return (
+                            <p className="text-[10px] text-stone-600">
+                              <span className="font-medium text-stone-500">
+                                {locale === "en" ? "Shipping Method:" : "Jalur Pengiriman:"}
+                              </span>{" "}
+                              <span className="font-semibold text-stone-700">
+                                {customData.freightMode === "AIR"
+                                  ? (locale === "en" ? "Air Freight (AIR)" : "Jalur Udara (AIR)")
+                                  : (locale === "en" ? "Sea Freight (SEA)" : "Jalur Laut (SEA)")}
+                              </span>
+                            </p>
+                          );
+                        })()}
 
                         {/* PERBAIKAN 3: Ganti formatRupiah jadi formatCurrency dinamis */}
                         <p className="text-xs font-bold text-stone-800 mt-1">

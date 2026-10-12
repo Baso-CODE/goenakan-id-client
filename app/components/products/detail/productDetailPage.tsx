@@ -247,6 +247,12 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     name: string;
   } | null>(null);
 
+  const defaultFreightMode =
+    product.availableFreightModes === "AIR" ? "AIR" : "SEA";
+  const [selectedFreightMode, setSelectedFreightMode] = useState<"SEA" | "AIR">(
+    defaultFreightMode,
+  );
+
   const handleCustomizingChange = (val: boolean) => {
     // Do nothing when the already-active purchase type is clicked again.
     if (val === isCustomizing) return;
@@ -815,53 +821,114 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     return (Number(product.stock) || 0) <= 0;
   }, [selectedVariant, product]);
 
-  // 2. Tentukan Price Tiers Aktif (Prioritas: Varian > Induk, dengan penyesuaian harga varian)
+  // 2. Tentukan Price Tiers Aktif (Prioritas: Varian > Induk, dengan penyesuaian harga varian & freight mode)
   const activeTiers = useMemo(() => {
-    if (selectedVariant?.priceTiers && selectedVariant.priceTiers.length > 0) {
-      return selectedVariant.priceTiers;
+    const isAir = selectedFreightMode === "AIR";
+
+    if (selectedVariant) {
+      if (
+        isAir &&
+        selectedVariant.priceTiersAir &&
+        selectedVariant.priceTiersAir.length > 0
+      ) {
+        return selectedVariant.priceTiersAir;
+      }
+      if (
+        !isAir &&
+        selectedVariant.priceTiers &&
+        selectedVariant.priceTiers.length > 0
+      ) {
+        return selectedVariant.priceTiers;
+      }
     }
-    const baseTiers = product.priceTiers || [];
+
+    const baseTiers =
+      isAir && product.priceTiersAir && product.priceTiersAir.length > 0
+        ? product.priceTiersAir
+        : product.priceTiers || [];
+
     if (!selectedVariant || baseTiers.length === 0) {
       return baseTiers;
     }
 
-    const baselinePrice = product.basePrice ?? baseTiers[0].pricePerPcs ?? 0;
-    const variantPrice = selectedVariant.price ?? baselinePrice;
+    const baselinePrice = isAir
+      ? Number(product.basePriceAir) ||
+        Number(product.basePrice) ||
+        (baseTiers[0]?.pricePerPcs ?? 0)
+      : Number(product.basePrice) || (baseTiers[0]?.pricePerPcs ?? 0);
+
+    const variantPrice = isAir
+      ? selectedVariant.priceAir !== null &&
+        selectedVariant.priceAir !== undefined
+        ? Number(selectedVariant.priceAir)
+        : Number(selectedVariant.price ?? baselinePrice)
+      : Number(selectedVariant.price ?? baselinePrice);
+
     const diff = variantPrice - baselinePrice;
 
     return baseTiers.map((tier) => ({
       ...tier,
       pricePerPcs: Math.max(0, (tier.pricePerPcs ?? 0) + diff),
     }));
-  }, [selectedVariant, product.priceTiers, product.variants]);
+  }, [
+    selectedVariant,
+    selectedFreightMode,
+    product.priceTiers,
+    product.priceTiersAir,
+    product.basePrice,
+    product.basePriceAir,
+  ]);
 
   // 3. Pastikan quantity awal sinkron dengan tier saat komponen pertama kali dimuat
   const [quantity, setQuantity] = useState(() => {
     return activeTiers.length > 0 ? (activeTiers[0].minQty ?? 1) : 1;
   });
 
+  // Sinkronkan quantity saat mode freight (SEA/AIR) berganti
+  useEffect(() => {
+    if (activeTiers.length > 0) {
+      const minQty = activeTiers[0].minQty ?? 1;
+      if (quantity < minQty) {
+        setQuantity(minQty);
+      }
+    }
+  }, [selectedFreightMode, activeTiers]);
+
   // PERBAIKAN 1: Pindahkan logika useEffect ke dalam fungsi onClick varian
   const handleVariantSelect = (variantId: string) => {
     setSelectedVariantId(variantId);
 
     // Cari tahu tier mana yang akan aktif setelah varian ini dipilih
+    const isAir = selectedFreightMode === "AIR";
     const variant = variantById.get(variantId);
-    let newActiveTiers =
-      variant?.priceTiers && variant.priceTiers.length > 0
-        ? variant.priceTiers
+    const variantTiers = isAir ? variant?.priceTiersAir : variant?.priceTiers;
+    const productTiers =
+      isAir && product.priceTiersAir && product.priceTiersAir.length > 0
+        ? product.priceTiersAir
         : product.priceTiers || [];
+
+    let newActiveTiers =
+      variantTiers && variantTiers.length > 0 ? variantTiers : productTiers;
 
     if (
       variant &&
-      (!variant.priceTiers || variant.priceTiers.length === 0) &&
-      product.priceTiers &&
-      product.priceTiers.length > 0
+      (!variantTiers || variantTiers.length === 0) &&
+      productTiers &&
+      productTiers.length > 0
     ) {
-      const baselinePrice =
-        product.basePrice ?? product.priceTiers[0].pricePerPcs ?? 0;
-      const variantPrice = variant.price ?? baselinePrice;
+      const baselinePrice = isAir
+        ? Number(product.basePriceAir) ||
+          Number(product.basePrice) ||
+          productTiers[0]?.pricePerPcs ||
+          0
+        : Number(product.basePrice) || productTiers[0]?.pricePerPcs || 0;
+      const variantPrice = isAir
+        ? variant.priceAir !== null && variant.priceAir !== undefined
+          ? Number(variant.priceAir)
+          : Number(variant.price ?? baselinePrice)
+        : Number(variant.price ?? baselinePrice);
       const diff = variantPrice - baselinePrice;
-      newActiveTiers = product.priceTiers.map((t) => ({
+      newActiveTiers = productTiers.map((t) => ({
         ...t,
         pricePerPcs: Math.max(0, (t.pricePerPcs ?? 0) + diff),
       }));
@@ -1050,25 +1117,50 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const basePrice = useMemo(() => {
     let price = 0;
+    const isAir = selectedFreightMode === "AIR";
+
     if (activeTiers && activeTiers.length > 0) {
       const tier = activeTiers[selectedTierIndex];
       price = tier.pricePerPcs ?? 0;
     } else if (
       selectedVariant &&
-      selectedVariant.price !== null &&
-      selectedVariant.price !== undefined &&
-      Number(selectedVariant.price) > 0
+      (isAir
+        ? (selectedVariant.priceAir !== null &&
+            selectedVariant.priceAir !== undefined &&
+            Number(selectedVariant.priceAir) > 0) ||
+          (selectedVariant.price !== null &&
+            selectedVariant.price !== undefined &&
+            Number(selectedVariant.price) > 0)
+        : selectedVariant.price !== null &&
+          selectedVariant.price !== undefined &&
+          Number(selectedVariant.price) > 0)
     ) {
-      price = Number(selectedVariant.price);
+      price = isAir
+        ? selectedVariant.priceAir !== null &&
+          selectedVariant.priceAir !== undefined &&
+          Number(selectedVariant.priceAir) > 0
+          ? Number(selectedVariant.priceAir)
+          : Number(selectedVariant.price)
+        : Number(selectedVariant.price);
     } else {
-      price =
-        Number(product.basePrice) ||
-        (product.variants &&
-        product.variants.length > 0 &&
-        product.variants[0].price !== null &&
-        Number(product.variants[0].price) > 0
-          ? Number(product.variants[0].price)
-          : 0);
+      price = isAir
+        ? Number(product.basePriceAir) ||
+          Number(product.basePrice) ||
+          (product.variants &&
+          product.variants.length > 0 &&
+          (product.variants[0].priceAir !== null ||
+            product.variants[0].price !== null)
+            ? Number(
+                product.variants[0].priceAir ?? product.variants[0].price,
+              )
+            : 0)
+        : Number(product.basePrice) ||
+          (product.variants &&
+          product.variants.length > 0 &&
+          product.variants[0].price !== null &&
+          Number(product.variants[0].price) > 0
+            ? Number(product.variants[0].price)
+            : 0);
     }
 
     // If Beli Polosan is selected, subtract any print-related attribute price modifiers
@@ -1102,7 +1194,14 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     }
 
     return price;
-  }, [activeTiers, selectedTierIndex, selectedVariant, product, isCustomizing]);
+  }, [
+    activeTiers,
+    selectedTierIndex,
+    selectedVariant,
+    product,
+    isCustomizing,
+    selectedFreightMode,
+  ]);
 
   const finalPrice = basePrice + customOptionsPriceModifier;
 
@@ -1616,15 +1715,16 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       rawWeight: variantRawWeight,
       width: variantWidth,
       height: variantHeight,
-      length: variantLength,
       customization:
-        customization || Object.keys(customOptions).length > 0
+        customization || Object.keys(customOptions).length > 0 || selectedFreightMode
           ? {
               ...(customization || {}),
               selectedOptions: customOptions,
+              freightMode: selectedFreightMode,
             }
-          : null,
+          : { freightMode: selectedFreightMode },
       selectedAttributes: selections || null,
+      freightMode: selectedFreightMode,
     };
     const success = await addToCart(payload, quantity, token, locale);
 
@@ -2296,6 +2396,58 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   .map((group) => renderAttributeGroup(group))}
               </div>
             )}
+
+          {/* ── 5. Freight Mode Selector (Sea vs Air) ── */}
+          <div className="mt-1">
+            <p className="text-sm font-medium text-stone-900 mb-2">
+              {locale === "en" ? "Shipping Method:" : "Jalur Pengiriman:"}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                {
+                  mode: "SEA" as const,
+                  label:
+                    locale === "en" ? "Sea Freight (SEA)" : "Jalur Laut (SEA)",
+                  available:
+                    product.availableFreightModes === "SEA" ||
+                    product.availableFreightModes === "BOTH" ||
+                    !product.availableFreightModes,
+                },
+                {
+                  mode: "AIR" as const,
+                  label:
+                    locale === "en" ? "Air Freight (AIR)" : "Jalur Udara (AIR)",
+                  available:
+                    product.availableFreightModes === "AIR" ||
+                    product.availableFreightModes === "BOTH",
+                },
+              ].map((opt) => {
+                const isSelected = selectedFreightMode === opt.mode;
+                const isDisabled = !opt.available;
+
+                return (
+                  <button
+                    key={opt.mode}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (!isDisabled) {
+                        setSelectedFreightMode(opt.mode);
+                      }
+                    }}
+                    className={`px-4 py-2 border rounded-sm text-sm transition-all duration-200 ${
+                      isSelected && !isDisabled
+                        ? "border-stone-900 bg-stone-900 text-white cursor-default"
+                        : isDisabled
+                          ? "border-stone-100 bg-stone-50 text-stone-300 cursor-not-allowed opacity-50"
+                          : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer"
+                    }`}>
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {activeTiers.length > 0 && (
             <div className="mt-1">
