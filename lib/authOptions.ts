@@ -1,57 +1,42 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import * as argon2 from "argon2";
 import { sign } from "jsonwebtoken";
-import { NextAuthOptions, User } from "next-auth";
-import { AdapterUser } from "next-auth/adapters";
+import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./prisma";
 
-const customPrismaAdapter = PrismaAdapter(prisma);
+const adapter = PrismaAdapter(prisma);
 
 export const authOptions: NextAuthOptions = {
   adapter: {
-    ...customPrismaAdapter,
-    createUser: async (data: Omit<AdapterUser, "id">) => {
-      const customerRole = await prisma.role.findUnique({
+    ...adapter,
+    async createUser(data) {
+      const role = await prisma.role.findUnique({
         where: { name: "CUSTOMER" },
+        select: { id: true },
       });
 
-      if (!customerRole) {
-        throw new Error("Role CUSTOMER tidak ditemukan di database!");
+      if (!role) {
+        throw new Error("Role CUSTOMER tidak ditemukan");
       }
 
-      // Simpan user baru ke database
-      const newUser = await prisma.user.create({
+      return prisma.user.create({
         data: {
           name: data.name,
           email: data.email,
           image: data.image,
           emailVerified: data.emailVerified,
-          roleId: customerRole.id,
+          roleId: role.id,
         },
       });
-
-      return {
-        ...newUser,
-        role: "CUSTOMER",
-      } as AdapterUser;
     },
   },
 
   providers: [
     GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      profile(profile: Record<string, any>) {
-        return {
-          id: profile.sub,
-          name: profile.name,
-          email: profile.email,
-          image: profile.picture,
-          role: "CUSTOMER",
-        };
-      },
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
 
     CredentialsProvider({
@@ -65,36 +50,30 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email dan password wajib diisi");
         }
 
-        // 1. Cari user di database menggunakan Prisma
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
-          include: {
-            role: true,
-          },
+          include: { role: true },
         });
 
-        if (!user || !user.password) {
-          throw new Error("Email tidak ditemukan atau belum terdaftar");
+        if (!user?.password) {
+          throw new Error("Email atau password tidak valid");
         }
 
-        // 2. Validasi kecocokan password dengan Argon2
         const isValid = await argon2.verify(
           user.password,
           credentials.password,
         );
 
         if (!isValid) {
-          throw new Error("Password salah");
+          throw new Error("Email atau password tidak valid");
         }
 
-        const roleName = user.role?.name || "CUSTOMER";
-
-        // 3. Kembalikan data user jika berhasil (Sesi NextAuth)
         return {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: roleName,
+          image: user.image,
+          role: user.role.name,
           roleId: user.roleId,
         };
       },
@@ -104,48 +83,54 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const customUser = user as User;
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: {
+            id: true,
+            email: true,
+            roleId: true,
+            role: { select: { name: true } },
+          },
+        });
 
-        token.id = customUser.id;
-        token.roleId = customUser.roleId;
-
-        let roleName = customUser.role;
-        if (!roleName && customUser.roleId) {
-          const roleData = await prisma.role.findUnique({
-            where: { id: customUser.roleId },
-            select: { name: true },
-          });
-          roleName = roleData?.name || "CUSTOMER";
+        if (!dbUser) {
+          throw new Error("User autentikasi tidak ditemukan");
         }
 
-        token.role = roleName || "CUSTOMER";
+        token.id = dbUser.id;
+        token.roleId = dbUser.roleId;
+        token.role = dbUser.role.name;
 
         token.accessToken = sign(
           {
-            id: customUser.id,
-            email: customUser.email,
-            role: token.role,
+            id: dbUser.id,
+            email: dbUser.email,
+            role: dbUser.role.name,
+            roleId: dbUser.roleId,
           },
           process.env.NEXTAUTH_SECRET!,
           { expiresIn: "1d" },
         );
       }
+
       return token;
     },
 
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.roleId = token.roleId as string | undefined;
-        session.user.accessToken = token.accessToken as string;
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.roleId = token.roleId;
+        session.user.accessToken = token.accessToken;
       }
+
       return session;
     },
   },
 
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60,
   },
 
   pages: {
