@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { Toaster } from "sonner";
 
 import { getPublicAppSettings } from "../api/app-setting/getAppSettings.api";
+import FloatingWhatsAppCTA from "../components/FloatingWhatsAppCTA";
 import Footer from "../components/navigation/Footer";
 import Navbar from "../components/navigation/Navbar";
 import TrackingScripts from "../components/tracking/trackingScripts";
@@ -26,7 +27,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Goenakan Indonesia",
     description: "Platform Goenakan Indonesia",
-
     verification: settings.googleSiteVerification
       ? {
           google: settings.googleSiteVerification,
@@ -65,9 +65,11 @@ export default async function RootLayout({
 
             <TooltipProvider>{children}</TooltipProvider>
 
-            <Toaster position="top-center" richColors />
-
             <Footer />
+
+            <FloatingWhatsAppCTA locale={locale} />
+
+            <Toaster position="top-center" richColors />
           </NextIntlClientProvider>
         </NextAuthProvider>
 
