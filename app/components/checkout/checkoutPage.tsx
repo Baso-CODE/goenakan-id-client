@@ -38,10 +38,10 @@ import {
   X,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { useLocale } from "next-intl";
 import Image from "next/image";
 import Script from "next/script";
 import { useEffect, useState } from "react";
-import { useLocale } from "next-intl";
 import { toast } from "sonner";
 
 declare global {
@@ -1113,12 +1113,18 @@ export default function CheckoutPage() {
                           return (
                             <p className="text-[10px] text-stone-600">
                               <span className="font-medium text-stone-500">
-                                {locale === "en" ? "Shipping Method:" : "Jalur Pengiriman:"}
+                                {locale === "en"
+                                  ? "Shipping Method:"
+                                  : "Jalur Pengiriman:"}
                               </span>{" "}
                               <span className="font-semibold text-stone-700">
                                 {customData.freightMode === "AIR"
-                                  ? (locale === "en" ? "Air Freight (AIR)" : "Jalur Udara (AIR)")
-                                  : (locale === "en" ? "Sea Freight (SEA)" : "Jalur Laut (SEA)")}
+                                  ? locale === "en"
+                                    ? "Air Freight (AIR)"
+                                    : "Jalur Udara (AIR)"
+                                  : locale === "en"
+                                    ? "Sea Freight (SEA)"
+                                    : "Jalur Laut (SEA)"}
                               </span>
                             </p>
                           );

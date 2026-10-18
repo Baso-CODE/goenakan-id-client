@@ -2,36 +2,39 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import * as argon2 from "argon2";
 import { sign } from "jsonwebtoken";
 import type { NextAuthOptions } from "next-auth";
+import type { Adapter, AdapterUser } from "next-auth/adapters";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "./prisma";
 
-const adapter = PrismaAdapter(prisma);
+const baseAdapter = PrismaAdapter(prisma);
+
+const adapter: Adapter = {
+  ...baseAdapter,
+  async createUser(data: Omit<AdapterUser, "id">): Promise<AdapterUser> {
+    const role = await prisma.role.findUnique({
+      where: { name: "CUSTOMER" },
+      select: { id: true },
+    });
+
+    if (!role) {
+      throw new Error("Role CUSTOMER tidak ditemukan");
+    }
+
+    return prisma.user.create({
+      data: {
+        name: data.name,
+        email: data.email,
+        image: data.image,
+        emailVerified: data.emailVerified,
+        roleId: role.id,
+      },
+    });
+  },
+};
 
 export const authOptions: NextAuthOptions = {
-  adapter: {
-    ...adapter,
-    async createUser(data) {
-      const role = await prisma.role.findUnique({
-        where: { name: "CUSTOMER" },
-        select: { id: true },
-      });
-
-      if (!role) {
-        throw new Error("Role CUSTOMER tidak ditemukan");
-      }
-
-      return prisma.user.create({
-        data: {
-          name: data.name,
-          email: data.email,
-          image: data.image,
-          emailVerified: data.emailVerified,
-          roleId: role.id,
-        },
-      });
-    },
-  },
+  adapter,
 
   providers: [
     GoogleProvider({
@@ -45,6 +48,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
+
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error("Email dan password wajib diisi");
@@ -89,7 +93,9 @@ export const authOptions: NextAuthOptions = {
             id: true,
             email: true,
             roleId: true,
-            role: { select: { name: true } },
+            role: {
+              select: { name: true },
+            },
           },
         });
 
@@ -109,7 +115,9 @@ export const authOptions: NextAuthOptions = {
             roleId: dbUser.roleId,
           },
           process.env.NEXTAUTH_SECRET!,
-          { expiresIn: "1d" },
+          {
+            expiresIn: "1d",
+          },
         );
       }
 
