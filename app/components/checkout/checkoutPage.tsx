@@ -2,7 +2,6 @@
 "use client";
 
 import { useCartStore } from "@/app/store/useCartStore";
-import { SnapOptions } from "@/app/types/midtrans/snapOptions.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,14 +42,6 @@ import Image from "next/image";
 import Script from "next/script";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-declare global {
-  interface Window {
-    snap: {
-      pay: (token: string, options?: SnapOptions) => void;
-    };
-  }
-}
 
 interface CustomerAddress {
   id: string;
@@ -441,33 +432,42 @@ export default function CheckoutPage() {
       if (!payData.success)
         throw new Error("Gagal mendapatkan token pembayaran.");
 
-      const snapTokenFromApi = payData.data.token;
+      const snapTokenFromApi = payData.data?.token;
+      const redirectUrl = payData.data?.redirect_url;
 
-      window.snap.pay(snapTokenFromApi, {
-        onSuccess: async function () {
-          toast.success("Pembayaran berhasil!");
-          await clearCart(token || undefined);
-          router.push(`/order-status?id=${newOrderId}&status=success`);
-        },
-        onPending: async function () {
-          toast.info("Menunggu pembayaran Anda.");
-          await clearCart(token || undefined);
-          router.push(`/order-status?id=${newOrderId}&status=pending`);
-        },
-        onError: function () {
-          toast.error("Pembayaran gagal.");
-        },
-        onClose: async function () {
-          toast.warning("Anda belum menyelesaikan pembayaran.");
-          await clearCart(token || undefined);
-
-          if (token) {
-            router.push(`/profile?tab=orders`);
-          } else {
+      if (snapTokenFromApi && window.snap?.pay) {
+        window.snap.pay(snapTokenFromApi, {
+          onSuccess: async function () {
+            toast.success("Pembayaran diterima. Sedang memverifikasi pesanan.");
+            await clearCart(token || undefined);
+            router.push(`/order-status?id=${newOrderId}&status=success`);
+          },
+          onPending: async function () {
+            toast.info("Menunggu pembayaran Anda.");
+            await clearCart(token || undefined);
             router.push(`/order-status?id=${newOrderId}&status=pending`);
-          }
-        },
-      });
+          },
+          onError: function () {
+            toast.error("Pembayaran gagal.");
+          },
+          onClose: async function () {
+            toast.warning("Anda belum menyelesaikan pembayaran.");
+            await clearCart(token || undefined);
+
+            if (token) {
+              router.push("/profile?tab=orders");
+            } else {
+              router.push(`/order-status?id=${newOrderId}&status=pending`);
+            }
+          },
+        });
+      } else if (redirectUrl) {
+        window.location.assign(redirectUrl);
+      } else {
+        throw new Error(
+          "Sesi pembayaran Midtrans tidak tersedia. Silakan coba kembali.",
+        );
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
