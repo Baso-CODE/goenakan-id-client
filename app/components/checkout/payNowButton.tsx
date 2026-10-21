@@ -1,19 +1,10 @@
 "use client";
 
-import { SnapOptions } from "@/app/types/midtrans/snapOptions.type";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/routing";
 import { useLocale } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-declare global {
-  interface Window {
-    snap: {
-      pay: (token: string, options?: SnapOptions) => void;
-    };
-  }
-}
 
 interface PayNowButtonProps {
   orderId: string;
