@@ -1,9 +1,17 @@
 import { ContactPayload } from "@/app/types/contactMessage.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
+interface ContactMessageResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    id: number;
+  };
+}
+
 export async function submitContactMessage(
   data: ContactPayload,
-): Promise<boolean> {
+): Promise<number | null> {
   try {
     const res = await fetch(`${apiUrl}/contact-messages`, {
       method: "POST",
@@ -14,14 +22,17 @@ export async function submitContactMessage(
       cache: "no-store",
     });
 
-    if (!res.ok) {
-      console.error("Gagal mengirim data ke server:", await res.text());
-      return false;
+    if (!res.ok) return null;
+
+    const result: ContactMessageResponse = await res.json();
+
+    if (!result.success || !Number.isSafeInteger(result.data?.id)) {
+      return null;
     }
 
-    return true;
+    return result.data!.id;
   } catch (error) {
-    console.error("Error jaringan saat mengirim pesan kontak:", error);
-    return false;
+    console.error("Gagal mengirim contact message:", error);
+    return null;
   }
 }

@@ -68,6 +68,8 @@ export interface ProductVariantDisplay {
 
   weightString: string;
   dimensionsString: string;
+
+  trackingPriceIdr?: number | null;
 }
 
 export interface ProductDetail {
@@ -106,6 +108,12 @@ export interface ProductDetail {
   attributeValues?: ProductAttributeValueDetail[];
   foreignPriceAdjuster?: number;
   colorMockupTrigger?: string;
+
+  // Metadata GTM / GA4
+  categoryId?: string;
+  itemCategoryName?: string | null;
+  itemCategoryEn?: string | null;
+  trackingBasePriceIdr?: number | null;
 }
 
 export interface ProductAttributeValueDetail {

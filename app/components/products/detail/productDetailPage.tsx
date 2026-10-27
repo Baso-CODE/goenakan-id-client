@@ -1,5 +1,7 @@
 "use client";
 
+import { pushEcommerceEvent } from "@/app/lib/tracking/dataLayer";
+import { productToViewItem } from "@/app/lib/tracking/viewItem";
 import { useCartStore } from "@/app/store/useCartStore";
 import { AddToCartPayload } from "@/app/types/itemCart/addToCartPayload.type";
 import { MediaItem, ProductDetail } from "@/app/types/productDetail.type";
@@ -8,7 +10,8 @@ import { MessageCircle, Sparkles, X, ZoomIn } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useLocale } from "next-intl";
 import Image from "next/image";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PriceTierSelector } from "./priceTierSelector";
 import { ProductCustomizer } from "./productCustomizer";
@@ -179,6 +182,8 @@ interface ProductDetailPageProps {
 export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const router = useRouter();
   const locale = useLocale();
+  const pathname = usePathname();
+  const trackedViewItems = useRef<Set<string>>(new Set());
   const currencyCode = product.currencyCode || "IDR";
   const variantAttributeNames = useMemo(() => {
     return new Set(
@@ -1150,9 +1155,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           product.variants.length > 0 &&
           (product.variants[0].priceAir !== null ||
             product.variants[0].price !== null)
-            ? Number(
-                product.variants[0].priceAir ?? product.variants[0].price,
-              )
+            ? Number(product.variants[0].priceAir ?? product.variants[0].price)
             : 0)
         : Number(product.basePrice) ||
           (product.variants &&
@@ -1303,7 +1306,8 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       // Periksa apakah ada mockup yang cocok dengan varian/atribut yang dipilih saat ini
       const hasMatchingMockup = (product.media || []).some(
         (img) =>
-          ((img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl) &&
+          ((img.mockupAreas && img.mockupAreas.length > 0) ||
+            !!img.colorMaskUrl) &&
           img.attributeValueId &&
           selectedAttributeValueIdSet.has(img.attributeValueId),
       );
@@ -1716,7 +1720,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       width: variantWidth,
       height: variantHeight,
       customization:
-        customization || Object.keys(customOptions).length > 0 || selectedFreightMode
+        customization ||
+        Object.keys(customOptions).length > 0 ||
+        selectedFreightMode
           ? {
               ...(customization || {}),
               selectedOptions: customOptions,
@@ -2097,6 +2103,29 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     );
   };
 
+  // ==========================================
+  // GTM / GA4 - VIEW ITEM
+  // ==========================================
+  useEffect(() => {
+    const ecommerceItem = productToViewItem(product);
+
+    if (!ecommerceItem) {
+      console.warn("[GTM] view_item dilewati: metadata produk belum lengkap.");
+      return;
+    }
+
+    const trackingKey = `${pathname}:${product.id}`;
+
+    // Hindari event ganda akibat re-render dan StrictMode.
+    if (trackedViewItems.current.has(trackingKey)) return;
+
+    const sent = pushEcommerceEvent("view_item", [ecommerceItem]);
+
+    if (sent) {
+      trackedViewItems.current.add(trackingKey);
+    }
+  }, [pathname, product]);
+
   return (
     <div className="max-w-8xl mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-6">
@@ -2408,7 +2437,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   {
                     mode: "SEA" as const,
                     label:
-                      locale === "en" ? "Sea Freight (SEA)" : "Jalur Laut (SEA)",
+                      locale === "en"
+                        ? "Sea Freight (SEA)"
+                        : "Jalur Laut (SEA)",
                     available:
                       product.availableFreightModes === "SEA" ||
                       product.availableFreightModes === "BOTH" ||
@@ -2417,7 +2448,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                   {
                     mode: "AIR" as const,
                     label:
-                      locale === "en" ? "Air Freight (AIR)" : "Jalur Udara (AIR)",
+                      locale === "en"
+                        ? "Air Freight (AIR)"
+                        : "Jalur Udara (AIR)",
                     available:
                       product.availableFreightModes === "AIR" ||
                       product.availableFreightModes === "BOTH",
