@@ -1,3 +1,4 @@
+import { getAttribution } from "@/app/lib/tracking/getAttribution";
 import { ContactPayload } from "@/app/types/contactMessage.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
@@ -12,13 +13,17 @@ interface ContactMessageResponse {
 export async function submitContactMessage(
   data: ContactPayload,
 ): Promise<number | null> {
+  const attribution = await getAttribution();
   try {
     const res = await fetch(`${apiUrl}/contact-messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        ...data,
+        attribution,
+      }),
       cache: "no-store",
     });
 

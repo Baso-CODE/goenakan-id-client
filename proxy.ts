@@ -1,22 +1,35 @@
 import createMiddleware from "next-intl/middleware";
 import { NextRequest } from "next/server";
+import {
+  ATTRIBUTION_COOKIE,
+  ATTRIBUTION_MAX_AGE,
+  getAttributionFromUrl,
+  mergeAttribution,
+  parseAttributionCookie,
+} from "./app/lib/tracking/attributionCookie";
 import { routing } from "./i18n/routing";
 
 // In-memory cache to avoid repeated external lookups across requests
 const ipCache = new Map<string, { country: string; expiresAt: number }>();
 
 function isPrivateOrLocalIp(ip: string): boolean {
-  if (!ip || ip === "::1" || ip === "127.0.0.1" || ip === "localhost") return true;
+  if (!ip || ip === "::1" || ip === "127.0.0.1" || ip === "localhost")
+    return true;
   // Private IPv4 ranges (10.0.0.0/8, 172.16.0.0/12 including Docker bridges, 192.168.0.0/16, 127.0.0.0/8)
   const privateIpv4Regex =
     /^(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3})$/;
   if (privateIpv4Regex.test(ip)) return true;
   // IPv6 local / private
-  if (ip.startsWith("fc00:") || ip.startsWith("fd00:") || ip.startsWith("fe80:")) return true;
+  if (
+    ip.startsWith("fc00:") ||
+    ip.startsWith("fd00:") ||
+    ip.startsWith("fe80:")
+  )
+    return true;
   return false;
 }
 
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   let country = "ID";
   const countryCookie = request.cookies.get("USER_COUNTRY")?.value;
 
@@ -59,7 +72,10 @@ export default async function middleware(request: NextRequest) {
                 country = data.country_code.toUpperCase();
                 // Simpan di memory cache selama 12 jam (maksimal 1000 entri)
                 if (ipCache.size > 1000) ipCache.clear();
-                ipCache.set(ip, { country, expiresAt: now + 12 * 60 * 60 * 1000 });
+                ipCache.set(ip, {
+                  country,
+                  expiresAt: now + 12 * 60 * 60 * 1000,
+                });
               }
             }
           } catch {
@@ -84,6 +100,29 @@ export default async function middleware(request: NextRequest) {
     response.cookies.set("USER_COUNTRY", country, {
       maxAge: 60 * 60 * 24,
       path: "/",
+    });
+  }
+
+  // GTM / Ads Attribution
+  const currentVisit = getAttributionFromUrl(request.nextUrl);
+
+  if (currentVisit) {
+    const previous = parseAttributionCookie(
+      request.cookies.get(ATTRIBUTION_COOKIE)?.value,
+    );
+
+    const attribution = mergeAttribution(previous, currentVisit);
+    const hostname = request.nextUrl.hostname;
+    const isGoenakanDomain =
+      hostname === "goenakan.id" || hostname.endsWith(".goenakan.id");
+
+    response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(attribution), {
+      httpOnly: true,
+      secure: isGoenakanDomain || request.nextUrl.protocol === "https:",
+      sameSite: "lax",
+      path: "/",
+      maxAge: ATTRIBUTION_MAX_AGE,
+      ...(isGoenakanDomain ? { domain: ".goenakan.id" } : {}),
     });
   }
 

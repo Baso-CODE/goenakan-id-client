@@ -3,6 +3,7 @@
 
 import { pushEcommerceEvent } from "@/app/lib/tracking/dataLayer";
 import { cartToEcommerceItems } from "@/app/lib/tracking/ecommerce";
+import { getAttribution } from "@/app/lib/tracking/getAttribution";
 import { useCartStore } from "@/app/store/useCartStore";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Badge } from "@/components/ui/badge";
@@ -464,6 +465,7 @@ export default function CheckoutPage() {
 
     setIsProcessing(true);
     try {
+      const attribution = await getAttribution();
       const createOrderRes = await fetch(`${apiUrl}/web-orders`, {
         method: "POST",
         headers: {
@@ -485,6 +487,7 @@ export default function CheckoutPage() {
           subtotal,
           shippingCost: 0,
           totalAmount: total,
+          attribution,
         }),
       });
 
