@@ -1,6 +1,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
+import { pushEcommerceEvent } from "@/app/lib/tracking/dataLayer";
+import { cartToEcommerceItems } from "@/app/lib/tracking/ecommerce";
 import { useCartStore } from "@/app/store/useCartStore";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Badge } from "@/components/ui/badge";
@@ -189,6 +191,54 @@ export default function CheckoutPage() {
   const token = session?.user?.accessToken;
 
   const { cartItems, fetchCart, clearCart, currencyCode } = useCartStore();
+
+  // ==========================================
+  // GTM - BEGIN CHECKOUT
+  // ==========================================
+
+  useEffect(() => {
+    // Jangan kirim jika keranjang kosong.
+    if (!cartItems.length) return;
+
+    // Sesuai kontrak v1.3, nilai ecommerce wajib IDR.
+    // Jangan mengirim harga mata uang lain sebagai IDR.
+    if (currencyCode !== "IDR") return;
+
+    const items = cartToEcommerceItems(cartItems);
+
+    // Jangan kirim event dengan data item yang belum lengkap.
+    if (!items?.length) return;
+
+    // Urutkan agar perubahan urutan cart tidak dianggap
+    // sebagai checkout baru.
+    const fingerprint = JSON.stringify(
+      [...items]
+        .sort((a, b) =>
+          `${a.item_id}:${a.item_variant}`.localeCompare(
+            `${b.item_id}:${b.item_variant}`,
+          ),
+        )
+        .map((item) => ({
+          id: item.item_id,
+          variant: item.item_variant,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+    );
+
+    const storageKey = `gk_begin_checkout:${fingerprint}`;
+
+    // Mencegah duplikasi ketika refresh atau React StrictMode.
+    if (sessionStorage.getItem(storageKey) === "sent") {
+      return;
+    }
+
+    const sent = pushEcommerceEvent("begin_checkout", items);
+
+    if (sent) {
+      sessionStorage.setItem(storageKey, "sent");
+    }
+  }, [cartItems, currencyCode]);
 
   const [addNote, setAddNote] = useState(false);
   const [note, setNote] = useState("");
