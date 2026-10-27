@@ -1,18 +1,35 @@
 export interface CartItemUI {
   id: string | number;
 
+  // Identitas produk
   productId: string;
   variantId?: string | null;
 
+  // Informasi produk
   name: string;
   price: number;
   quantity: number;
   image: string;
 
-  // Metadata ecommerce GA4/GTM
+  // ==========================================
+  // GTM / GA4 ECOMMERCE METADATA
+  // ==========================================
+
+  // SKU varian untuk item_variant
   variantSku?: string | null;
+
+  // Nama kategori dalam bahasa Inggris
   itemCategoryEn?: string | null;
+
+  // Contoh: UMBRELLA
   itemCategoryName?: string | null;
+
+  // Harga satuan IDR berdasarkan tier quantity
+  trackingPriceIdr?: number | null;
+
+  // ==========================================
+  // INFORMASI PRODUK LAINNYA
+  // ==========================================
 
   weight?: string;
   dimensions?: string;

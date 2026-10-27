@@ -167,21 +167,42 @@ interface CustomizationZone {
 }
 
 function getCustomizationDetails(
-  customization: string,
+  customization: unknown,
 ): CustomizationZone[] | null {
   if (!customization) return null;
+
   try {
     const data =
       typeof customization === "string"
         ? JSON.parse(customization)
         : customization;
-    if (data && data.zones) {
-      return Object.values(data.zones) as CustomizationZone[];
+
+    if (!data || typeof data !== "object" || !("zones" in data)) {
+      return null;
     }
-  } catch (e) {
-    console.error("Failed to parse customization", e);
+
+    const zones = data.zones;
+
+    if (!zones || typeof zones !== "object" || Array.isArray(zones)) {
+      return null;
+    }
+
+    return Object.values(zones).filter((zone): zone is CustomizationZone => {
+      if (!zone || typeof zone !== "object") return false;
+
+      return (
+        "image" in zone &&
+        typeof zone.image === "string" &&
+        "label" in zone &&
+        typeof zone.label === "string" &&
+        "fileName" in zone &&
+        typeof zone.fileName === "string"
+      );
+    });
+  } catch (error) {
+    console.error("Failed to parse customization:", error);
+    return null;
   }
-  return null;
 }
 
 export default function CheckoutPage() {
@@ -1185,40 +1206,40 @@ export default function CheckoutPage() {
                           {formatCurrency(item.price, currencyCode)}
                         </p>
 
-                        {getCustomizationDetails(item.customization) && (
+                        {getCustomizationDetails(item?.customization) && (
                           <div className="mt-1.5 p-1.5 bg-stone-100 rounded-sm border border-stone-200 self-start max-w-full">
                             <p className="text-[8px] font-bold text-stone-600 uppercase tracking-widest mb-1">
                               Logo Kustom:
                             </p>
                             <div className="flex flex-col gap-1">
-                              {getCustomizationDetails(item.customization)!.map(
-                                (zone, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-1.5 text-[9px] text-stone-600">
-                                    <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
-                                      <Image
-                                        width={100}
-                                        height={100}
-                                        src={zone.image}
-                                        alt={zone.label}
-                                        className="w-full h-full object-contain"
-                                      />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <span className="font-semibold text-stone-800 block leading-none">
-                                        {zone.label}{" "}
-                                        {zone.logoCount && zone.logoCount > 1
-                                          ? `(x${zone.logoCount})`
-                                          : ""}
-                                      </span>
-                                      <span className="text-stone-400 text-[8px] truncate block max-w-30">
-                                        {zone.fileName}
-                                      </span>
-                                    </div>
+                              {getCustomizationDetails(
+                                item?.customization,
+                              )!.map((zone, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-1.5 text-[9px] text-stone-600">
+                                  <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
+                                    <Image
+                                      width={100}
+                                      height={100}
+                                      src={zone.image}
+                                      alt={zone.label}
+                                      className="w-full h-full object-contain"
+                                    />
                                   </div>
-                                ),
-                              )}
+                                  <div className="min-w-0">
+                                    <span className="font-semibold text-stone-800 block leading-none">
+                                      {zone.label}{" "}
+                                      {zone.logoCount && zone.logoCount > 1
+                                        ? `(x${zone.logoCount})`
+                                        : ""}
+                                    </span>
+                                    <span className="text-stone-400 text-[8px] truncate block max-w-30">
+                                      {zone.fileName}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}
