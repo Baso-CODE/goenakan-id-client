@@ -2,6 +2,10 @@
 
 import { submitContactMessage } from "@/app/api/contactMessages/submitContactMessage.api";
 import { getCategoryList } from "@/app/api/products/getCategoryProductList.api";
+import {
+  prepareLeadHashes,
+  trackGenerateLead,
+} from "@/app/lib/tracking/leadTracking";
 import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { ContactPayload } from "@/app/types/contactMessage.type";
 import { Link } from "@/i18n/routing";
@@ -56,42 +60,54 @@ export function ContactForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    if (isSubmitting) return;
 
+    setIsSubmitting(true);
     const toastId = toast.loading("Sedang mengirim pesan...");
 
     const selectedInterest = `${productCategoryName} - ${itemCategoryName}`;
     const payload = { ...form, interest: selectedInterest };
 
     try {
-      const isSuccess = await submitContactMessage(payload);
+      let hashes = {};
 
-      if (!isSuccess) {
+      try {
+        hashes = await prepareLeadHashes(form.email, form.phone);
+      } catch {
+        console.warn("[GTM] Hash data lead tidak tersedia.");
+      }
+
+      const leadId = await submitContactMessage(payload);
+
+      if (leadId === null) {
         toast.error("Gagal mengirim pesan ke sistem. Silakan coba lagi.", {
           id: toastId,
         });
         return;
       }
 
-      toast.success("Pesan berhasil terkirim ke sistem!", { id: toastId });
+      toast.success("Pesan berhasil terkirim ke sistem!", {
+        id: toastId,
+      });
+
+      trackGenerateLead(leadId, hashes);
 
       const text = [
-        `Halo, saya ingin menghubungi Anda.`,
-        ``,
+        "Halo, saya ingin menghubungi Anda.",
+        "",
         `*Nama:* ${form.name}`,
         `*Email:* ${form.email}`,
         `*No. HP/WhatsApp:* ${form.phone}`,
         `*Kategori Produk:* ${productCategoryName || "-"}`,
         `*Kategori Item:* ${itemCategoryName || "-"}`,
-        ``,
-        `*Pesan:*`,
+        "",
+        "*Pesan:*",
         form.message,
       ].join("\n");
 
       const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
-      window.open(url, "_blank");
+      window.open(url, "_blank", "noopener,noreferrer");
 
-      // Reset Form
       setForm({
         name: "",
         email: "",
@@ -99,11 +115,14 @@ export function ContactForm() {
         interest: "",
         message: "",
       });
+
       setProductCategoryName("");
       setItemCategoryName("");
     } catch (error) {
-      console.error(error);
-      toast.error("Terjadi kesalahan koneksi server.", { id: toastId });
+      console.error("Contact form submission error:", error);
+      toast.error("Terjadi kesalahan koneksi server.", {
+        id: toastId,
+      });
     } finally {
       setIsSubmitting(false);
     }

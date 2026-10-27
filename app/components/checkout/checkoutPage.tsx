@@ -1,6 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
+import { pushEcommerceEvent } from "@/app/lib/tracking/dataLayer";
+import { cartToEcommerceItems } from "@/app/lib/tracking/ecommerce";
+import { getAttribution } from "@/app/lib/tracking/getAttribution";
 import { useCartStore } from "@/app/store/useCartStore";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Badge } from "@/components/ui/badge";
@@ -165,21 +168,42 @@ interface CustomizationZone {
 }
 
 function getCustomizationDetails(
-  customization: string,
+  customization: unknown,
 ): CustomizationZone[] | null {
   if (!customization) return null;
+
   try {
     const data =
       typeof customization === "string"
         ? JSON.parse(customization)
         : customization;
-    if (data && data.zones) {
-      return Object.values(data.zones) as CustomizationZone[];
+
+    if (!data || typeof data !== "object" || !("zones" in data)) {
+      return null;
     }
-  } catch (e) {
-    console.error("Failed to parse customization", e);
+
+    const zones = data.zones;
+
+    if (!zones || typeof zones !== "object" || Array.isArray(zones)) {
+      return null;
+    }
+
+    return Object.values(zones).filter((zone): zone is CustomizationZone => {
+      if (!zone || typeof zone !== "object") return false;
+
+      return (
+        "image" in zone &&
+        typeof zone.image === "string" &&
+        "label" in zone &&
+        typeof zone.label === "string" &&
+        "fileName" in zone &&
+        typeof zone.fileName === "string"
+      );
+    });
+  } catch (error) {
+    console.error("Failed to parse customization:", error);
+    return null;
   }
-  return null;
 }
 
 export default function CheckoutPage() {
@@ -189,6 +213,54 @@ export default function CheckoutPage() {
   const token = session?.user?.accessToken;
 
   const { cartItems, fetchCart, clearCart, currencyCode } = useCartStore();
+
+  // ==========================================
+  // GTM - BEGIN CHECKOUT
+  // ==========================================
+
+  useEffect(() => {
+    // Jangan kirim jika keranjang kosong.
+    if (!cartItems.length) return;
+
+    // Sesuai kontrak v1.3, nilai ecommerce wajib IDR.
+    // Jangan mengirim harga mata uang lain sebagai IDR.
+    if (currencyCode !== "IDR") return;
+
+    const items = cartToEcommerceItems(cartItems);
+
+    // Jangan kirim event dengan data item yang belum lengkap.
+    if (!items?.length) return;
+
+    // Urutkan agar perubahan urutan cart tidak dianggap
+    // sebagai checkout baru.
+    const fingerprint = JSON.stringify(
+      [...items]
+        .sort((a, b) =>
+          `${a.item_id}:${a.item_variant}`.localeCompare(
+            `${b.item_id}:${b.item_variant}`,
+          ),
+        )
+        .map((item) => ({
+          id: item.item_id,
+          variant: item.item_variant,
+          price: item.price,
+          quantity: item.quantity,
+        })),
+    );
+
+    const storageKey = `gk_begin_checkout:${fingerprint}`;
+
+    // Mencegah duplikasi ketika refresh atau React StrictMode.
+    if (sessionStorage.getItem(storageKey) === "sent") {
+      return;
+    }
+
+    const sent = pushEcommerceEvent("begin_checkout", items);
+
+    if (sent) {
+      sessionStorage.setItem(storageKey, "sent");
+    }
+  }, [cartItems, currencyCode]);
 
   const [addNote, setAddNote] = useState(false);
   const [note, setNote] = useState("");
@@ -393,6 +465,7 @@ export default function CheckoutPage() {
 
     setIsProcessing(true);
     try {
+      const attribution = await getAttribution();
       const createOrderRes = await fetch(`${apiUrl}/web-orders`, {
         method: "POST",
         headers: {
@@ -414,6 +487,7 @@ export default function CheckoutPage() {
           subtotal,
           shippingCost: 0,
           totalAmount: total,
+          attribution,
         }),
       });
 
@@ -1135,40 +1209,40 @@ export default function CheckoutPage() {
                           {formatCurrency(item.price, currencyCode)}
                         </p>
 
-                        {getCustomizationDetails(item.customization) && (
+                        {getCustomizationDetails(item?.customization) && (
                           <div className="mt-1.5 p-1.5 bg-stone-100 rounded-sm border border-stone-200 self-start max-w-full">
                             <p className="text-[8px] font-bold text-stone-600 uppercase tracking-widest mb-1">
                               Logo Kustom:
                             </p>
                             <div className="flex flex-col gap-1">
-                              {getCustomizationDetails(item.customization)!.map(
-                                (zone, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="flex items-center gap-1.5 text-[9px] text-stone-600">
-                                    <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
-                                      <Image
-                                        width={100}
-                                        height={100}
-                                        src={zone.image}
-                                        alt={zone.label}
-                                        className="w-full h-full object-contain"
-                                      />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <span className="font-semibold text-stone-800 block leading-none">
-                                        {zone.label}{" "}
-                                        {zone.logoCount && zone.logoCount > 1
-                                          ? `(x${zone.logoCount})`
-                                          : ""}
-                                      </span>
-                                      <span className="text-stone-400 text-[8px] truncate block max-w-30">
-                                        {zone.fileName}
-                                      </span>
-                                    </div>
+                              {getCustomizationDetails(
+                                item?.customization,
+                              )!.map((zone, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex items-center gap-1.5 text-[9px] text-stone-600">
+                                  <div className="relative w-5 h-5 bg-white border border-stone-300 rounded-sm overflow-hidden shrink-0 flex items-center justify-center">
+                                    <Image
+                                      width={100}
+                                      height={100}
+                                      src={zone.image}
+                                      alt={zone.label}
+                                      className="w-full h-full object-contain"
+                                    />
                                   </div>
-                                ),
-                              )}
+                                  <div className="min-w-0">
+                                    <span className="font-semibold text-stone-800 block leading-none">
+                                      {zone.label}{" "}
+                                      {zone.logoCount && zone.logoCount > 1
+                                        ? `(x${zone.logoCount})`
+                                        : ""}
+                                    </span>
+                                    <span className="text-stone-400 text-[8px] truncate block max-w-30">
+                                      {zone.fileName}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}
