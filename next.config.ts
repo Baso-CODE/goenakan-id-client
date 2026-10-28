@@ -1,7 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-// 🔄 Path disesuaikan (tanpa src)
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
@@ -13,11 +12,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "via.placeholder.com", pathname: "/**" },
       { protocol: "https", hostname: "goenakan.id", pathname: "/**" },
       { protocol: "https", hostname: "*.goenakan.id", pathname: "/**" },
-      {
-        protocol: "https",
-        hostname: "static.midtrans.com",
-        pathname: "/**",
-      },
+      { protocol: "https", hostname: "static.midtrans.com", pathname: "/**" },
     ],
   },
 };
