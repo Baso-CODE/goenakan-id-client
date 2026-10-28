@@ -4,6 +4,7 @@ import { CustomCTA } from "@/app/components/products/customCTA";
 import { ProductDetailPage } from "@/app/components/products/detail/productDetailPage";
 import { RelatedProducts } from "@/app/components/products/detail/relatedProducts";
 import type { Metadata } from "next";
+import { setRequestLocale } from "next-intl/server";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
@@ -132,6 +133,7 @@ export async function generateMetadata({
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug, locale } = await params;
+  setRequestLocale(locale);
   const language = locale === "en" ? "en" : "id";
 
   const cookieStore = await cookies();
@@ -146,7 +148,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      <ProductDetailPage product={product} />
+      <ProductDetailPage product={product} locale={language} />
       <RelatedProducts
         products={relatedProducts}
         title={
