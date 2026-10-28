@@ -5,26 +5,23 @@ export function productToViewItem(
   product: ProductDetail,
 ): EcommerceItem | null {
   const variant = product.variants?.[0];
-
-  if (!variant?.id || !variant.sku) return null;
-
   const categoryEn = product.itemCategoryEn?.trim();
   const category2 = product.itemCategoryName?.trim();
 
-  if (!categoryEn || !category2) return null;
+  const price = variant?.trackingPriceIdr ?? product.trackingBasePriceIdr;
 
-  const tiers = variant.priceTiers?.length
-    ? variant.priceTiers
-    : product.priceTiers;
+  if (!variant?.id || !variant.sku) {
+    console.warn("[GTM] view_item: UUID atau SKU varian tidak tersedia.");
+    return null;
+  }
 
-  const firstTier = [...(tiers ?? [])].sort((a, b) => a.minQty - b.minQty)[0];
-
-  // Harga harus berasal dari IDR, bukan harga tampilan USD.
-  const price = firstTier
-    ? Number(firstTier.pricePerPcs)
-    : (variant.trackingPriceIdr ?? product.trackingBasePriceIdr);
+  if (!categoryEn || !category2) {
+    console.warn("[GTM] view_item: metadata kategori belum lengkap.");
+    return null;
+  }
 
   if (price == null || !Number.isFinite(Number(price)) || Number(price) < 0) {
+    console.warn("[GTM] view_item: harga IDR tidak valid.");
     return null;
   }
 
