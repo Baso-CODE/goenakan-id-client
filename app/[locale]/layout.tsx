@@ -3,7 +3,7 @@ import { routing } from "@/i18n/routing";
 import { NextAuthProvider } from "@/providers/NextAuthProvider";
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, setRequestLocale } from "next-intl/server";
 import { Gilda_Display } from "next/font/google";
 import { notFound } from "next/navigation";
 import { Toaster } from "sonner";
@@ -50,6 +50,8 @@ export default async function RootLayout({
     notFound();
   }
 
+  setRequestLocale(locale);
+
   const [messages, settings] = await Promise.all([
     getMessages(),
     getPublicAppSettings(),
@@ -60,7 +62,7 @@ export default async function RootLayout({
       <body
         className={`${gilda.variable} ${gilda.className} antialiased scroll-smooth`}>
         <NextAuthProvider>
-          <NextIntlClientProvider messages={messages}>
+          <NextIntlClientProvider messages={messages} locale={locale}>
             <Navbar />
 
             <TooltipProvider>{children}</TooltipProvider>

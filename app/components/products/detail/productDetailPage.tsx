@@ -5,12 +5,10 @@ import { productToViewItem } from "@/app/lib/tracking/viewItem";
 import { useCartStore } from "@/app/store/useCartStore";
 import { AddToCartPayload } from "@/app/types/itemCart/addToCartPayload.type";
 import { MediaItem, ProductDetail } from "@/app/types/productDetail.type";
-import { useRouter } from "@/i18n/routing";
 import { MessageCircle, Sparkles, X, ZoomIn } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { useLocale } from "next-intl";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PriceTierSelector } from "./priceTierSelector";
@@ -20,6 +18,7 @@ import { ProductImageGallery } from "./productImageGallery";
 import { QuantitySelector } from "./quantitySelector";
 import { ShareBar } from "./sharebar";
 import { WhatsAppBanner } from "./whatsappBanner";
+import { isMockupImage } from "@/app/utils/mediaFilter";
 
 // Prevent expensive child trees from re-rendering when unrelated state changes
 // (for example: quantity / price-tier clicks).
@@ -177,11 +176,15 @@ function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
 }
 interface ProductDetailPageProps {
   product: ProductDetail;
+  locale?: string;
 }
 
-export function ProductDetailPage({ product }: ProductDetailPageProps) {
+export function ProductDetailPage({
+  product,
+  locale: propLocale,
+}: ProductDetailPageProps) {
   const router = useRouter();
-  const locale = useLocale();
+  const locale = propLocale || "id";
   const pathname = usePathname();
   const trackedViewItems = useRef<Set<string>>(new Set());
   const currencyCode = product.currencyCode || "IDR";
@@ -600,22 +603,17 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     if (!isCustomizing || availableMockupPositions.length === 0) return;
 
     setSelectedMockupPositions((prev) => {
-      const availableIds = availableMockupPositions.map(
-        (p) => p.printPositionValueId || p.name,
-      );
-
-      let next: string[];
       if (prev.length === 0) {
-        next = availableIds;
-      } else {
-        const validIds = new Set(availableIds);
-        const filtered = prev.filter((id) => validIds.has(id));
-        next = filtered.length > 0 ? filtered : [availableIds[0]];
+        return prev;
       }
+      const availableIds = new Set(
+        availableMockupPositions.map((p) => p.printPositionValueId || p.name),
+      );
+      const filtered = prev.filter((id) => availableIds.has(id));
 
       // Important: return the old reference when nothing changed.
       // Otherwise this effect creates a second unnecessary render after clicks.
-      return areStringArraysEqual(prev, next) ? prev : next;
+      return areStringArraysEqual(prev, filtered) ? prev : filtered;
     });
   }, [isCustomizing, availableMockupPositions]);
 
@@ -1334,12 +1332,10 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
           }
         })
         .map((img) => {
-          const isMockup =
-            (img.mockupAreas && img.mockupAreas.length > 0) ||
-            !!img.colorMaskUrl ||
-            img.altText === "Mockup Image";
+          const isMockup = isMockupImage(img);
+          const hasColorMask = !!img.colorMaskUrl;
           const isColorCustomLink =
-            isMockup &&
+            hasColorMask &&
             (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE"
               ? !!img.attributeValueId &&
                 selectedAttributeValueIdSet.has(img.attributeValueId)
@@ -1355,7 +1351,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
       }
       const genericPhotos = (product.media || [])
         .filter(
-          (img) => !img.attributeValueId && img.altText !== "Mockup Image",
+          (img) => !img.attributeValueId && !isMockupImage(img),
         )
         .map((img) => ({
           ...img,
@@ -1400,7 +1396,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
     let result: MediaItem[] = [];
 
     if (isCustomizing) {
-      // Hanya tampilkan gambar yang memiliki area mockup kustom
+      // Hanya tampilkan gambar yang memiliki area mockup kustom untuk customizer
       result = allGalleryMediaForSize.filter(
         (img) => img.mockupAreas && img.mockupAreas.length > 0,
       );
@@ -1409,23 +1405,11 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         product.colorMockupTrigger && product.colorMockupTrigger !== "NONE";
 
       if (useMockupFlow) {
-        // Tampilkan gambar yang sesuai dengan filter ukuran/model
-        // Tapi filter out gambar mockup tambahan (kedua, ketiga, dst) di galeri polosan
-        let hasFoundMockup = false;
-        result = allGalleryMediaForSize.filter((img) => {
-          const isMockup =
-            (img.mockupAreas && img.mockupAreas.length > 0) ||
-            !!img.colorMaskUrl ||
-            img.altText === "Mockup Image";
-          if (isMockup) {
-            if (!hasFoundMockup) {
-              hasFoundMockup = true;
-              return true;
-            }
-            return false;
-          }
-          return true;
-        });
+        // Tampilkan foto produk di galeri polosan (filter out mockup template untuk customizer)
+        const galleryPhotos = allGalleryMediaForSize.filter(
+          (img) => !isMockupImage(img),
+        );
+        result = galleryPhotos.length > 0 ? galleryPhotos : allGalleryMediaForSize;
       } else {
         // Tampilkan semua gambar tanpa filter ukuran (polosan type)
         const currentMedia =
@@ -1437,14 +1421,15 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
             : [];
         const productMedia = (product.media || [])
           .filter(
-            (img) => !img.attributeValueId && img.altText !== "Mockup Image",
+            (img) => !img.attributeValueId && !isMockupImage(img),
           )
           .map((img) => ({
             ...img,
             isColorCustomizable: false,
           }));
         const mergedMedia = [...currentMedia, ...productMedia];
-        result = sortMediaItems(mergedMedia);
+        const galleryPhotos = mergedMedia.filter((img) => !isMockupImage(img));
+        result = sortMediaItems(galleryPhotos.length > 0 ? galleryPhotos : mergedMedia);
       }
     }
 
@@ -1476,6 +1461,9 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
   const customizerMedia = useMemo(() => {
     if (!isCustomizing) return activeGalleryMedia;
+    if (selectedMockupPositions.length === 0) {
+      return activeGalleryMedia;
+    }
     return activeGalleryMedia.filter((item: any) => {
       const posKey = item.printPositionValueId || item.mockupSideName;
       if (!posKey) return true;
@@ -1638,6 +1626,19 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
         return false;
       }
     }
+
+    if (
+      isCustomizing &&
+      availableMockupPositions.length > 0 &&
+      selectedMockupPositions.length === 0
+    ) {
+      toast.error(
+        locale === "en"
+          ? "Please select at least one print position / side first!"
+          : "Silakan pilih minimal satu posisi / sisi cetak terlebih dahulu!",
+      );
+      return false;
+    }
     const variantWeight = resolvedVariantDetails
       ? resolvedVariantDetails.weight
       : selectedVariant?.weightString || product.weight;
@@ -1740,7 +1741,7 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
   const handleOrderNow = async () => {
     const success = await handleAddToCart();
     if (success) {
-      router.push("/checkout");
+      router.push(`/${locale}/checkout`);
     }
   };
 
@@ -1900,16 +1901,44 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
 
               if (isValCustom) {
                 return (
-                  <div
+                  <button
                     key={val}
-                    className="flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none animate-pulse">
-                    {colorButton}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => handleSelectOption(group.name, val)}
+                    className={`flex items-center gap-2 bg-gradient-to-r from-indigo-50/70 to-purple-50/40 border border-indigo-100 rounded-full pl-0.5 pr-2.5 py-0.5 shadow-2xs select-none transition-all duration-200 text-left ${
+                      isDisabled
+                        ? "opacity-35 cursor-not-allowed"
+                        : "cursor-pointer hover:border-indigo-300 hover:scale-[1.02]"
+                    } ${
+                      isSelected && !isDisabled
+                        ? "ring-2 ring-stone-950 ring-offset-2"
+                        : "animate-pulse"
+                    }`}>
+                    <div
+                      className={`relative w-8 h-8 rounded-full border transition-all duration-200 flex items-center justify-center shrink-0 ${
+                        isSelected && !isDisabled
+                          ? "ring-1 ring-stone-950 scale-105"
+                          : "hover:scale-105"
+                      }`}
+                      style={bgStyle}
+                      title={`${colorInfo.name} (${colorInfo.cmyk})`}>
+                      {isSelected && !isDisabled && (
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            colorInfo.hex.toLowerCase() === "#ffffff"
+                              ? "bg-black"
+                              : "bg-white"
+                          }`}
+                        />
+                      )}
+                    </div>
                     <span className="text-[9px] font-extrabold text-indigo-700 uppercase tracking-widest leading-none">
                       {locale === "en"
                         ? "🌈 Customizable Color"
                         : "🌈 Bisa Custom Warna"}
                     </span>
-                  </div>
+                  </button>
                 );
               }
 
@@ -2362,14 +2391,6 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
                       onClick={() => {
                         setSelectedMockupPositions((prev) => {
                           if (prev.includes(posKey)) {
-                            if (prev.length <= 1) {
-                              toast.error(
-                                locale === "en"
-                                  ? "Please select at least one print position!"
-                                  : "Harap pilih minimal satu posisi cetak!",
-                              );
-                              return prev;
-                            }
                             return prev.filter((p) => p !== posKey);
                           } else {
                             return [...prev, posKey];
@@ -2698,11 +2719,13 @@ export function ProductDetailPage({ product }: ProductDetailPageProps) {
               className="absolute top-3 right-3 p-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 dark:bg-stone-800 dark:hover:bg-stone-700 dark:text-stone-300 transition-colors">
               <X className="w-4 h-4" />
             </button>
-            <div className="w-full aspect-square rounded-md overflow-hidden bg-stone-50 flex items-center justify-center border border-stone-100 dark:border-stone-800">
+            <div className="relative w-full aspect-square rounded-md overflow-hidden bg-stone-50 flex items-center justify-center border border-stone-100 dark:border-stone-800">
               <Image
                 src={previewImage.url}
                 alt={previewImage.name}
-                className="w-full h-full object-contain"
+                fill
+                sizes="(max-width: 640px) 90vw, 500px"
+                className="object-contain p-2"
               />
             </div>
             <p className="text-sm font-bold text-stone-900 dark:text-white capitalize">

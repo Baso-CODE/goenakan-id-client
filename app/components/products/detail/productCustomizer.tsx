@@ -16,7 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { toast } from "sonner";
 
@@ -49,7 +49,7 @@ function PercentSizeInput({
     value: number,
   ) => void;
 }) {
-  const roundedPct = Math.round(logo.scale || 5);
+  const roundedPct = Math.round((logo.scale || 1) * 10) / 10;
   const [typedVal, setTypedVal] = useState(roundedPct.toString());
   const [isFocused, setIsFocused] = useState(false);
 
@@ -63,9 +63,9 @@ function PercentSizeInput({
     const valStr = e.target.value;
     setTypedVal(valStr);
 
-    const valPct = parseInt(valStr);
+    const valPct = parseFloat(valStr);
     if (!isNaN(valPct) && valPct > 0) {
-      updateTransform(area.id, logo.id, "scale", valPct);
+      updateTransform(area.id, logo.id, "scale", Math.min(maxScale, valPct));
     }
   };
 
@@ -173,6 +173,110 @@ interface ProductCustomizerProps {
   productDimensions?: string;
   colorMockupTrigger?: string;
   colorMaskUrl?: string;
+}
+
+export function getAreaDisplayName(
+  area?: MockupArea | null,
+  allAreas: MockupArea[] = [],
+  mediaSideName?: string | null,
+  isEn: boolean = false,
+): string {
+  if (!area) return isEn ? "Mockup Area" : "Area Mockup";
+
+  const rawLabel = (area.label || "").trim();
+  const sideName = (mediaSideName || "").trim();
+
+  const isGeneric = (lbl: string) => {
+    if (!lbl) return true;
+    const lower = lbl.toLowerCase();
+    return (
+      lower.startsWith("mockup area") ||
+      lower.startsWith("area mockup") ||
+      lower.includes("(copy)")
+    );
+  };
+
+  // If there's only 1 area on this media
+  if (allAreas.length <= 1) {
+    if (rawLabel && !isGeneric(rawLabel)) {
+      return rawLabel;
+    }
+    if (sideName && !isGeneric(sideName)) {
+      return sideName;
+    }
+    return rawLabel || sideName || (isEn ? "Mockup Area" : "Area Mockup");
+  }
+
+  // Multi-area disambiguation
+  const areaIndex = allAreas.findIndex((a) => a.id === area.id);
+  const indexNum = areaIndex >= 0 ? areaIndex + 1 : 1;
+
+  // Check if rawLabel is duplicated among areas in allAreas
+  const duplicatesCount = allAreas.filter(
+    (a) => (a.label || "").trim().toLowerCase() === rawLabel.toLowerCase(),
+  ).length;
+  const isDuplicate = duplicatesCount > 1;
+
+  // Check if rawLabel simply matches the sideName (e.g. both are "Two-Sides")
+  const isSameAsSide =
+    rawLabel.toLowerCase() === sideName.toLowerCase();
+
+  // If the label is distinct, non-generic, not duplicated, and not the same as sideName
+  if (rawLabel && !isGeneric(rawLabel) && !isDuplicate && !isSameAsSide) {
+    return rawLabel;
+  }
+
+  // Otherwise generate a disambiguated numbered title
+  const prefix = isEn ? `Side ${indexNum}` : `Sisi ${indexNum}`;
+  if (sideName && !isGeneric(sideName)) {
+    return `${prefix} (${sideName})`;
+  }
+  return prefix;
+}
+
+export function computeLogoSpecs(logo: LogoItem, area: MockupArea) {
+  const scale = logo.scale ?? 10;
+  const xOffset = logo.xOffset ?? area.x;
+  const yOffset = logo.yOffset ?? area.y;
+  const aspect = logo.aspectRatio || 1.0;
+  const logoHeight = scale / aspect;
+
+  const leftDistance = xOffset - area.x;
+  const rightDistance = area.x + area.width - (xOffset + scale);
+  const topDistance = yOffset - area.y;
+  const bottomDistance = area.y + area.height - (yOffset + logoHeight);
+
+  const getCmVal = (
+    distPct: number,
+    physicalSize?: number,
+    baseSize?: number,
+  ) => {
+    if (physicalSize && baseSize && baseSize > 0) {
+      const cmVal = distPct * (physicalSize / baseSize);
+      return `${Math.max(0, Math.round(cmVal * 10) / 10)} ${area.unit || "cm"}`;
+    }
+    return `${Math.max(0, Math.round(distPct))}%`;
+  };
+
+  const logoWidth = area.physicalWidth
+    ? ((logo.scale || 5) / area.width) * area.physicalWidth
+    : null;
+  const logoH =
+    logoWidth && logo.aspectRatio ? logoWidth / logo.aspectRatio : null;
+  const dimensionStr =
+    logoWidth && logoH
+      ? `${Math.round(logoWidth * 10) / 10} × ${Math.round(logoH * 10) / 10} ${area.unit || "cm"}`
+      : `${Math.round(logo.scale || 5)}%`;
+
+  return {
+    dimensions: dimensionStr,
+    distances: {
+      left: getCmVal(leftDistance, area.physicalWidth, area.width),
+      right: getCmVal(rightDistance, area.physicalWidth, area.width),
+      top: getCmVal(topDistance, area.physicalHeight, area.height),
+      bottom: getCmVal(bottomDistance, area.physicalHeight, area.height),
+    },
+  };
 }
 
 export function ProductCustomizer({
@@ -348,6 +452,65 @@ export function ProductCustomizer({
     };
   }, [activeLogoDetails]);
 
+  const getAreaName = useCallback(
+    (area?: MockupArea | null) =>
+      getAreaDisplayName(
+        area,
+        activeMedia?.mockupAreas || [],
+        activeMedia?.mockupSideName,
+        isEn,
+      ),
+    [activeMedia, isEn],
+  );
+
+  const allMockupAreasSpecs = useMemo(() => {
+    if (!activeMedia?.mockupAreas || activeMedia.mockupAreas.length === 0) {
+      return [];
+    }
+
+    const allAreas = activeMedia.mockupAreas;
+    return allAreas.map((area) => {
+      const areaDisplayName = getAreaDisplayName(
+        area,
+        allAreas,
+        activeMedia.mockupSideName,
+        isEn,
+      );
+
+      const logoList = uploads[area.id] || [];
+      const areaSizeStr =
+        area.physicalWidth && area.physicalHeight
+          ? `${area.physicalWidth} × ${area.physicalHeight} ${area.unit || "cm"}`
+          : null;
+
+      const logoSpecs = logoList.map((logo) => {
+        const spec = computeLogoSpecs(logo, area);
+        return {
+          id: logo.id,
+          fileName: logo.fileName,
+          isActive: activeLogoId === logo.id,
+          dimensions: spec.dimensions,
+          distances: spec.distances,
+        };
+      });
+
+      const hasActiveLogo = logoSpecs.some((l) => l.isActive);
+
+      return {
+        areaId: area.id,
+        areaDisplayName,
+        areaSizeStr,
+        hasUploads: logoList.length > 0,
+        hasActiveLogo,
+        logoSpecs,
+      };
+    });
+  }, [activeMedia, uploads, activeLogoId, isEn]);
+
+  const hasAnyUploadsOnActiveMedia = useMemo(() => {
+    return allMockupAreasSpecs.some((a) => a.hasUploads);
+  }, [allMockupAreasSpecs]);
+
   // Synchronize uploads state across different mockup media items when variants change
   useEffect(() => {
     if (!activeMedia || !activeMedia.mockupAreas) return;
@@ -383,14 +546,26 @@ export function ProductCustomizer({
                   const xVal = logo.xOffset ?? 0;
                   const yVal = logo.yOffset ?? 0;
                   const sVal = logo.scale ?? 0;
+                  const aspect = logo.aspectRatio || 1.0;
+
+                  const targetMaxScale = getMaxScale(area, logo);
+                  const relScale = sVal / oldArea.width;
+
+                  const rawScale = relScale * area.width;
+                  const newScale = Math.min(targetMaxScale, Math.max(1, rawScale));
+                  const logoHeight = newScale / aspect;
 
                   const relX = (xVal - oldArea.x) / oldArea.width;
                   const relY = (yVal - oldArea.y) / oldArea.height;
-                  const relScale = sVal / oldArea.width;
 
-                  const newScale = relScale * area.width;
-                  const newX = area.x + relX * area.width;
-                  const newY = area.y + relY * area.height;
+                  const rawX = area.x + relX * (area.width - newScale);
+                  const rawY = area.y + relY * (area.height - logoHeight);
+
+                  const maxX = Math.max(area.x, area.x + area.width - newScale);
+                  const maxY = Math.max(area.y, area.y + area.height - logoHeight);
+
+                  const newX = Math.max(area.x, Math.min(rawX, maxX));
+                  const newY = Math.max(area.y, Math.min(rawY, maxY));
 
                   return {
                     ...logo,
@@ -458,16 +633,20 @@ export function ProductCustomizer({
     if (dragArea) {
       const aLeft = (dragArea.x / 100) * parentRect.width;
       const aTop = (dragArea.y / 100) * parentRect.height;
-      const aRight =
+      const aRight = Math.max(
+        aLeft,
         ((dragArea.x + dragArea.width) / 100) * parentRect.width -
-        el.clientWidth;
-      const aBottom =
+          el.clientWidth,
+      );
+      const aBottom = Math.max(
+        aTop,
         ((dragArea.y + dragArea.height) / 100) * parentRect.height -
-        el.clientHeight;
+          el.clientHeight,
+      );
       minX = Math.max(minX, aLeft);
       minY = Math.max(minY, aTop);
-      maxX = Math.min(maxX, Math.max(aLeft, aRight));
-      maxY = Math.min(maxY, Math.max(aTop, aBottom));
+      maxX = Math.min(maxX, aRight);
+      maxY = Math.min(maxY, aBottom);
     }
 
     newX = Math.max(minX, Math.min(newX, maxX));
@@ -515,14 +694,16 @@ export function ProductCustomizer({
           let val = value;
           const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
           if (area) {
+            const aspect = item.aspectRatio || 1.0;
             if (key === "scale") {
               const maxS = getMaxScale(area, item);
-              val = Math.min(maxS, Math.max(5, value));
+              const minS = Math.min(1, maxS);
+              val = Math.min(maxS, Math.max(minS, value));
 
               // Shift x & y jika melebihi area bounds saat diresize
-              const aspect = item.aspectRatio || 1.0;
-              const maxX = area.x + area.width - val;
-              const maxY = area.y + area.height - val / aspect;
+              const logoH = val / aspect;
+              const maxX = Math.max(area.x, area.x + area.width - val);
+              const maxY = Math.max(area.y, area.y + area.height - logoH);
 
               return {
                 ...item,
@@ -538,12 +719,12 @@ export function ProductCustomizer({
               };
             }
             if (key === "xOffset") {
-              const maxX = area.x + area.width - (item.scale || 10);
+              const maxX = Math.max(area.x, area.x + area.width - (item.scale || 5));
               val = Math.max(area.x, Math.min(value, maxX));
             }
             if (key === "yOffset") {
-              const aspect = item.aspectRatio || 1.0;
-              const maxY = area.y + area.height - (item.scale || 10) / aspect;
+              const logoH = (item.scale || 5) / aspect;
+              const maxY = Math.max(area.y, area.y + area.height - logoH);
               val = Math.max(area.y, Math.min(value, maxY));
             }
           }
@@ -702,7 +883,7 @@ export function ProductCustomizer({
     > = {};
     for (const [areaId, list] of activeUploads) {
       const area = activeMedia.mockupAreas?.find((a) => a.id === areaId);
-      const label = activeMedia.mockupSideName || area?.label || "Kustom";
+      const label = getAreaName(area);
       const totalCount = list.reduce(
         (sum, item) => sum + (item.logoCount || 1),
         0,
@@ -801,13 +982,22 @@ export function ProductCustomizer({
       const base64 = event.target?.result as string;
       const img = new window.Image();
       img.onload = () => {
-        const ar = img.naturalWidth / img.naturalHeight;
-        const defaultSize = Math.round(area.width * 0.7);
+        const ar = (img.naturalWidth && img.naturalHeight)
+          ? img.naturalWidth / img.naturalHeight
+          : 1.0;
         const maxS = getMaxScale(area, { aspectRatio: ar });
-        const finalSize = Math.min(defaultSize, maxS);
+        const defaultSize = area.width * 0.7;
+        const finalSize = Math.max(1, Math.min(defaultSize, maxS));
+        const logoH = finalSize / ar;
 
-        const initX = area.x + (area.width - finalSize) / 2;
-        const initY = area.y + (area.height - finalSize / ar) / 2;
+        const rawX = area.x + (area.width - finalSize) / 2;
+        const rawY = area.y + (area.height - logoH) / 2;
+
+        const maxX = Math.max(area.x, area.x + area.width - finalSize);
+        const maxY = Math.max(area.y, area.y + area.height - logoH);
+
+        const initX = Math.max(area.x, Math.min(rawX, maxX));
+        const initY = Math.max(area.y, Math.min(rawY, maxY));
 
         const newLogo: LogoItem = {
           id: Math.random().toString(36).substring(2, 9),
@@ -830,7 +1020,9 @@ export function ProductCustomizer({
         });
         setActiveLogoId(newLogo.id);
         toast.success(
-          `Logo untuk "${activeMedia.mockupSideName || area.label}" berhasil diunggah!`,
+          isEn
+            ? `Logo for "${getAreaName(area)}" uploaded successfully!`
+            : `Logo untuk "${getAreaName(area)}" berhasil diunggah!`,
         );
       };
       img.src = base64;
@@ -1300,7 +1492,7 @@ export function ProductCustomizer({
                   className="w-full h-full object-contain p-2 select-none pointer-events-none"
                 />
                 {/* Unified Specification Details Card (Top Right Overlay) */}
-                <div className="absolute top-2.5 right-2.5 z-20 mockup-spec-box bg-stone-900/90 text-white text-[7.5px] sm:text-[8px] font-medium tracking-wide p-1.5 rounded-sm shadow-md select-none pointer-events-none flex flex-col gap-1 border border-stone-850 max-w-[165px] leading-tight">
+                <div className="absolute top-2.5 right-2.5 z-20 mockup-spec-box bg-stone-900/90 text-white text-[7.5px] sm:text-[8px] font-medium tracking-wide p-1.5 rounded-sm shadow-md select-none pointer-events-none flex flex-col gap-1 border border-stone-850 max-w-[175px] max-h-[85%] overflow-y-auto backdrop-blur-xs leading-tight">
                   {productDimensions && (
                     <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
                       <Ruler className="w-2 h-2 text-blue-400 shrink-0" />
@@ -1309,34 +1501,98 @@ export function ProductCustomizer({
                       </span>
                     </div>
                   )}
-                  {activeLogoDetails && (
-                    <>
-                      {logoDimensionStr && (
-                        <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
-                          <Maximize2 className="w-2 h-2 text-amber-400 shrink-0" />
-                          <span>
-                            <strong>{isEn ? "Logo Dimensions:" : "Dimensi Logo:"}</strong> {logoDimensionStr}
+
+                  {/* Per Mockup Area Specifications */}
+                  {allMockupAreasSpecs.map((areaSpec, aIdx) => {
+                    const isSingleArea = allMockupAreasSpecs.length === 1;
+                    const hasLogos = areaSpec.logoSpecs.length > 0;
+
+                    // If single area with no uploads and no areaSize, skip
+                    if (isSingleArea && !hasLogos && !areaSpec.areaSizeStr) return null;
+
+                    // If multi-area and no uploads across any area, just show area sizes concisely
+                    if (!hasAnyUploadsOnActiveMedia && !isSingleArea) {
+                      return (
+                        <div
+                          key={areaSpec.areaId || aIdx}
+                          className="flex items-center justify-between text-stone-300 border-b border-stone-800/60 pb-0.5 gap-1">
+                          <span className="font-bold text-[7.5px] text-blue-300 truncate">
+                            {areaSpec.areaDisplayName}:
+                          </span>
+                          <span className="font-mono text-[7px] text-stone-400 shrink-0">
+                            {areaSpec.areaSizeStr || "-"}
                           </span>
                         </div>
-                      )}
-                      {distanceStr && (
-                        <div className="flex flex-col gap-0.5 border-b border-stone-800/60 pb-0.5">
-                          <div className="flex items-center gap-1 text-stone-300">
-                            <Move className="w-2 h-2 text-teal-400 shrink-0" />
-                            <span>
-                              <strong>{isEn ? "Edge Distance:" : "Jarak Sisi:"}</strong>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={areaSpec.areaId || aIdx}
+                        className={`flex flex-col gap-0.5 border-b border-stone-800/60 pb-0.5 ${
+                          !isSingleArea && areaSpec.hasActiveLogo
+                            ? "bg-stone-800/60 -mx-1 px-1 py-0.5 rounded-xs ring-1 ring-blue-500/40"
+                            : ""
+                        }`}>
+                        {/* Mockup Area Header */}
+                        {!isSingleArea && (
+                          <div className="flex items-center justify-between text-stone-200 gap-1">
+                            <span className="font-bold flex items-center gap-1 text-[7.5px] sm:text-[8px] text-blue-300 truncate">
+                              {areaSpec.hasActiveLogo && (
+                                <span className="w-1 h-1 rounded-full bg-blue-400 shrink-0" />
+                              )}
+                              {areaSpec.areaDisplayName}
                             </span>
+                            {areaSpec.areaSizeStr && (
+                              <span className="text-[6.5px] text-stone-400 font-mono shrink-0">
+                                {areaSpec.areaSizeStr}
+                              </span>
+                            )}
                           </div>
-                          <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5 pl-3 font-mono text-[7px] sm:text-[7.5px] text-stone-300">
-                            <span>{isEn ? "Top:" : "Atas:"} {distanceStr.top}</span>
-                            <span>{isEn ? "Bottom:" : "Bawah:"} {distanceStr.bottom}</span>
-                            <span>{isEn ? "Left:" : "Kiri:"} {distanceStr.left}</span>
-                            <span>{isEn ? "Right:" : "Kanan:"} {distanceStr.right}</span>
+                        )}
+
+                        {hasLogos ? (
+                          areaSpec.logoSpecs.map((logo, lIdx) => (
+                            <div key={logo.id || lIdx} className="flex flex-col gap-0.5">
+                              {/* Logo Dimensions */}
+                              <div className="flex items-center gap-1">
+                                <Maximize2 className="w-2 h-2 text-amber-400 shrink-0" />
+                                <span>
+                                  <strong>{isEn ? "Logo Dimensions:" : "Dimensi Logo:"}</strong>{" "}
+                                  {logo.dimensions}
+                                </span>
+                              </div>
+                              {/* Edge Distances */}
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1 text-stone-300">
+                                  <Move className="w-2 h-2 text-teal-400 shrink-0" />
+                                  <span>
+                                    <strong>{isEn ? "Edge Distance:" : "Jarak Sisi:"}</strong>
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5 pl-3 font-mono text-[7px] sm:text-[7.5px] text-stone-300">
+                                  <span>{isEn ? "Top:" : "Atas:"} {logo.distances.top}</span>
+                                  <span>{isEn ? "Bottom:" : "Bawah:"} {logo.distances.bottom}</span>
+                                  <span>{isEn ? "Left:" : "Kiri:"} {logo.distances.left}</span>
+                                  <span>{isEn ? "Right:" : "Kanan:"} {logo.distances.right}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-between text-stone-400 text-[6.5px] sm:text-[7px] italic pl-1">
+                            <span>{isEn ? "No logo uploaded" : "Belum ada logo"}</span>
+                            {isSingleArea && areaSpec.areaSizeStr && (
+                              <span className="font-mono not-italic text-stone-400">
+                                {isEn ? "Max:" : "Maks:"} {areaSpec.areaSizeStr}
+                              </span>
+                            )}
                           </div>
-                        </div>
-                      )}
-                    </>
-                  )}
+                        )}
+                      </div>
+                    );
+                  })}
+
                   {selectedPrintingMethod && (
                     <div className="flex items-center gap-1 pt-0.5">
                       <Printer className="w-2 h-2 text-indigo-400 shrink-0" />
@@ -1410,8 +1666,12 @@ export function ProductCustomizer({
                         }`}
                         title={
                           logoList.length > 0
-                            ? `Klik untuk tambah logo ke area: ${activeMedia.mockupSideName || area.label}`
-                            : `Klik untuk unggah logo ke area: ${activeMedia.mockupSideName || area.label}`
+                            ? isEn
+                              ? `Click to add logo to area: ${getAreaName(area)}`
+                              : `Klik untuk tambah logo ke area: ${getAreaName(area)}`
+                            : isEn
+                              ? `Click to upload logo to area: ${getAreaName(area)}`
+                              : `Klik untuk unggah logo ke area: ${getAreaName(area)}`
                         }>
                         {/* Bounding box dimension labels (inside top-center and inside right-center) */}
                         {area.physicalWidth && area.physicalHeight && (
@@ -1442,7 +1702,7 @@ export function ProductCustomizer({
                           <>
                             <Plus className="w-3.5 h-3.5 text-blue-500/60 group-hover:text-blue-600 transition-colors" />
                             <span className="text-[7.5px] font-bold text-blue-600/80 uppercase tracking-widest text-center leading-tight">
-                              {activeMedia.mockupSideName || area.label}
+                              {getAreaName(area)}
                             </span>
                           </>
                         )}
@@ -1509,7 +1769,7 @@ export function ProductCustomizer({
                           {/* Badge Label Area */}
                           {isActive && !isDownloading && (
                             <div className="absolute -top-5 left-0 bg-blue-600 text-white text-[7px] font-bold px-1.5 py-0.5 rounded uppercase select-none pointer-events-none leading-none whitespace-nowrap z-10">
-                              {activeMedia.mockupSideName || area.label}
+                              {getAreaName(area)}
                             </div>
                           )}
                           {/* Floating Alignment Shortcuts Toolbar */}
@@ -2002,7 +2262,7 @@ export function ProductCustomizer({
                       {/* Area Header dengan tombol Tambah */}
                       <div className="flex items-center justify-between border-b border-stone-200 pb-1.5">
                         <span className="text-xs font-bold text-stone-700 flex items-center gap-1">
-                          {activeMedia.mockupSideName || area.label}{" "}
+                          {getAreaName(area)}{" "}
                           {area.physicalWidth && area.physicalHeight
                             ? `(${area.physicalWidth} × ${area.physicalHeight} ${area.unit || "cm"})`
                             : ""}
@@ -2180,7 +2440,7 @@ export function ProductCustomizer({
                     <span className="w-1.5 h-3 bg-blue-500 rounded-sm"></span>{" "}
                     MODIFIKASI LOGO TERPILIH{" "}
                     <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">
-                      {activeMedia.mockupSideName || area.label}
+                      {getAreaName(area)}
                     </span>
                   </h4>
 
@@ -2214,10 +2474,10 @@ export function ProductCustomizer({
                       <div className="flex-1 flex items-center gap-2.5">
                         <input
                           type="range"
-                          min="5"
+                          min={Math.min(1, Math.floor(maxScale))}
                           max={maxScale}
-                          step="1"
-                          value={Math.round(logo.scale || 5)}
+                          step={maxScale < 10 ? "0.1" : "1"}
+                          value={Math.round((logo.scale || 1) * 10) / 10}
                           onChange={(e) =>
                             updateTransform(
                               area.id,

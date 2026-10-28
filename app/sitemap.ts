@@ -55,21 +55,27 @@ function buildEntries(
 }
 
 async function getSeoItems(): Promise<SeoSitemapResponse> {
-  const apiUrl = process.env.SEO_SITEMAP_API_URL;
+  const apiUrl =
+    process.env.SEO_SITEMAP_API_URL ||
+    (process.env.NEXT_PUBLIC_BASE_URL_API
+      ? `${process.env.NEXT_PUBLIC_BASE_URL_API}/seo/sitemap`
+      : "http://localhost:8000/seo/sitemap");
 
-  if (!apiUrl) {
-    throw new Error("SEO_SITEMAP_API_URL belum dikonfigurasi");
+  try {
+    const response = await fetch(apiUrl, {
+      next: { revalidate: 3600 },
+    });
+
+    if (!response.ok) {
+      console.warn(`Gagal mengambil data sitemap: HTTP ${response.status}`);
+      return { products: [], articles: [] };
+    }
+
+    return (await response.json()) as SeoSitemapResponse;
+  } catch (err) {
+    console.warn("Gagal fetch sitemap items, fallback to static entries:", err);
+    return { products: [], articles: [] };
   }
-
-  const response = await fetch(apiUrl, {
-    next: { revalidate: 3600 },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Gagal mengambil data sitemap: HTTP ${response.status}`);
-  }
-
-  return response.json() as Promise<SeoSitemapResponse>;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

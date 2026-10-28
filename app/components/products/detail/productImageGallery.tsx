@@ -34,14 +34,16 @@ export function ProductImageGallery({
 
   useEffect(() => {
     if (!media || media.length === 0) return;
-    // Auto-select the first image that is color customizable when media list changes
-    const customIndex = media.findIndex((item) => item.isColorCustomizable);
-    if (customIndex !== -1) {
-      setActiveIndex(customIndex);
-    } else {
-      setActiveIndex((prev) => (prev < media.length ? prev : 0));
+    // Only auto-select color customizable image if a custom color or color picker is actively selected
+    if (customColor || isColorPickerActive) {
+      const customIndex = media.findIndex((item) => item.isColorCustomizable);
+      if (customIndex !== -1) {
+        setActiveIndex(customIndex);
+        return;
+      }
     }
-  }, [mediaIdsKey]);
+    setActiveIndex((prev) => (prev < media.length ? prev : 0));
+  }, [mediaIdsKey, customColor, isColorPickerActive]);
 
   // Jika tidak ada media, jangan render apa-apa
   if (!media || media.length === 0) return null;
