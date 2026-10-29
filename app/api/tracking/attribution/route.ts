@@ -2,7 +2,7 @@ import {
   ATTRIBUTION_COOKIE,
   parseAttributionCookie,
 } from "@/app/lib/tracking/attributionCookie";
-import { cookies, headers } from "next/headers";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -26,13 +26,12 @@ function getGaSessionId(value?: string): string | null {
 
 export async function GET() {
   const cookieStore = await cookies();
-  const headerStore = await headers();
 
   const attribution = parseAttributionCookie(
     cookieStore.get(ATTRIBUTION_COOKIE)?.value,
   );
 
-  const referrer = headerStore.get("referer") || null;
+  // const referrer = headerStore.get("referer") || null;
 
   return NextResponse.json(
     {
@@ -44,7 +43,7 @@ export async function GET() {
         ga_session_id: getGaSessionId(cookieStore.get("_ga_V764HW819M")?.value),
         fbp: cookieStore.get("_fbp")?.value ?? null,
         fbc: cookieStore.get("_fbc")?.value ?? null,
-        referrer,
+        referrer: attribution?.referrer ?? null,
       },
     },
     {

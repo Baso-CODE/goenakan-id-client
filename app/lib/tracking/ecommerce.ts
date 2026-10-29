@@ -6,15 +6,23 @@ export function cartItemToEcommerceItem(
   quantity: number = item.quantity,
 ): EcommerceItem | null {
   const variantId = item.variantId?.trim();
-  const variantSku = item.variantSku?.trim();
+  const hasVariant = Boolean(variantId);
+
+  const itemId = hasVariant ? variantId : item.productId?.trim();
+  const itemSku = hasVariant
+    ? item.variantSku?.trim()
+    : item.productSku?.trim();
+
   const categoryEn = item.itemCategoryEn?.trim();
   const category2 = item.itemCategoryName?.trim();
 
-  const price = Number(item.price);
+  // Tracking wajib menggunakan harga IDR dari backend.
+  const rawPrice = item.trackingPriceIdr;
+  const price = rawPrice == null ? NaN : Number(rawPrice);
 
   if (
-    !variantId ||
-    !variantSku ||
+    !itemId ||
+    !itemSku ||
     !categoryEn ||
     !category2 ||
     !item.productId ||
@@ -28,9 +36,9 @@ export function cartItemToEcommerceItem(
   }
 
   return {
-    item_id: variantId,
+    item_id: itemId,
     item_group_id: item.productId,
-    item_variant: variantSku,
+    item_variant: itemSku,
     item_name: item.name,
     item_category: categoryEn,
     item_category2: category2,
@@ -44,13 +52,24 @@ export function cartToEcommerceItems(
 ): EcommerceItem[] | null {
   if (!cartItems.length) return null;
 
-  const items = cartItems.map((item) => cartItemToEcommerceItem(item));
+  const validItems = cartItems.flatMap((item) => {
+    const ecommerceItem = cartItemToEcommerceItem(item);
 
-  // Jangan mengirim event parsial jika ada metadata hilang.
-  if (items.some((item) => item === null)) {
-    console.warn("[dataLayer] Metadata ecommerce keranjang belum lengkap.");
+    if (!ecommerceItem) {
+      console.warn("[GTM] Checkout: item tidak valid dilewati.", {
+        cartItemId: item.id,
+        productId: item.productId,
+      });
+      return [];
+    }
+
+    return [ecommerceItem];
+  });
+
+  if (!validItems.length) {
+    console.warn("[GTM] Checkout: tidak ada item valid.");
     return null;
   }
 
-  return items as EcommerceItem[];
+  return validItems;
 }

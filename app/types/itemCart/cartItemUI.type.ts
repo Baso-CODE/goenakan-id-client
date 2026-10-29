@@ -44,4 +44,5 @@ export interface CartItemUI {
 
   customization?: unknown;
   selectedAttributes?: unknown;
+  productSku?: string | null;
 }

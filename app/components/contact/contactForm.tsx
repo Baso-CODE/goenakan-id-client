@@ -2,10 +2,7 @@
 
 import { submitContactMessage } from "@/app/api/contactMessages/submitContactMessage.api";
 import { getCategoryList } from "@/app/api/products/getCategoryProductList.api";
-import {
-  prepareLeadHashes,
-  trackGenerateLead,
-} from "@/app/lib/tracking/leadTracking";
+import { trackGenerateLead } from "@/app/lib/tracking/leadTracking";
 import { CategoryPublic } from "@/app/types/categoryProduct.type";
 import { ContactPayload } from "@/app/types/contactMessage.type";
 import { Link } from "@/i18n/routing";
@@ -69,14 +66,6 @@ export function ContactForm() {
     const payload = { ...form, interest: selectedInterest };
 
     try {
-      let hashes = {};
-
-      try {
-        hashes = await prepareLeadHashes(form.email, form.phone);
-      } catch {
-        console.warn("[GTM] Hash data lead tidak tersedia.");
-      }
-
       const leadId = await submitContactMessage(payload);
 
       if (leadId === null) {
@@ -90,7 +79,7 @@ export function ContactForm() {
         id: toastId,
       });
 
-      trackGenerateLead(leadId, hashes);
+      trackGenerateLead(leadId);
 
       const text = [
         "Halo, saya ingin menghubungi Anda.",
