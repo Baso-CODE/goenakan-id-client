@@ -1,5 +1,6 @@
 import createMiddleware from "next-intl/middleware";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { getLegacyRedirect } from "./app/lib/seo/legacyRedirects";
 import {
   ATTRIBUTION_COOKIE,
   ATTRIBUTION_MAX_AGE,
@@ -94,7 +95,14 @@ export default async function proxy(request: NextRequest) {
     defaultLocale: dynamicDefaultLocale,
   });
 
-  const response = handleI18nRouting(request);
+  const legacyDestination = getLegacyRedirect(request.nextUrl.pathname);
+
+  const response = legacyDestination
+    ? NextResponse.redirect(
+        new URL(`${legacyDestination}${request.nextUrl.search}`, request.url),
+        308,
+      )
+    : handleI18nRouting(request);
 
   if (!countryCookie) {
     response.cookies.set("USER_COUNTRY", country, {

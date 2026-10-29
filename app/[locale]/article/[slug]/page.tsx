@@ -1,10 +1,71 @@
 import { getArticleData } from "@/app/api/articles/getArticleBySlug.api";
 import { ArticleDetailPage } from "@/app/components/article/detail/articleDetailPage";
-import { getLocale } from "next-intl/server"; // IMPORT SERVER LOCALE
+import type { Metadata } from "next";
+import { getLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
-
 interface ArticlePageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: ArticlePageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const locale = await getLocale();
+  const article = await getArticleData(slug);
+
+  if (!article) {
+    return {
+      title: "Article Not Found",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const siteUrl = "https://goenakan.id";
+  const currentUrl = `${siteUrl}/${locale}/article/${encodeURIComponent(slug)}`;
+
+  const title =
+    locale === "en"
+      ? article.title_en || article.title_id || article.title
+      : article.title_id || article.title;
+
+  const content =
+    locale === "en"
+      ? article.content_en || article.content_id || article.content
+      : article.content_id || article.content;
+
+  const description = String(content || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 155);
+
+  const hasEnglishVersion = Boolean(
+    article.title_en?.trim() && article.content_en?.trim(),
+  );
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: currentUrl,
+      languages: {
+        id: `${siteUrl}/id/article/${encodeURIComponent(slug)}`,
+        ...(hasEnglishVersion
+          ? {
+              en: `${siteUrl}/en/article/${encodeURIComponent(slug)}`,
+            }
+          : {}),
+      },
+    },
+    openGraph: {
+      title,
+      description,
+      url: currentUrl,
+      type: "article",
+      images: article.coverImage ? [article.coverImage] : [],
+    },
+  };
 }
 
 export default async function ArticleSlugPage({ params }: ArticlePageProps) {
