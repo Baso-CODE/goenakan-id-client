@@ -5,6 +5,7 @@ import {
   ATTRIBUTION_COOKIE,
   ATTRIBUTION_MAX_AGE,
   getAttributionFromUrl,
+  getLandingReferrer,
   mergeAttribution,
   parseAttributionCookie,
 } from "./app/lib/tracking/attributionCookie";
@@ -112,7 +113,46 @@ export default async function proxy(request: NextRequest) {
   }
 
   // GTM / Ads Attribution
+  // GTM / Ads Attribution
   const currentVisit = getAttributionFromUrl(request.nextUrl);
+
+  const previous = parseAttributionCookie(
+    request.cookies.get(ATTRIBUTION_COOKIE)?.value,
+  );
+
+  const landingReferrer = getLandingReferrer(
+    request.nextUrl,
+    request.headers.get("referer"),
+  );
+
+  const attribution = currentVisit
+    ? mergeAttribution(previous, currentVisit)
+    : previous
+      ? { ...previous }
+      : {};
+
+  if (!attribution.referrer && landingReferrer) {
+    attribution.referrer = landingReferrer;
+  }
+
+  if (
+    currentVisit ||
+    (!previous && attribution.referrer) ||
+    (previous && !previous.referrer && attribution.referrer)
+  ) {
+    const hostname = request.nextUrl.hostname;
+    const isGoenakanDomain =
+      hostname === "goenakan.id" || hostname.endsWith(".goenakan.id");
+
+    response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(attribution), {
+      httpOnly: true,
+      secure: isGoenakanDomain || request.nextUrl.protocol === "https:",
+      sameSite: "lax",
+      path: "/",
+      maxAge: ATTRIBUTION_MAX_AGE,
+      ...(isGoenakanDomain ? { domain: ".goenakan.id" } : {}),
+    });
+  }
 
   if (currentVisit) {
     const previous = parseAttributionCookie(

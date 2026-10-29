@@ -5,34 +5,38 @@ export function productToViewItem(
   product: ProductDetail,
 ): EcommerceItem | null {
   const variant = product.variants?.[0];
+
+  const itemId = variant?.id?.trim() || product.id?.trim();
+  const itemSku = variant?.sku?.trim() || product.sku?.trim();
   const categoryEn = product.itemCategoryEn?.trim();
   const category2 = product.itemCategoryName?.trim();
 
-  const price = variant?.trackingPriceIdr ?? product.trackingBasePriceIdr;
+  const rawPrice = variant?.trackingPriceIdr ?? product.trackingBasePriceIdr;
+  const price = rawPrice == null ? NaN : Number(rawPrice);
 
-  if (!variant?.id || !variant.sku) {
-    console.warn("[GTM] view_item: UUID atau SKU varian tidak tersedia.");
+  if (!itemId || !itemSku || !product.id || !product.name) {
+    console.warn("[GTM] view_item: identitas produk tidak lengkap.");
     return null;
   }
 
   if (!categoryEn || !category2) {
-    console.warn("[GTM] view_item: metadata kategori belum lengkap.");
+    console.warn("[GTM] view_item: kategori belum lengkap.");
     return null;
   }
 
-  if (price == null || !Number.isFinite(Number(price)) || Number(price) < 0) {
-    console.warn("[GTM] view_item: harga IDR tidak valid.");
+  if (!Number.isFinite(price) || price < 0) {
+    console.warn("[GTM] view_item: harga IDR belum valid.");
     return null;
   }
 
   return {
-    item_id: variant.id,
+    item_id: itemId,
     item_group_id: product.id,
-    item_variant: variant.sku,
+    item_variant: itemSku,
     item_name: product.name,
     item_category: categoryEn,
     item_category2: category2,
-    price: Number(price),
+    price,
     quantity: 1,
   };
 }

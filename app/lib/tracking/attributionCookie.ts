@@ -25,8 +25,9 @@ export interface AttributionVisit {
 }
 
 export interface AttributionCookie {
-  first: AttributionVisit;
-  last: AttributionVisit;
+  first?: AttributionVisit;
+  last?: AttributionVisit;
+  referrer?: string | null;
 }
 
 export function parseAttributionCookie(
@@ -37,32 +38,40 @@ export function parseAttributionCookie(
   try {
     const parsed: unknown = JSON.parse(value);
 
-    if (!parsed || typeof parsed !== "object") return null;
-    if (!("first" in parsed) || !("last" in parsed)) return null;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
 
-    const { first, last } = parsed;
+    const data = parsed as Record<string, unknown>;
 
     const isVisit = (value: unknown): value is AttributionVisit => {
-      if (!value || typeof value !== "object") return false;
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        return false;
+      }
+
+      const visit = value as Record<string, unknown>;
 
       return (
-        "landing_page" in value &&
-        typeof value.landing_page === "string" &&
-        "timestamp" in value &&
-        typeof value.timestamp === "string" &&
-        "params" in value &&
-        typeof value.params === "object" &&
-        value.params !== null &&
-        !Array.isArray(value.params)
+        typeof visit.landing_page === "string" &&
+        typeof visit.timestamp === "string" &&
+        visit.params !== null &&
+        typeof visit.params === "object" &&
+        !Array.isArray(visit.params)
       );
     };
 
-    return isVisit(first) && isVisit(last) ? { first, last } : null;
+    const first = isVisit(data.first) ? data.first : undefined;
+    const last = isVisit(data.last) ? data.last : undefined;
+
+    const referrer = typeof data.referrer === "string" ? data.referrer : null;
+
+    if (!first && !last && !referrer) return null;
+
+    return { first, last, referrer };
   } catch {
     return null;
   }
 }
-
 export function getAttributionFromUrl(url: URL): AttributionVisit | null {
   const params: Partial<Record<AttributionParam, string>> = {};
 
@@ -90,5 +99,38 @@ export function mergeAttribution(
   return {
     first: previous?.first ?? current,
     last: current,
+    referrer: previous?.referrer ?? null,
   };
+}
+
+export function getLandingReferrer(
+  requestUrl: URL,
+  refererHeader: string | null,
+): string | null {
+  if (!refererHeader) return null;
+
+  try {
+    const referrer = new URL(refererHeader);
+
+    if (!["http:", "https:"].includes(referrer.protocol)) {
+      return null;
+    }
+
+    // Referrer dari domain sendiri bukan sumber kunjungan eksternal.
+    if (referrer.hostname === requestUrl.hostname) {
+      return null;
+    }
+
+    if (
+      referrer.hostname === "goenakan.id" ||
+      referrer.hostname.endsWith(".goenakan.id")
+    ) {
+      return null;
+    }
+
+    // Hindari menyimpan query string yang berpotensi berisi PII.
+    return `${referrer.origin}${referrer.pathname}`.slice(0, 1000);
+  } catch {
+    return null;
+  }
 }

@@ -450,6 +450,7 @@ function formatCartItems(items: any[]): CartItemUI[] {
       // Identitas cart dan produk
       id: item.id,
       productId: item.productId,
+      productSku: item.productSku ?? product?.sku ?? null,
       variantId: item.variantId ?? null,
 
       // Informasi produk
