@@ -112,66 +112,76 @@ export default async function proxy(request: NextRequest) {
     });
   }
 
-  // GTM / Ads Attribution
-  // GTM / Ads Attribution
-  const currentVisit = getAttributionFromUrl(request.nextUrl);
+  // ==========================================
+  // GTM / ADS ATTRIBUTION - CONTRACT V1.5
+  // ==========================================
 
-  const previous = parseAttributionCookie(
-    request.cookies.get(ATTRIBUTION_COOKIE)?.value,
+  const isPrefetch =
+    request.headers.has("next-router-prefetch") ||
+    request.headers.get("purpose")?.includes("prefetch") ||
+    request.headers.get("sec-purpose")?.includes("prefetch");
+
+  // Hanya proses kunjungan dokumen, bukan request prefetch.
+  const secFetchDest = request.headers.get("sec-fetch-dest");
+  const acceptHeader = request.headers.get("accept") || "";
+
+  const isRscRequest =
+    request.headers.get("rsc") === "1" ||
+    request.headers.has("next-router-state-tree");
+
+  const isDocumentRequest =
+    !isRscRequest &&
+    (secFetchDest === "document" ||
+      (!secFetchDest && acceptHeader.includes("text/html")));
+
+  // Sesuaikan daftar berikut dengan route callback pembayaran
+  // yang benar-benar digunakan di aplikasi.
+  const isPaymentReturn = [
+    "/payment/success",
+    "/payment/finish",
+    "/payment/pending",
+    "/payment/error",
+    "/checkout/success",
+    "/checkout/finish",
+  ].some(
+    (path) =>
+      request.nextUrl.pathname === path ||
+      request.nextUrl.pathname.endsWith(path),
   );
 
-  const landingReferrer = getLandingReferrer(
-    request.nextUrl,
-    request.headers.get("referer"),
-  );
-
-  const attribution = currentVisit
-    ? mergeAttribution(previous, currentVisit)
-    : previous
-      ? { ...previous }
-      : {};
-
-  if (!attribution.referrer && landingReferrer) {
-    attribution.referrer = landingReferrer;
-  }
-
-  if (
-    currentVisit ||
-    (!previous && attribution.referrer) ||
-    (previous && !previous.referrer && attribution.referrer)
-  ) {
-    const hostname = request.nextUrl.hostname;
-    const isGoenakanDomain =
-      hostname === "goenakan.id" || hostname.endsWith(".goenakan.id");
-
-    response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(attribution), {
-      httpOnly: true,
-      secure: isGoenakanDomain || request.nextUrl.protocol === "https:",
-      sameSite: "lax",
-      path: "/",
-      maxAge: ATTRIBUTION_MAX_AGE,
-      ...(isGoenakanDomain ? { domain: ".goenakan.id" } : {}),
-    });
-  }
-
-  if (currentVisit) {
+  if (!isPrefetch && isDocumentRequest && !isPaymentReturn) {
     const previous = parseAttributionCookie(
       request.cookies.get(ATTRIBUTION_COOKIE)?.value,
     );
 
-    const attribution = mergeAttribution(previous, currentVisit);
-    const hostname = request.nextUrl.hostname;
-    const isGoenakanDomain =
-      hostname === "goenakan.id" || hostname.endsWith(".goenakan.id");
+    const currentVisit = getAttributionFromUrl(request.nextUrl);
 
-    response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(attribution), {
-      httpOnly: true,
-      secure: isGoenakanDomain || request.nextUrl.protocol === "https:",
-      sameSite: "lax",
-      path: "/",
-      maxAge: ATTRIBUTION_MAX_AGE,
-      ...(isGoenakanDomain ? { domain: ".goenakan.id" } : {}),
-    });
+    const landingReferrer = getLandingReferrer(
+      request.nextUrl,
+      request.headers.get("referer"),
+    );
+
+    // Kunjungan baru:
+    // - membawa parameter iklan, atau
+    // - berasal dari website eksternal.
+    if (currentVisit || landingReferrer) {
+      const visit = {
+        landing_page: currentVisit?.landing_page ?? request.nextUrl.pathname,
+        timestamp: currentVisit?.timestamp ?? new Date().toISOString(),
+        params: currentVisit?.params ?? {},
+        referrer: landingReferrer,
+      };
+
+      const attribution = mergeAttribution(previous, visit);
+
+      response.cookies.set(ATTRIBUTION_COOKIE, JSON.stringify(attribution), {
+        httpOnly: true,
+        secure: true,
+        sameSite: "lax",
+        path: "/",
+        maxAge: ATTRIBUTION_MAX_AGE,
+      });
+    }
   }
 
   return response;

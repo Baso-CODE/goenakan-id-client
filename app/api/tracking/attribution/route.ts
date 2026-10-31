@@ -31,19 +31,16 @@ export async function GET() {
     cookieStore.get(ATTRIBUTION_COOKIE)?.value,
   );
 
-  // const referrer = headerStore.get("referer") || null;
-
   return NextResponse.json(
     {
       success: true,
       data: {
         first: attribution?.first ?? null,
         last: attribution?.last ?? null,
+
         ga_client_id: getGaClientId(cookieStore.get("_ga")?.value),
+
         ga_session_id: getGaSessionId(cookieStore.get("_ga_V764HW819M")?.value),
-        fbp: cookieStore.get("_fbp")?.value ?? null,
-        fbc: cookieStore.get("_fbc")?.value ?? null,
-        referrer: attribution?.referrer ?? null,
       },
     },
     {
