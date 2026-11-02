@@ -13,6 +13,7 @@ import FloatingWhatsAppCTA from "../components/FloatingWhatsAppCTA";
 import Footer from "../components/navigation/Footer";
 import Navbar from "../components/navigation/Navbar";
 import TrackingScripts from "../components/tracking/trackingScripts";
+import WhatsAppTrackingProvider from "../components/tracking/whatsAppTrackingProvider";
 import "../globals.css";
 
 const gilda = Gilda_Display({
@@ -64,7 +65,7 @@ export default async function RootLayout({
         <NextAuthProvider>
           <NextIntlClientProvider messages={messages} locale={locale}>
             <Navbar />
-
+            <WhatsAppTrackingProvider />
             <TooltipProvider>{children}</TooltipProvider>
 
             <Footer />

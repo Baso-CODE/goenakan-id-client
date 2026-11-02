@@ -114,6 +114,7 @@ export default function WhoWeAre() {
                 asChild
                 className="bg-[#C4A48E] hover:bg-[#b08e75] text-white rounded-none px-8 py-6 text-sm font-medium transition-all">
                 <Link
+                  data-wa-cta="who_we_are_consultation"
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer">

@@ -89,14 +89,16 @@ export default function FloatingWhatsAppCTA({
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={openWhatsApp}
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-wa-cta="floating_consultation"
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#1DB954] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2">
               <MessageCircle className="h-5 w-5" />
               <span>{t.button}</span>
               <ArrowUpRight className="h-4 w-4" />
-            </button>
+            </a>
           </div>
         </div>
       )}
