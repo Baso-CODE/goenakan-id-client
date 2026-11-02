@@ -81,6 +81,8 @@ export function ContactForm() {
 
       trackGenerateLead(leadId);
 
+      const referenceCode = `GK-L${leadId}`;
+
       const text = [
         "Halo, saya ingin menghubungi Anda.",
         "",
@@ -90,6 +92,7 @@ export function ContactForm() {
         `*Kategori Produk:* ${productCategoryName || "-"}`,
         `*Kategori Item:* ${itemCategoryName || "-"}`,
         "",
+        `*Kode Referensi:* ${referenceCode}`,
         "*Pesan:*",
         form.message,
       ].join("\n");

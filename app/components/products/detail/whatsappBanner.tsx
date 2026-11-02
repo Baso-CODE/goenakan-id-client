@@ -36,6 +36,7 @@ export function WhatsAppBanner({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
+        data-wa-cta="product_request_quote"
         className="shrink-0 bg-white text-[#3d342b] text-xs font-semibold px-4 py-2.5 rounded-sm hover:bg-stone-100 transition-colors whitespace-nowrap">
         {buttonText}
       </a>

@@ -1,6 +1,6 @@
 "use client";
-
 import PayNowButton from "@/app/components/checkout/payNowButton";
+import { getGuestOrderHeaders } from "@/app/lib/guestOrderAccess";
 import { apiUrl } from "@/app/utils/ApiUrl";
 import { Link } from "@/i18n/routing";
 import {
@@ -59,6 +59,7 @@ function OrderStatusContent() {
             method: "GET",
             headers: {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              ...getGuestOrderHeaders(orderId),
             },
             cache: "no-store",
           },

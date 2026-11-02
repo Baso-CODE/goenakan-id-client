@@ -1,6 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
+import {
+  getGuestOrderHeaders,
+  saveGuestOrderToken,
+} from "@/app/lib/guestOrderAccess";
 import { pushEcommerceEvent } from "@/app/lib/tracking/dataLayer";
 import { cartToEcommerceItems } from "@/app/lib/tracking/ecommerce";
 import { getAttribution } from "@/app/lib/tracking/getAttribution";
@@ -496,10 +500,22 @@ export default function CheckoutPage() {
         throw new Error(orderData.message || "Gagal membuat pesanan.");
 
       const newOrderId = orderData.data.id;
+      if (!token) {
+        const guestToken = orderData.data.guestAccessToken;
+
+        if (!guestToken) {
+          throw new Error("Guest access token tidak tersedia");
+        }
+
+        saveGuestOrderToken(newOrderId, guestToken);
+      }
 
       const payRes = await fetch(`${apiUrl}/web-orders/${newOrderId}/pay`, {
         method: "POST",
-        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...getGuestOrderHeaders(newOrderId),
+        },
       });
 
       const payData = await payRes.json();

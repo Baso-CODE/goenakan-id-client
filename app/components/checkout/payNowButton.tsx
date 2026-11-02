@@ -1,5 +1,5 @@
 "use client";
-
+import { getGuestOrderHeaders } from "@/app/lib/guestOrderAccess";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "@/i18n/routing";
 import { useLocale } from "next-intl";
@@ -88,6 +88,7 @@ export default function PayNowButton({
         method: "POST",
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...getGuestOrderHeaders(orderId),
         },
         cache: "no-store",
       });
