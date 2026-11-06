@@ -1,24 +1,38 @@
 import type { CartItemUI } from "@/app/types/itemCart/cartItemUI.type";
 import type { EcommerceItem } from "./dataLayer";
 
+import { getCustomizationFields } from "./customization";
+
+// ==========================================
+// CART ITEM TO ECOMMERCE ITEM
+// ==========================================
+
 export function cartItemToEcommerceItem(
   item: CartItemUI,
   quantity: number = item.quantity,
 ): EcommerceItem | null {
   const variantId = item.variantId?.trim();
+
   const hasVariant = Boolean(variantId);
 
   const itemId = hasVariant ? variantId : item.productId?.trim();
+
   const itemSku = hasVariant
     ? item.variantSku?.trim()
     : item.productSku?.trim();
 
   const categoryEn = item.itemCategoryEn?.trim();
+
   const category2 = item.itemCategoryName?.trim();
 
-  // Tracking wajib menggunakan harga IDR dari backend.
+  // Harga tracking wajib menggunakan IDR dari backend.
   const rawPrice = item.trackingPriceIdr;
+
   const price = rawPrice == null ? NaN : Number(rawPrice);
+
+  // ==========================================
+  // VALIDATE ECOMMERCE DATA
+  // ==========================================
 
   if (
     !itemId ||
@@ -35,6 +49,16 @@ export function cartItemToEcommerceItem(
     return null;
   }
 
+  // ==========================================
+  // CUSTOMIZATION FIELDS
+  // ==========================================
+
+  const customizationFields = getCustomizationFields(item.customization);
+
+  // ==========================================
+  // RETURN ECOMMERCE ITEM
+  // ==========================================
+
   return {
     item_id: itemId,
     item_group_id: item.productId,
@@ -44,8 +68,14 @@ export function cartItemToEcommerceItem(
     item_category2: category2,
     price,
     quantity,
+
+    ...customizationFields,
   };
 }
+
+// ==========================================
+// CART TO ECOMMERCE ITEMS
+// ==========================================
 
 export function cartToEcommerceItems(
   cartItems: CartItemUI[],
@@ -60,6 +90,7 @@ export function cartToEcommerceItems(
         cartItemId: item.id,
         productId: item.productId,
       });
+
       return [];
     }
 
@@ -68,6 +99,7 @@ export function cartToEcommerceItems(
 
   if (!validItems.length) {
     console.warn("[GTM] Checkout: tidak ada item valid.");
+
     return null;
   }
 

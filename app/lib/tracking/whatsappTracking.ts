@@ -106,25 +106,42 @@ export async function getWhatsappAttribution(): Promise<WhatsappAttribution> {
 // APPEND REFERENCE CODE
 // ==========================================
 
-export function appendWhatsappCode(message: string, code: string): string {
-  const cleanMessage = message.trim();
+// ==========================================
+// APPEND WHATSAPP REFERENCE CODE
+// ==========================================
 
-  return `${cleanMessage}\n\nKode WA: ${code}`;
+export type WhatsappLocale = "id" | "en";
+
+export function appendWhatsappCode(
+  message: string,
+  code: string,
+  locale: WhatsappLocale = "id",
+): string {
+  const cleanMessage = message
+    .replace(
+      /(?:\r?\n){1,2}(?:Kode WA|Kode|Code):\s*GK-[A-Z0-9]{5}(?:[ \t]*\((?:mohon jangan dihapus ya|please keep this)\))?[ \t]*$/i,
+      "",
+    )
+    .trim();
+
+  const referenceText =
+    locale === "en"
+      ? `Code: ${code} (please keep this)`
+      : `Kode: ${code} (mohon jangan dihapus ya)`;
+
+  return cleanMessage ? `${cleanMessage}\n\n${referenceText}` : referenceText;
 }
-
-// ==========================================
-// BUILD WHATSAPP URL
-// ==========================================
 
 export function buildTrackedWhatsappUrl(
   originalUrl: string,
   code: string,
+  locale: WhatsappLocale = "id",
 ): string {
   const url = new URL(originalUrl);
 
   const message = url.searchParams.get("text") ?? "";
 
-  url.searchParams.set("text", appendWhatsappCode(message, code));
+  url.searchParams.set("text", appendWhatsappCode(message, code, locale));
 
   return url.toString();
 }

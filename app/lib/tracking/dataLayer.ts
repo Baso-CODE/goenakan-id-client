@@ -7,6 +7,12 @@ export interface EcommerceItem {
   item_category2: string;
   price: number;
   quantity: number;
+
+  // Custom Ecommerce Fields v1.7
+  is_custom?: "yes" | "no";
+  print_method?: string;
+  print_sides?: number;
+  logo_count?: number;
 }
 
 type EcommerceEventName = "view_item" | "add_to_cart" | "begin_checkout";

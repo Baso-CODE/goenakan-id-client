@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import { Toaster } from "sonner";
 
 import { getPublicAppSettings } from "../api/app-setting/getAppSettings.api";
+import GuestCartHydrator from "../components/cart/guestCartHydrator";
 import FloatingWhatsAppCTA from "../components/FloatingWhatsAppCTA";
 import Footer from "../components/navigation/Footer";
 import Navbar from "../components/navigation/Navbar";
@@ -66,7 +67,10 @@ export default async function RootLayout({
           <NextIntlClientProvider messages={messages} locale={locale}>
             <Navbar />
             <WhatsAppTrackingProvider />
-            <TooltipProvider>{children}</TooltipProvider>
+            <TooltipProvider>
+              <GuestCartHydrator />
+              {children}
+            </TooltipProvider>
 
             <Footer />
 
