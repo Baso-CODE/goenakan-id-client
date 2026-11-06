@@ -2,6 +2,7 @@
 
 import Konva from "konva";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type ModelId = "tumbler" | "mug" | "glass" | "totebag" | "notebook";
@@ -755,13 +756,59 @@ export function ProductMockupGenerator() {
 
   const handleLogoUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
+      const input = e.currentTarget;
+      const file = input.files?.[0];
+
       if (!file || !logoLayerRef.current) return;
+
+      input.value = "";
+
+      const MAX_MOCKUP_LOGO_SIZE = 5 * 1024 * 1024;
+
+      const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+
+      // ==========================================
+      // VALIDATE FILE
+      // ==========================================
+
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(
+          "Format gambar tidak didukung. Gunakan PNG, JPG, atau WebP.",
+        );
+        return;
+      }
+
+      if (file.size === 0 || file.size > MAX_MOCKUP_LOGO_SIZE) {
+        toast.error("Ukuran gambar tidak valid. Maksimal 5 MB.");
+        return;
+      }
+
+      // ==========================================
+      // READ IMAGE
+      // ==========================================
+
       const reader = new FileReader();
+
       reader.onload = (ev) => {
+        const base64 = ev.target?.result;
+
+        if (typeof base64 !== "string") {
+          toast.error("Gagal membaca gambar.");
+          return;
+        }
+
         const img = new window.Image();
+
         img.onload = () => {
-          logoLayerRef.current!.destroyChildren();
+          const layer = logoLayerRef.current;
+
+          if (!layer) return;
+
+          // Gambar lama baru diganti setelah
+          // gambar baru berhasil dimuat.
+
+          layer.destroyChildren();
+
           const konvaImg = new Konva.Image({
             image: img,
             x: W / 2 - logoSize / 2,
@@ -770,6 +817,7 @@ export function ProductMockupGenerator() {
             height: logoSize,
             draggable: true,
           });
+
           const tr = new Konva.Transformer({
             nodes: [konvaImg],
             keepRatio: true,
@@ -778,18 +826,38 @@ export function ProductMockupGenerator() {
             anchorFill: "white",
             anchorSize: 8,
           });
-          logoLayerRef.current!.add(konvaImg, tr);
-          logoLayerRef.current!.draw();
+
+          layer.add(konvaImg, tr);
+          layer.draw();
+
           setHasLogo(true);
+
           const save = () => {
-            historyRef.current.push(stageRef.current!.toJSON());
-            if (historyRef.current.length > 20) historyRef.current.shift();
+            if (!stageRef.current) return;
+
+            historyRef.current.push(stageRef.current.toJSON());
+
+            if (historyRef.current.length > 20) {
+              historyRef.current.shift();
+            }
           };
+
           konvaImg.on("dragend transformend", save);
+
           save();
         };
-        img.src = ev.target?.result as string;
+
+        img.onerror = () => {
+          toast.error("Gagal memproses gambar. Silakan pilih file lain.");
+        };
+
+        img.src = base64;
       };
+
+      reader.onerror = () => {
+        toast.error("Gagal membaca file gambar.");
+      };
+
       reader.readAsDataURL(file);
     },
     [logoSize],

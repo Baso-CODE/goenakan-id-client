@@ -1,5 +1,5 @@
 "use client";
-
+import { useLocale } from "next-intl";
 import { useEffect } from "react";
 
 import {
@@ -9,8 +9,15 @@ import {
   trackWhatsappClick,
 } from "@/app/lib/tracking/whatsappTracking";
 
-// Nomor tujuan WhatsApp sales Goenakan.
+// ==========================================
+// CONFIG
+// ==========================================
+
 const SALES_WHATSAPP_NUMBER = "6282387902238";
+
+// ==========================================
+// HELPERS
+// ==========================================
 
 function normalizePhone(value: string): string {
   return value.replace(/\D/g, "");
@@ -34,36 +41,51 @@ function isSalesWhatsappLink(url: URL): boolean {
   return normalizePhone(phone) === SALES_WHATSAPP_NUMBER;
 }
 
+// ==========================================
+// RESOLVE CTA NAME
+// ==========================================
+
+const VALID_CTA_NAMES = [
+  "floating_consultation",
+  "home_custom_project",
+  "product_request_quote",
+  "product_description_b2b",
+  "customize_request_whatsapp",
+  "unknown_wa_cta",
+] as const;
+
 function getCtaName(anchor: HTMLAnchorElement): string {
-  const explicitName = anchor.dataset.waCta;
+  const ctaName = anchor.dataset.waCta;
 
-  if (explicitName) {
-    return explicitName;
+  if (ctaName && VALID_CTA_NAMES.some((name) => name === ctaName)) {
+    return ctaName;
   }
 
-  const pathname = window.location.pathname;
-
-  if (/\/products?\//.test(pathname)) {
-    return "product_whatsapp";
-  }
-
-  if (/\/contact(?:\/|$)/.test(pathname)) {
-    return "contact_whatsapp";
-  }
-
-  return "general_whatsapp";
+  return "unknown_wa_cta";
 }
+// ==========================================
+// PROVIDER
+// ==========================================
 
 export default function WhatsAppTrackingProvider() {
+  const locale = useLocale();
+
   useEffect(() => {
-    // Prefetch attribution agar data sudah tersedia
-    // ketika pengguna mengklik tombol WhatsApp.
+    // Prefetch attribution agar tersedia
+    // saat pengguna membuka WhatsApp.
     void getWhatsappAttribution().catch((error) => {
       console.warn("[WhatsApp Tracking] Attribution preload gagal:", error);
     });
 
     const handleClick = (event: MouseEvent) => {
-      if (event.defaultPrevented) {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
         return;
       }
 
@@ -79,6 +101,7 @@ export default function WhatsAppTrackingProvider() {
         return;
       }
 
+      // Tombol yang sengaja dikecualikan.
       if (anchor.dataset.waTracking === "ignore") {
         return;
       }
@@ -91,21 +114,53 @@ export default function WhatsAppTrackingProvider() {
         return;
       }
 
+      // Hanya tracking WhatsApp Sales Goenakan.
       if (!isSalesWhatsappLink(url)) {
         return;
       }
 
+      // ======================================
+      // 1. GENERATE CODE
+      // ======================================
+
       const code = generateWhatsappCode();
 
-      const trackedUrl = buildTrackedWhatsappUrl(anchor.href, code);
+      // ======================================
+      // 2. RESOLVE LOCALE
+      // ======================================
 
-      // Ubah href sebelum browser menjalankan
-      // navigasi bawaan link.
+      // ======================================
+      // 3. BUILD URL
+      // ======================================
+
+      let trackedUrl: string;
+
+      try {
+        trackedUrl = buildTrackedWhatsappUrl(
+          anchor.href,
+          code,
+          locale === "en" ? "en" : "id",
+        );
+      } catch (error) {
+        console.error("[WhatsApp Tracking] Gagal membuat URL:", error);
+
+        return;
+      }
+
+      // Ubah href sebelum navigasi browser.
       anchor.href = trackedUrl;
+
+      // ======================================
+      // 4. RESOLVE CTA
+      // ======================================
 
       const ctaName = getCtaName(anchor);
 
       const pagePath = window.location.pathname;
+
+      // ======================================
+      // 5. SAVE CLICK TO BACKEND
+      // ======================================
 
       void trackWhatsappClick({
         code,
@@ -119,7 +174,7 @@ export default function WhatsAppTrackingProvider() {
     return () => {
       document.removeEventListener("click", handleClick, true);
     };
-  }, []);
+  }, [locale]);
 
   return null;
 }

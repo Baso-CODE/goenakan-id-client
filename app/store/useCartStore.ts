@@ -21,7 +21,7 @@ interface CartState {
     token?: string,
     locale?: string,
   ) => Promise<boolean>;
-
+  hydrateGuestCart: () => void;
   updateQty: (
     id: string | number,
     delta: number,
@@ -55,10 +55,53 @@ function trackAddToCart(
   pushEcommerceEvent("add_to_cart", [ecommerceItem]);
 }
 
+function readGuestCart(): CartItemUI[] {
+  if (typeof window === "undefined") return [];
+
+  const stored = localStorage.getItem("guest_cart");
+
+  if (!stored) return [];
+
+  try {
+    const parsed: unknown = JSON.parse(stored);
+
+    if (!Array.isArray(parsed)) {
+      console.warn("[Guest Cart] Format keranjang tidak valid.");
+      return [];
+    }
+
+    return parsed.filter(
+      (item): item is CartItemUI =>
+        typeof item === "object" &&
+        item !== null &&
+        typeof item.productId === "string" &&
+        typeof item.quantity === "number" &&
+        Number.isSafeInteger(item.quantity) &&
+        item.quantity > 0,
+    );
+  } catch (error) {
+    console.error("[Guest Cart] Gagal membaca keranjang:", error);
+    return [];
+  }
+}
+
 export const useCartStore = create<CartState>((set, get) => ({
   cartItems: [],
   loading: false,
-  currencyCode: "IDR", // Default sementara, akan langsung ditimpa oleh respons backend
+  currencyCode: "IDR",
+
+  // ==========================================
+  // HYDRATE GUEST CART
+  // ==========================================
+  hydrateGuestCart: () => {
+    if (typeof window === "undefined") return;
+
+    const storedCart = readGuestCart();
+
+    set({
+      cartItems: storedCart,
+    });
+  },
 
   // === 1. FETCH CART (MENGAMBIL HARGA & CURRENCY DARI BACKEND) ===
   fetchCart: async (token) => {
@@ -229,14 +272,22 @@ export const useCartStore = create<CartState>((set, get) => ({
     // === GUEST CART ===
     const previousStorage = localStorage.getItem("guest_cart");
 
+    // GUEST CART - FIX STORAGE HYDRATION
     try {
-      const { cartItems } = get();
+      // Selalu baca sumber data terbaru dari localStorage.
+      // Jangan mengandalkan state Zustand yang mungkin belum di-hydrate.
+
+      const cartItems = readGuestCart();
+
       const existingItem = cartItems.find(matchesProduct);
 
       const newCart = existingItem
         ? cartItems.map((item) =>
             item.id === existingItem.id
-              ? { ...item, quantity: item.quantity + quantity }
+              ? {
+                  ...item,
+                  quantity: item.quantity + quantity,
+                }
               : item,
           )
         : [
@@ -251,30 +302,65 @@ export const useCartStore = create<CartState>((set, get) => ({
             },
           ];
 
+      // ==========================================
+      // CALCULATE CART
+      // ==========================================
+
       const res = await fetch(`${apiUrl}/cart/guest-calculate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "x-country": userCountry || "ID",
         },
-        body: JSON.stringify({ items: newCart }),
+        body: JSON.stringify({
+          items: newCart,
+        }),
       });
+
+      if (!res.ok) {
+        throw new Error(`Guest cart calculation failed: ${res.status}`);
+      }
 
       const result = await res.json();
 
-      if (!res.ok || !result.success || !Array.isArray(result.data?.items)) {
+      if (!result.success || !Array.isArray(result.data?.items)) {
         toast.error(messages.failed);
         return false;
       }
 
       const updatedItems = result.data.items as CartItemUI[];
+
       const updatedItem = updatedItems.find(matchesProduct);
+
       const expectedQty = (existingItem?.quantity ?? 0) + quantity;
 
       if (!updatedItem || updatedItem.quantity < expectedQty) {
         toast.error(messages.failed);
         return false;
       }
+
+      // ==========================================
+      // SAVE CART
+      // ==========================================
+
+      // Jika tab lain mengubah keranjang ketika request berjalan,
+      // jangan menimpa perubahan tersebut dengan snapshot lama.
+
+      const latestCart = readGuestCart();
+
+      if (JSON.stringify(latestCart) !== JSON.stringify(cartItems)) {
+        toast.error(
+          locale === "en"
+            ? "Your cart changed in another tab. Please try again."
+            : "Keranjang berubah di tab lain. Silakan coba lagi.",
+        );
+
+        await get().fetchCart();
+        return false;
+      }
+
+      // Jika quota localStorage penuh, setItem akan gagal.
+      // State dan tracking tidak boleh diperbarui sebelum penyimpanan sukses.
 
       localStorage.setItem("guest_cart", JSON.stringify(newCart));
 
@@ -283,24 +369,39 @@ export const useCartStore = create<CartState>((set, get) => ({
         currencyCode: result.data.currencyCode || "IDR",
       });
 
+      // ==========================================
+      // GTM TRACKING
+      // ==========================================
+
+      // Hanya dikirim setelah keranjang berhasil disimpan.
+
       trackAddToCart(updatedItem, quantity);
 
       toast.success(messages.success);
+
       return true;
     } catch (error) {
       console.error("Guest add to cart error:", error);
 
-      try {
-        if (previousStorage === null) {
-          localStorage.removeItem("guest_cart");
-        } else {
-          localStorage.setItem("guest_cart", previousStorage);
-        }
-      } catch (storageError) {
-        console.error("Gagal memulihkan guest cart:", storageError);
+      // ==========================================
+      // STORAGE QUOTA ERROR
+      // ==========================================
+
+      if (
+        error instanceof DOMException &&
+        (error.name === "QuotaExceededError" || error.code === 22)
+      ) {
+        toast.error(
+          locale === "en"
+            ? "Logo or customization data is too large. Please use a smaller image."
+            : "Ukuran logo atau data custom terlalu besar. Silakan gunakan gambar yang lebih kecil.",
+        );
+
+        return false;
       }
 
       toast.error(messages.networkError);
+
       return false;
     }
   },

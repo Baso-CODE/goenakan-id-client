@@ -15,9 +15,9 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocale } from "next-intl";
 import { toast } from "sonner";
 
 export interface LogoItem {
@@ -218,8 +218,7 @@ export function getAreaDisplayName(
   const isDuplicate = duplicatesCount > 1;
 
   // Check if rawLabel simply matches the sideName (e.g. both are "Two-Sides")
-  const isSameAsSide =
-    rawLabel.toLowerCase() === sideName.toLowerCase();
+  const isSameAsSide = rawLabel.toLowerCase() === sideName.toLowerCase();
 
   // If the label is distinct, non-generic, not duplicated, and not the same as sideName
   if (rawLabel && !isGeneric(rawLabel) && !isDuplicate && !isSameAsSide) {
@@ -552,7 +551,10 @@ export function ProductCustomizer({
                   const relScale = sVal / oldArea.width;
 
                   const rawScale = relScale * area.width;
-                  const newScale = Math.min(targetMaxScale, Math.max(1, rawScale));
+                  const newScale = Math.min(
+                    targetMaxScale,
+                    Math.max(1, rawScale),
+                  );
                   const logoHeight = newScale / aspect;
 
                   const relX = (xVal - oldArea.x) / oldArea.width;
@@ -562,7 +564,10 @@ export function ProductCustomizer({
                   const rawY = area.y + relY * (area.height - logoHeight);
 
                   const maxX = Math.max(area.x, area.x + area.width - newScale);
-                  const maxY = Math.max(area.y, area.y + area.height - logoHeight);
+                  const maxY = Math.max(
+                    area.y,
+                    area.y + area.height - logoHeight,
+                  );
 
                   const newX = Math.max(area.x, Math.min(rawX, maxX));
                   const newY = Math.max(area.y, Math.min(rawY, maxY));
@@ -719,7 +724,10 @@ export function ProductCustomizer({
               };
             }
             if (key === "xOffset") {
-              const maxX = Math.max(area.x, area.x + area.width - (item.scale || 5));
+              const maxX = Math.max(
+                area.x,
+                area.x + area.width - (item.scale || 5),
+              );
               val = Math.max(area.x, Math.min(value, maxX));
             }
             if (key === "yOffset") {
@@ -963,47 +971,114 @@ export function ProductCustomizer({
     area: MockupArea,
     e: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
+
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("File harus berupa gambar!");
+    // Reset input agar file yang sama bisa dipilih ulang.
+    input.value = "";
+
+    const MAX_LOGO_SIZE = 1 * 1024 * 1024; // 1 MB
+
+    // ==========================================
+    // 1. VALIDATE FILE TYPE
+    // ==========================================
+
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(
+        isEn
+          ? "Unsupported image format. Please use PNG, JPG, or WebP."
+          : "Format gambar tidak didukung. Gunakan PNG, JPG, atau WebP.",
+      );
       return;
     }
 
-    // Limit 10MB untuk base64 agar aman
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Ukuran gambar terlalu besar! Maksimal 10MB.");
+    // ==========================================
+    // 2. VALIDATE FILE SIZE
+    // ==========================================
+
+    if (file.size > MAX_LOGO_SIZE) {
+      toast.error(
+        isEn
+          ? "Logo is too large. Maximum file size is 1 MB."
+          : "Ukuran logo terlalu besar. Maksimal 1 MB.",
+      );
       return;
     }
+
+    if (file.size === 0) {
+      toast.error(
+        isEn
+          ? "The selected image is empty."
+          : "File gambar yang dipilih kosong.",
+      );
+      return;
+    }
+
+    // ==========================================
+    // 3. READ IMAGE
+    // ==========================================
 
     const reader = new FileReader();
+
     reader.onload = (event) => {
-      const base64 = event.target?.result as string;
+      const base64 = event.target?.result;
+
+      if (typeof base64 !== "string" || !base64.startsWith("data:image/")) {
+        toast.error(
+          isEn
+            ? "Failed to process the selected image."
+            : "Gagal memproses gambar yang dipilih.",
+        );
+        return;
+      }
+
+      // ==========================================
+      // 4. LOAD IMAGE DIMENSIONS
+      // ==========================================
+
       const img = new window.Image();
+
       img.onload = () => {
-        const ar = (img.naturalWidth && img.naturalHeight)
-          ? img.naturalWidth / img.naturalHeight
-          : 1.0;
-        const maxS = getMaxScale(area, { aspectRatio: ar });
+        const ar =
+          img.naturalWidth > 0 && img.naturalHeight > 0
+            ? img.naturalWidth / img.naturalHeight
+            : 1;
+
+        const maxS = getMaxScale(area, {
+          aspectRatio: ar,
+        });
+
         const defaultSize = area.width * 0.7;
+
         const finalSize = Math.max(1, Math.min(defaultSize, maxS));
+
         const logoH = finalSize / ar;
 
         const rawX = area.x + (area.width - finalSize) / 2;
+
         const rawY = area.y + (area.height - logoH) / 2;
 
         const maxX = Math.max(area.x, area.x + area.width - finalSize);
+
         const maxY = Math.max(area.y, area.y + area.height - logoH);
 
         const initX = Math.max(area.x, Math.min(rawX, maxX));
+
         const initY = Math.max(area.y, Math.min(rawY, maxY));
+
+        // ==========================================
+        // 5. PREPARE LOGO
+        // ==========================================
 
         const newLogo: LogoItem = {
           id: Math.random().toString(36).substring(2, 9),
           image: base64,
           fileName: file.name,
-          logoCount: 1, // Inisialisasi jumlah logo ke 1
+          logoCount: 1,
           xOffset: initX,
           yOffset: initY,
           scale: finalSize,
@@ -1011,28 +1086,60 @@ export function ProductCustomizer({
           aspectRatio: ar,
           opacity: 100,
         };
+
+        // ==========================================
+        // 6. UPDATE EDITOR STATE
+        // ==========================================
+
         setUploads((prev) => {
           const existing = prev[area.id] || [];
+
           return {
             ...prev,
             [area.id]: [...existing, newLogo],
           };
         });
+
         setActiveLogoId(newLogo.id);
+
         toast.success(
           isEn
             ? `Logo for "${getAreaName(area)}" uploaded successfully!`
             : `Logo untuk "${getAreaName(area)}" berhasil diunggah!`,
         );
       };
+
+      // ==========================================
+      // 7. IMAGE LOAD ERROR
+      // ==========================================
+
+      img.onerror = () => {
+        toast.error(
+          isEn
+            ? "The image could not be opened. Please choose another image."
+            : "Gambar tidak dapat dibuka. Silakan pilih gambar lain.",
+        );
+      };
+
       img.src = base64;
     };
+
+    // ==========================================
+    // 8. FILE READER ERROR
+    // ==========================================
+
     reader.onerror = () => {
-      toast.error("Gagal membaca file gambar.");
+      toast.error(
+        isEn ? "Failed to read the image file." : "Gagal membaca file gambar.",
+      );
     };
+
+    reader.onabort = () => {
+      console.warn("[Logo Upload] File reading aborted.");
+    };
+
     reader.readAsDataURL(file);
   };
-
   const handleRemoveLogo = (
     areaId: string,
     logoId: string,
@@ -1070,7 +1177,9 @@ export function ProductCustomizer({
     if (!canvasRef.current || !media[activeIndex]) return;
 
     const toastId = toast.loading(
-      isEn ? "Preparing mockup download..." : "Sedang menyiapkan unduhan mockup...",
+      isEn
+        ? "Preparing mockup download..."
+        : "Sedang menyiapkan unduhan mockup...",
     );
     try {
       const { toPng } = await import("html-to-image");
@@ -1092,8 +1201,12 @@ export function ProductCustomizer({
       const view = media[activeIndex];
       const defaultSideName =
         view.id === mockupBackImageId
-          ? (isEn ? "Back View" : "Tampak Belakang")
-          : (isEn ? "Front View" : "Tampak Depan");
+          ? isEn
+            ? "Back View"
+            : "Tampak Belakang"
+          : isEn
+            ? "Front View"
+            : "Tampak Depan";
       const sideName = view.mockupSideName || defaultSideName;
 
       // Helper to safely extract class name string across HTML and SVG elements
@@ -1271,9 +1384,7 @@ export function ProductCustomizer({
       ctx.fillStyle = "#44403c";
       ctx.font = `bold ${11 * scaleFactor}px system-ui, -apple-system, sans-serif`;
       ctx.fillText(
-        isEn
-          ? "SPECIFICATIONS & PLACEMENT"
-          : "SPESIFIKASI & UKURAN PENEMPATAN",
+        isEn ? "SPECIFICATIONS & PLACEMENT" : "SPESIFIKASI & UKURAN PENEMPATAN",
         24 * scaleFactor,
         100 * scaleFactor,
       );
@@ -1497,7 +1608,10 @@ export function ProductCustomizer({
                     <div className="flex items-center gap-1 border-b border-stone-800/60 pb-0.5">
                       <Ruler className="w-2 h-2 text-blue-400 shrink-0" />
                       <span>
-                        <strong>{isEn ? "Product Dimensions:" : "Dimensi Produk:"}</strong> {productDimensions}
+                        <strong>
+                          {isEn ? "Product Dimensions:" : "Dimensi Produk:"}
+                        </strong>{" "}
+                        {productDimensions}
                       </span>
                     </div>
                   )}
@@ -1508,7 +1622,8 @@ export function ProductCustomizer({
                     const hasLogos = areaSpec.logoSpecs.length > 0;
 
                     // If single area with no uploads and no areaSize, skip
-                    if (isSingleArea && !hasLogos && !areaSpec.areaSizeStr) return null;
+                    if (isSingleArea && !hasLogos && !areaSpec.areaSizeStr)
+                      return null;
 
                     // If multi-area and no uploads across any area, just show area sizes concisely
                     if (!hasAnyUploadsOnActiveMedia && !isSingleArea) {
@@ -1553,12 +1668,18 @@ export function ProductCustomizer({
 
                         {hasLogos ? (
                           areaSpec.logoSpecs.map((logo, lIdx) => (
-                            <div key={logo.id || lIdx} className="flex flex-col gap-0.5">
+                            <div
+                              key={logo.id || lIdx}
+                              className="flex flex-col gap-0.5">
                               {/* Logo Dimensions */}
                               <div className="flex items-center gap-1">
                                 <Maximize2 className="w-2 h-2 text-amber-400 shrink-0" />
                                 <span>
-                                  <strong>{isEn ? "Logo Dimensions:" : "Dimensi Logo:"}</strong>{" "}
+                                  <strong>
+                                    {isEn
+                                      ? "Logo Dimensions:"
+                                      : "Dimensi Logo:"}
+                                  </strong>{" "}
                                   {logo.dimensions}
                                 </span>
                               </div>
@@ -1567,21 +1688,37 @@ export function ProductCustomizer({
                                 <div className="flex items-center gap-1 text-stone-300">
                                   <Move className="w-2 h-2 text-teal-400 shrink-0" />
                                   <span>
-                                    <strong>{isEn ? "Edge Distance:" : "Jarak Sisi:"}</strong>
+                                    <strong>
+                                      {isEn ? "Edge Distance:" : "Jarak Sisi:"}
+                                    </strong>
                                   </span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-x-1.5 gap-y-0.5 pl-3 font-mono text-[7px] sm:text-[7.5px] text-stone-300">
-                                  <span>{isEn ? "Top:" : "Atas:"} {logo.distances.top}</span>
-                                  <span>{isEn ? "Bottom:" : "Bawah:"} {logo.distances.bottom}</span>
-                                  <span>{isEn ? "Left:" : "Kiri:"} {logo.distances.left}</span>
-                                  <span>{isEn ? "Right:" : "Kanan:"} {logo.distances.right}</span>
+                                  <span>
+                                    {isEn ? "Top:" : "Atas:"}{" "}
+                                    {logo.distances.top}
+                                  </span>
+                                  <span>
+                                    {isEn ? "Bottom:" : "Bawah:"}{" "}
+                                    {logo.distances.bottom}
+                                  </span>
+                                  <span>
+                                    {isEn ? "Left:" : "Kiri:"}{" "}
+                                    {logo.distances.left}
+                                  </span>
+                                  <span>
+                                    {isEn ? "Right:" : "Kanan:"}{" "}
+                                    {logo.distances.right}
+                                  </span>
                                 </div>
                               </div>
                             </div>
                           ))
                         ) : (
                           <div className="flex items-center justify-between text-stone-400 text-[6.5px] sm:text-[7px] italic pl-1">
-                            <span>{isEn ? "No logo uploaded" : "Belum ada logo"}</span>
+                            <span>
+                              {isEn ? "No logo uploaded" : "Belum ada logo"}
+                            </span>
                             {isSingleArea && areaSpec.areaSizeStr && (
                               <span className="font-mono not-italic text-stone-400">
                                 {isEn ? "Max:" : "Maks:"} {areaSpec.areaSizeStr}
@@ -1597,25 +1734,31 @@ export function ProductCustomizer({
                     <div className="flex items-center gap-1 pt-0.5">
                       <Printer className="w-2 h-2 text-indigo-400 shrink-0" />
                       <span>
-                        <strong>{isEn ? "Printing Method:" : "Metode Cetak:"}</strong> {selectedPrintingMethod}
+                        <strong>
+                          {isEn ? "Printing Method:" : "Metode Cetak:"}
+                        </strong>{" "}
+                        {selectedPrintingMethod}
                       </span>
                     </div>
                   )}
                 </div>
                 {(() => {
                   const activeMask = colorMaskUrl || activeMedia.colorMaskUrl;
-                  const rawOverlayUrl = activeMask || (
-                    (colorMockupTrigger && colorMockupTrigger !== "NONE")
+                  const rawOverlayUrl =
+                    activeMask ||
+                    (colorMockupTrigger && colorMockupTrigger !== "NONE"
                       ? activeMask
-                      : getMockupBackgroundUrl(activeMedia)
-                  );
+                      : getMockupBackgroundUrl(activeMedia));
                   const colorOverlayUrl = rawOverlayUrl
                     ? getOptimizedImageUrl(rawOverlayUrl, 1200)
                     : "";
 
-                  const showColorOverlay = !!customColor && (
-                    !!activeMask || (isColorPickerActive && (colorMockupTrigger === "NONE" || !colorMockupTrigger))
-                  );
+                  const showColorOverlay =
+                    !!customColor &&
+                    (!!activeMask ||
+                      (isColorPickerActive &&
+                        (colorMockupTrigger === "NONE" ||
+                          !colorMockupTrigger)));
 
                   if (!showColorOverlay || !colorOverlayUrl) return null;
 
@@ -1757,7 +1900,9 @@ export function ProductCustomizer({
                             transform: `rotate(${(logo.rotate || 0) + (area.rotation || 0)}deg)`,
                             opacity: (logo.opacity ?? 100) / 100,
                             cursor:
-                              isDragging && isActive && !isDownloading ? "grabbing" : "grab",
+                              isDragging && isActive && !isDownloading
+                                ? "grabbing"
+                                : "grab",
                             touchAction: "none",
                             zIndex: isActive ? 20 : 10,
                           }}>
@@ -2231,8 +2376,13 @@ export function ProductCustomizer({
                 type="button"
                 onClick={handleDownloadMockup}
                 className="flex items-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition-colors cursor-pointer uppercase tracking-wider shadow-2xs"
-                title={isEn ? "Download customized mockup" : "Unduh mockup hasil kustomisasi"}>
-                <Download className="w-3 h-3" /> {isEn ? "Download Mockup" : "Unduh Mockup"}
+                title={
+                  isEn
+                    ? "Download customized mockup"
+                    : "Unduh mockup hasil kustomisasi"
+                }>
+                <Download className="w-3 h-3" />{" "}
+                {isEn ? "Download Mockup" : "Unduh Mockup"}
               </button>
             </h3>
             {isImageCustomizable(activeMedia) &&
