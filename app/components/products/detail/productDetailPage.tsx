@@ -2197,10 +2197,11 @@ export function ProductDetailPage({
             <h1 className="text-xl font-bold text-stone-900 leading-snug">
               {product.name}
             </h1>
-            <p className="text-sm text-stone-400">
+            {/* dihold sementara waktu untuk menghindari pajak */}
+            {/* <p className="text-sm text-stone-400">
               {product.sold.toLocaleString("id-ID")}{" "}
               {locale === "en" ? "Sold" : "Terjual"}
-            </p>
+            </p> */}
           </div>
 
           {/* ── 1. Customization Type Selector (Pilih Tipe Pembelian) ── */}
