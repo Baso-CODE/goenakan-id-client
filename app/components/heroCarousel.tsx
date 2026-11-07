@@ -1,19 +1,18 @@
 "use client";
 
 import Autoplay from "embla-carousel-autoplay";
-import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 import * as React from "react";
 
-import { Button } from "@/components/ui/button";
 import {
   Carousel,
+  CarouselApi,
   CarouselContent,
   CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
 } from "@/components/ui/carousel";
+
 import { Link } from "@/i18n/routing";
+import { useLocale } from "next-intl";
 
 import { HeroSlidePublic } from "../types/hero.type";
 
@@ -22,151 +21,370 @@ type HeroCarouselProps = {
 };
 
 export default function HeroCarousel({ slides }: HeroCarouselProps) {
+  const locale = useLocale();
+
+  const [api, setApi] = React.useState<CarouselApi>();
+  const [current, setCurrent] = React.useState(0);
+  const [count, setCount] = React.useState(0);
+
   const plugin = React.useRef(
     Autoplay({
-      delay: 2000,
+      delay: 5000,
       stopOnInteraction: false,
       stopOnMouseEnter: true,
     }),
   );
 
-  if (!slides?.length) {
+  React.useEffect(() => {
+    if (!api) return;
+
+    const updateSelection = () => {
+      setCurrent(api.selectedScrollSnap());
+      setCount(api.scrollSnapList().length);
+    };
+
+    updateSelection();
+
+    api.on("select", updateSelection);
+    api.on("reInit", updateSelection);
+
+    return () => {
+      api.off("select", updateSelection);
+      api.off("reInit", updateSelection);
+    };
+  }, [api]);
+
+  const customText = locale === "en" ? "Custom Now" : "Buat Custom";
+  const productsText =
+    locale === "en" ? "See All Products" : "Lihat Semua Produk";
+
+  const renderContent = (
+    title: string,
+    ctaText?: string | null,
+    ctaLink?: string | null,
+  ) => {
+    const primaryText = ctaText?.trim() || customText;
+    const primaryHref = ctaLink?.trim() || "/products";
+
     return (
-      <section className="relative w-full h-[calc(100vh-92px)] overflow-hidden bg-gray-50">
-        <div className="absolute inset-0">
-          <Image
-            src="/images/hero/hero-1.png"
-            alt="Default Hero Banner"
-            fill
-            preload
-            fetchPriority="high"
-            sizes="100vw"
-            className="object-cover"
-          />
-        </div>
+      <div className="relative z-20 flex h-full w-full items-end justify-center md:justify-start">
+        <div
+          className="
+            relative
+            w-full
+            px-6
+            pb-24
+            text-center
 
-        <div className="relative z-10 h-full flex flex-col md:flex-row items-center justify-between px-6 md:px-20 lg:px-24">
-          <div className="max-w-xl text-center md:text-left mt-15 md:mt-0">
-            <h1 className="text-2xl md:text-3xl lg:text-4xl text-gray-900 leading-tight font-normal">
-              Where Ideas Become Custom Products.
+            sm:px-10
+
+            md:px-12
+            md:pb-16
+            md:text-left
+
+            lg:px-16
+            lg:pb-20
+
+            xl:px-20
+            xl:pb-24
+          ">
+          <div className="max-w-4xl">
+            <h1
+              className="
+    font-serif
+    font-normal
+    text-white
+
+    text-[32px]
+    leading-[1.12]
+    tracking-[-0.025em]
+
+    sm:text-[38px]
+
+    md:text-[44px]
+    md:leading-[1.15]
+
+    lg:text-[58px]
+    lg:leading-[1.12]
+
+    xl:text-[64px]
+
+    max-w-[850px]
+  "
+              style={{
+                fontWeight: 400,
+                fontStyle: "normal",
+                WebkitTextStroke: "0px",
+                textShadow: "none",
+              }}>
+              {title}
             </h1>
-          </div>
+            x
+            <div
+              className="
+                mt-7
+                flex
+                w-full
+                flex-col
+                gap-3
 
-          <div className="mt-8 md:mt-0 mb-32 md:mb-0 w-full md:w-auto flex justify-center">
-            <Button
-              asChild
-              className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group min-w-55 md:min-w-65 justify-between">
+                sm:mx-auto
+                sm:max-w-[320px]
+
+                md:mx-0
+                md:mt-10
+                md:max-w-none
+                md:flex-row
+                md:items-center
+                md:gap-4
+              ">
+              {/* PRIMARY BUTTON */}
+              <Link
+                href={primaryHref as any}
+                className="
+                  inline-flex
+                  h-12
+                  w-full
+                  items-center
+                  justify-center
+
+                  border
+                  border-white
+                  bg-white
+
+                  px-8
+                  text-sm
+                  font-medium
+                  text-neutral-950
+
+                  transition-colors
+                  duration-200
+
+                  hover:bg-stone-100
+
+                  md:h-14
+                  md:w-auto
+                  md:min-w-[190px]
+                  md:px-10
+                ">
+                {primaryText}
+              </Link>
+
+              {/* SECONDARY BUTTON */}
               <Link
                 href="/products"
-                className="flex items-center justify-center gap-4">
-                <span>Custom Now</span>
+                className="
+                  inline-flex
+                  h-12
+                  w-full
+                  items-center
+                  justify-center
 
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  border
+                  border-white/90
+                  bg-transparent
+
+                  px-8
+                  text-sm
+                  font-medium
+                  text-white
+
+                  transition-colors
+                  duration-200
+
+                  hover:bg-white/15
+
+                  md:h-14
+                  md:w-auto
+                  md:min-w-[190px]
+                  md:px-10
+                ">
+                {productsText}
               </Link>
-            </Button>
+            </div>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  const renderBackground = (
+    desktopUrl: string,
+    mobileUrl: string,
+    tabletUrl: string,
+    alt: string,
+    priority: boolean,
+  ) => (
+    <>
+      {/* MOBILE */}
+      <div className="absolute inset-0 block md:hidden">
+        <Image
+          src={mobileUrl}
+          alt={alt}
+          fill
+          priority={priority}
+          fetchPriority={priority ? "high" : "auto"}
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+      </div>
+
+      {/* TABLET */}
+      <div className="absolute inset-0 hidden md:block lg:hidden">
+        <Image
+          src={tabletUrl}
+          alt={alt}
+          fill
+          priority={priority}
+          fetchPriority={priority ? "high" : "auto"}
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+      </div>
+
+      {/* DESKTOP */}
+      <div className="absolute inset-0 hidden lg:block">
+        <Image
+          src={desktopUrl}
+          alt={alt}
+          fill
+          priority={priority}
+          fetchPriority={priority ? "high" : "auto"}
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+      </div>
+    </>
+  );
+
+  const overlay = (
+    <div
+      aria-hidden="true"
+      className="
+        pointer-events-none
+        absolute
+        inset-0
+        z-10
+
+        bg-gradient-to-t
+        from-black/75
+        via-black/20
+        to-black/10
+
+        md:bg-gradient-to-r
+        md:from-black/55
+        md:via-black/15
+        md:to-black/5
+      "
+    />
+  );
+
+  const sectionClassName =
+    "relative w-full h-[calc(100svh-92px)] min-h-[520px] overflow-hidden bg-stone-900";
+
+  if (!slides?.length) {
+    return (
+      <section className={sectionClassName}>
+        {renderBackground(
+          "/images/hero/hero-1.png",
+          "/images/hero/hero-1.png",
+          "/images/hero/hero-1.png",
+          "Goenakan Indonesia",
+          true,
+        )}
+
+        {overlay}
+
+        {renderContent(
+          locale === "en"
+            ? "Explore What You Can Create With Us"
+            : "Jelajahi Kreasi Bersama Kami",
+        )}
       </section>
     );
   }
 
   return (
-    <section className="relative w-full h-[calc(100vh-92px)] overflow-hidden bg-gray-50">
+    <section className={sectionClassName}>
       <Carousel
+        setApi={setApi}
         opts={{
           align: "start",
-          loop: true,
+          loop: slides.length > 1,
         }}
-        plugins={[plugin.current]}
-        className="w-full h-full">
+        plugins={slides.length > 1 ? [plugin.current] : []}
+        className="h-full w-full">
         <CarouselContent className="h-full">
-          {slides.map((slide, index) => {
-            const isFirstSlide = index === 0;
+          {slides.map((slide, index) => (
+            <CarouselItem
+              key={slide.id}
+              className="
+                relative
+                h-[calc(100svh-92px)]
+                min-h-[520px]
+                w-full
+                overflow-hidden
+              ">
+              {renderBackground(
+                slide.imageUrl,
+                slide.imageMobileUrl || slide.imageUrl,
+                slide.imageTabletUrl || slide.imageUrl,
+                slide.altText || slide.title,
+                index === 0,
+              )}
 
-            return (
-              <CarouselItem
-                key={slide.id}
-                className="relative w-full h-[calc(100vh-92px)]">
-                {/* MOBILE */}
-                <div className="absolute inset-0 block md:hidden">
-                  <Image
-                    src={slide.imageMobileUrl || slide.imageUrl}
-                    alt={slide.altText || slide.title}
-                    fill
-                    preload={isFirstSlide}
-                    fetchPriority={isFirstSlide ? "high" : "auto"}
-                    sizes="100vw"
-                    className="object-cover"
-                  />
-                </div>
+              {overlay}
 
-                {/* TABLET */}
-                <div className="absolute inset-0 hidden md:block lg:hidden">
-                  <Image
-                    src={slide.imageTabletUrl || slide.imageUrl}
-                    alt={slide.altText || slide.title}
-                    fill
-                    preload={isFirstSlide}
-                    fetchPriority={isFirstSlide ? "high" : "auto"}
-                    sizes="100vw"
-                    className="object-cover"
-                  />
-                </div>
-
-                {/* DESKTOP */}
-                <div className="absolute inset-0 hidden lg:block">
-                  <Image
-                    src={slide.imageUrl}
-                    alt={slide.altText || slide.title}
-                    fill
-                    preload={isFirstSlide}
-                    fetchPriority={isFirstSlide ? "high" : "auto"}
-                    sizes="100vw"
-                    className="object-cover"
-                  />
-                </div>
-
-                <div className="relative z-10 h-full flex flex-col md:flex-row items-center justify-between px-6 md:pl-24 md:pr-32">
-                  <div className="max-w-xl text-center md:text-left mt-32 md:mt-0">
-                    <h1 className="text-2xl md:text-3xl lg:text-4xl text-gray-900 leading-tight font-normal italic">
-                      {slide.title}
-                    </h1>
-                  </div>
-
-                  {slide.ctaText && (
-                    <div className="mt-8 md:mt-0 mb-32 md:mb-0 w-full md:w-auto flex justify-center">
-                      {slide.ctaLink ? (
-                        <Button
-                          asChild
-                          className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group transition-all min-w-55 md:min-w-65 justify-between">
-                          <Link
-                            href={slide.ctaLink}
-                            className="flex items-center justify-center gap-4">
-                            <span>{slide.ctaText}</span>
-
-                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                          </Link>
-                        </Button>
-                      ) : (
-                        <Button className="bg-white hover:bg-gray-50 text-gray-900 rounded-full px-12 md:px-16 py-6 text-sm md:text-base shadow-sm group transition-all min-w-55 md:min-w-65 justify-between">
-                          <span className="flex items-center justify-center gap-4 w-full">
-                            <span>{slide.ctaText}</span>
-
-                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                          </span>
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </CarouselItem>
-            );
-          })}
+              {renderContent(slide.title, slide.ctaText, slide.ctaLink)}
+            </CarouselItem>
+          ))}
         </CarouselContent>
 
-        <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/30 border-none hover:bg-white/80 transition-all cursor-pointer z-30" />
+        {/* SLIDER INDICATORS */}
+        {count > 1 && (
+          <div
+            className="
+              absolute
+              bottom-8
+              left-1/2
+              z-30
 
-        <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/30 border-none hover:bg-white/80 transition-all cursor-pointer z-30" />
+              flex
+              -translate-x-1/2
+              items-center
+              gap-2
+
+              md:bottom-10
+              md:left-auto
+              md:right-12
+              md:translate-x-0
+
+              lg:right-16
+            ">
+            {Array.from({ length: count }).map((_, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => api?.scrollTo(index)}
+                aria-label={`Go to slide ${index + 1}`}
+                aria-current={current === index ? "true" : undefined}
+                className={`
+                  h-[3px]
+                  w-9
+                  cursor-pointer
+                  transition-all
+                  duration-300
+
+                  ${
+                    current === index
+                      ? "bg-white"
+                      : "bg-white/40 hover:bg-white/70"
+                  }
+                `}
+              />
+            ))}
+          </div>
+        )}
       </Carousel>
     </section>
   );
