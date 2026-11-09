@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { legacyArticleRedirects } from "./config/legacy-article-redirects";
 
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
@@ -14,6 +15,13 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "*.goenakan.id", pathname: "/**" },
       { protocol: "https", hostname: "static.midtrans.com", pathname: "/**" },
     ],
+  },
+
+  // ===================================================
+  // SEO: LEGACY ARTICLE 301 REDIRECTS
+  // ===================================================
+  async redirects() {
+    return [...legacyArticleRedirects];
   },
 };
 
