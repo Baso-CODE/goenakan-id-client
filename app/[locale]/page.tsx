@@ -5,6 +5,7 @@ import Faq from "../components/Faq";
 import Hero from "../components/Hero";
 import HowItWorks from "../components/HowItWorks";
 
+import { getActiveBanners } from "../api/articles/getActiveBanners.api";
 import LazyArticles from "../components/lazy/lazyArticles";
 import LazyBestSeller from "../components/lazy/lazyBestSeller";
 import LazyPortfolio from "../components/lazy/lazyPortfolio";
@@ -38,7 +39,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function Home() {
+export default async function Home({ params }: Props) {
+  const { locale } = await params;
+
+  const lang = locale === "en" ? "en" : "id";
+  const banners = await getActiveBanners(lang);
+
   return (
     <>
       <Hero />
@@ -51,7 +57,7 @@ export default function Home() {
       <Newsletter />
       <LazyBestSeller />
       <PlanningLargerOrder />
-      <LazyArticles />
+      <LazyArticles banners={banners} />
       <Faq />
     </>
   );
