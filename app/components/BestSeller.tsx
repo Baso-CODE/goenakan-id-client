@@ -8,9 +8,9 @@ import { useLocale, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
+import { getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
 import { getBestSellerProductsAPI } from "../api/products/getBestSellerProduct.api";
 import { BestSellerProduct } from "../types/bestSellerProduct.type";
-import { getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
 
 const CURRENCY_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>();
 
@@ -122,7 +122,10 @@ export default function BestSeller() {
                       <div className="relative aspect-square bg-gray-50 flex items-center justify-center border-b border-gray-100 overflow-hidden">
                         {product.image ? (
                           <Image
-                            src={getOptimizedImageUrl(product.image, 600) || product.image}
+                            src={
+                              getOptimizedImageUrl(product.image, 600) ||
+                              product.image
+                            }
                             alt={product.name}
                             fill
                             className="object-cover p-4 group-hover:scale-105 transition-transform duration-500"
@@ -158,11 +161,11 @@ export default function BestSeller() {
                           </span>
                         </p>
 
-                        <div className="mt-auto pt-4">
+                        {/* <div className="mt-auto pt-4">
                           <p className="text-xs text-[#C4A48E] font-bold uppercase tracking-wider">
                             {product.sold.toLocaleString("id-ID")} {t("sold")}
                           </p>
-                        </div>
+                        </div> */}
                       </div>
                     </CardContent>
                   </Card>

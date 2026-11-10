@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { ArticleBanner } from "../article/articleBannerCarousel";
 
 const Articles = dynamic(() => import("../Articles"), {
   ssr: false,
@@ -32,7 +33,11 @@ function ArticlesLoading() {
   );
 }
 
-export default function LazyArticles() {
+export default function LazyArticles({
+  banners,
+}: {
+  banners: ArticleBanner[];
+}) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [shouldLoad, setShouldLoad] = useState(false);
 
@@ -63,7 +68,7 @@ export default function LazyArticles() {
     <div
       ref={sectionRef}
       className={!shouldLoad ? "min-h-225 bg-white" : undefined}>
-      {shouldLoad ? <Articles /> : null}
+      {shouldLoad ? <Articles banners={banners} /> : null}
     </div>
   );
 }

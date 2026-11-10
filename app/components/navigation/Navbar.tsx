@@ -33,6 +33,11 @@ import { Link, usePathname, useRouter } from "@/i18n/routing";
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
   // State untuk fitur Search
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
@@ -46,6 +51,10 @@ export default function Navbar() {
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+
+  React.useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname, locale]);
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -212,7 +221,7 @@ export default function Navbar() {
 
             {/* --- BURGER MENU (MOBILE) --- */}
             <div className="md:hidden ml-1">
-              <Sheet>
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Menu className="h-6 w-6 text-gray-900" />
@@ -236,10 +245,12 @@ export default function Navbar() {
                   <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
                     {navLinks.map((link) => (
                       <Link
-                        key={link.name}
+                        key={link.href}
                         href={link.href}
+                        onClick={closeMobileMenu}
                         className="group flex items-center justify-between text-xl text-gray-800 hover:text-[#C4A48E] transition-colors pb-2 border-b border-transparent hover:border-gray-50">
                         {link.name}
+
                         <ChevronRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-[#C4A48E]" />
                       </Link>
                     ))}
@@ -248,10 +259,12 @@ export default function Navbar() {
                   <div className="p-6 bg-gray-50 border-t border-gray-100 space-y-4">
                     <Link
                       href="/profile"
+                      onClick={closeMobileMenu}
                       className="flex items-center gap-4 text-sm font-medium text-gray-600 hover:text-black transition-colors bg-white p-3 rounded-md shadow-sm border border-gray-100">
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                         <User className="w-4 h-4 text-gray-600" />
                       </div>
+
                       <span>{t("profile")}</span>
                     </Link>
 
@@ -262,7 +275,10 @@ export default function Navbar() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => switchLanguage("id")}
+                          onClick={() => {
+                            closeMobileMenu();
+                            switchLanguage("id");
+                          }}
                           className={
                             locale === "id"
                               ? "text-black font-bold"
@@ -272,7 +288,10 @@ export default function Navbar() {
                         </button>
                         <span className="text-gray-300">|</span>
                         <button
-                          onClick={() => switchLanguage("en")}
+                          onClick={() => {
+                            closeMobileMenu();
+                            switchLanguage("en");
+                          }}
                           className={
                             locale === "en"
                               ? "text-black font-bold"
