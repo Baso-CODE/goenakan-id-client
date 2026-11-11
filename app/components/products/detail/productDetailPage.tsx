@@ -609,7 +609,9 @@ export function ProductDetailPage({
       const availableIds = new Set(
         availableMockupPositions.map((p) => p.printPositionValueId || p.name),
       );
-      const filtered = prev.filter((id) => availableIds.has(id));
+      const filtered = prev
+        .filter((id) => availableIds.has(id))
+        .slice(0, 1);
 
       // Important: return the old reference when nothing changed.
       // Otherwise this effect creates a second unnecessary render after clicks.
@@ -1633,8 +1635,8 @@ export function ProductDetailPage({
     ) {
       toast.error(
         locale === "en"
-          ? "Please select at least one print position / side first!"
-          : "Silakan pilih minimal satu posisi / sisi cetak terlebih dahulu!",
+          ? "Please select a print position / side first!"
+          : "Silakan pilih posisi / sisi cetak terlebih dahulu!",
       );
       return false;
     }
@@ -2377,8 +2379,8 @@ export function ProductDetailPage({
               </p>
               <p className="text-[11px] text-stone-500 leading-normal">
                 {locale === "en"
-                  ? "Choose one or more sides where you want to print your logo. Each added side will automatically update the price."
-                  : "Pilih satu atau lebih sisi tempat Anda ingin mencetak logo. Setiap penambahan sisi akan otomatis memperbarui harga."}
+                  ? "Choose the side where you want to print your logo."
+                  : "Pilih sisi tempat Anda ingin mencetak logo."}
               </p>
               <div className="flex flex-wrap gap-2.5 pt-1">
                 {availableMockupPositions.map((pos) => {
@@ -2389,13 +2391,9 @@ export function ProductDetailPage({
                       key={posKey}
                       type="button"
                       onClick={() => {
-                        setSelectedMockupPositions((prev) => {
-                          if (prev.includes(posKey)) {
-                            return prev.filter((p) => p !== posKey);
-                          } else {
-                            return [...prev, posKey];
-                          }
-                        });
+                        setSelectedMockupPositions((prev) =>
+                          prev.includes(posKey) ? [] : [posKey],
+                        );
                       }}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all duration-200 ${
                         isChecked
