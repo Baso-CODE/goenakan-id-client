@@ -11,44 +11,7 @@ import { useEffect, useState } from "react";
 import { getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
 import { getBestSellerProductsAPI } from "../api/products/getBestSellerProduct.api";
 import { BestSellerProduct } from "../types/bestSellerProduct.type";
-
-const CURRENCY_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>();
-
-function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
-  const currency = currencyCode.toUpperCase();
-
-  const currencyLocaleMap: Record<string, string> = {
-    IDR: "id-ID",
-    SGD: "en-SG",
-    USD: "en-US",
-    EUR: "de-DE",
-    JPY: "ja-JP",
-    MYR: "ms-MY",
-    CNY: "zh-CN",
-    GBP: "en-GB",
-    AUD: "en-AU",
-  };
-
-  const locale = currencyLocaleMap[currency] || "en-US";
-
-  const cacheKey = `${locale}:${currency}`;
-
-  let formatter = CURRENCY_FORMATTER_CACHE.get(cacheKey);
-
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency,
-      currencyDisplay: "symbol",
-      minimumFractionDigits: currency === "IDR" ? 0 : 2,
-      maximumFractionDigits: currency === "IDR" ? 0 : 2,
-    });
-
-    CURRENCY_FORMATTER_CACHE.set(cacheKey, formatter);
-  }
-
-  return formatter.format(Number.isFinite(amount) ? amount : 0);
-}
+import { formatCurrency } from "../utils/formatCurrency";
 
 //  3. Helper untuk membaca Cookie di Client Side (Browser)
 function getClientCookie(name: string): string | null {

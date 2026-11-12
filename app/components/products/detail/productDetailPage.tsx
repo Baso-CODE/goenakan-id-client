@@ -5,6 +5,7 @@ import { productToViewItem } from "@/app/lib/tracking/viewItem";
 import { useCartStore } from "@/app/store/useCartStore";
 import { AddToCartPayload } from "@/app/types/itemCart/addToCartPayload.type";
 import { MediaItem, ProductDetail } from "@/app/types/productDetail.type";
+import { formatCurrency } from "@/app/utils/formatCurrency";
 import { isMockupImage } from "@/app/utils/mediaFilter";
 import { MessageCircle, Sparkles, X, ZoomIn } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -152,28 +153,6 @@ function parseClientColorValue(val: string) {
   return { name: val, hex: "#cbd5e1", cmyk: "CMYK N/A" };
 }
 
-function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
-  let locale = "id-ID";
-  if (currencyCode === "USD") locale = "en-US";
-  else if (currencyCode === "EUR") locale = "de-DE";
-  else if (currencyCode === "JPY") locale = "ja-JP";
-  else if (currencyCode === "MYR") locale = "ms-MY";
-
-  const cacheKey = `${locale}:${currencyCode}`;
-  let formatter = CURRENCY_FORMATTER_CACHE.get(cacheKey);
-
-  if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-      maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-    });
-    CURRENCY_FORMATTER_CACHE.set(cacheKey, formatter);
-  }
-
-  return formatter.format(amount);
-}
 interface ProductDetailPageProps {
   product: ProductDetail;
   locale?: string;
@@ -609,9 +588,7 @@ export function ProductDetailPage({
       const availableIds = new Set(
         availableMockupPositions.map((p) => p.printPositionValueId || p.name),
       );
-      const filtered = prev
-        .filter((id) => availableIds.has(id))
-        .slice(0, 1);
+      const filtered = prev.filter((id) => availableIds.has(id)).slice(0, 1);
 
       // Important: return the old reference when nothing changed.
       // Otherwise this effect creates a second unnecessary render after clicks.
