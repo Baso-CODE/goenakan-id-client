@@ -15,26 +15,39 @@ import { BestSellerProduct } from "../types/bestSellerProduct.type";
 const CURRENCY_FORMATTER_CACHE = new Map<string, Intl.NumberFormat>();
 
 function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
-  let locale = "id-ID";
-  if (currencyCode === "USD") locale = "en-US";
-  else if (currencyCode === "EUR") locale = "de-DE";
-  else if (currencyCode === "JPY") locale = "ja-JP";
-  else if (currencyCode === "MYR") locale = "ms-MY";
+  const currency = currencyCode.toUpperCase();
 
-  const cacheKey = `${locale}:${currencyCode}`;
+  const currencyLocaleMap: Record<string, string> = {
+    IDR: "id-ID",
+    SGD: "en-SG",
+    USD: "en-US",
+    EUR: "de-DE",
+    JPY: "ja-JP",
+    MYR: "ms-MY",
+    CNY: "zh-CN",
+    GBP: "en-GB",
+    AUD: "en-AU",
+  };
+
+  const locale = currencyLocaleMap[currency] || "en-US";
+
+  const cacheKey = `${locale}:${currency}`;
+
   let formatter = CURRENCY_FORMATTER_CACHE.get(cacheKey);
 
   if (!formatter) {
     formatter = new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: currencyCode,
-      minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-      maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
+      currency,
+      currencyDisplay: "symbol",
+      minimumFractionDigits: currency === "IDR" ? 0 : 2,
+      maximumFractionDigits: currency === "IDR" ? 0 : 2,
     });
+
     CURRENCY_FORMATTER_CACHE.set(cacheKey, formatter);
   }
 
-  return formatter.format(amount);
+  return formatter.format(Number.isFinite(amount) ? amount : 0);
 }
 
 //  3. Helper untuk membaca Cookie di Client Side (Browser)
