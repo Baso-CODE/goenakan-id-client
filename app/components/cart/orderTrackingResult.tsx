@@ -1,19 +1,11 @@
 "use client";
 
+import { formatCurrency } from "@/app/utils/formatCurrency";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Package, Truck, X } from "lucide-react";
 import Image from "next/image";
-
-// Fungsi format mata uang dinamis
-function formatCurrency(amount: number, currencyCode: string = "IDR") {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
 
 export function OrderTrackingResult({
   orderNumber,

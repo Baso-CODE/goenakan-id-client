@@ -4,11 +4,11 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 
 import { Product } from "@/app/types/product.type";
-import { Badge } from "@/components/ui/badge";
-import { Link } from "@/i18n/routing";
 import { getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
+import { Link } from "@/i18n/routing";
 
 // 1. Impor komponen Tooltip dari Shadcn UI
+import { formatCurrency } from "@/app/utils/formatCurrency";
 import {
   Tooltip,
   TooltipContent,
@@ -18,21 +18,6 @@ import {
 
 interface ProductCardProps {
   product: Product;
-}
-
-function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
-  let locale = "id-ID";
-  if (currencyCode === "USD") locale = "en-US";
-  else if (currencyCode === "EUR") locale = "de-DE";
-  else if (currencyCode === "JPY") locale = "ja-JP";
-  else if (currencyCode === "MYR") locale = "ms-MY";
-
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-    maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-  }).format(amount);
 }
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -89,13 +74,13 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
 
           {/* Bagian Badge Terjual */}
-          <div className="pt-1 mt-auto">
+          {/* <div className="pt-1 mt-auto">
             <Badge
               variant="secondary"
               className="text-xs text-stone-400 bg-stone-50 border-0 px-0 font-normal">
               {product.sold.toLocaleString("id-ID")} {t("sold")}
             </Badge>
-          </div>
+          </div> */}
         </div>
       </div>
     </Link>

@@ -1,6 +1,7 @@
 "use client";
 
 import { RelatedProduct } from "@/app/api/products/getRelatedProducts.api";
+import { formatCurrency } from "@/app/utils/formatCurrency";
 import {
   Carousel,
   CarouselContent,
@@ -16,61 +17,6 @@ interface RelatedProductsProps {
   products: RelatedProduct[];
   title?: string;
   interval?: number;
-}
-
-// ==========================================
-// MULTI-CURRENCY FORMATTER
-// ==========================================
-
-const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
-
-function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
-  const currency = currencyCode?.trim().toUpperCase() || "IDR";
-
-  const localeMap: Record<string, string> = {
-    IDR: "id-ID",
-    SGD: "en-SG",
-    USD: "en-US",
-    MYR: "ms-MY",
-    CNY: "zh-CN",
-    EUR: "de-DE",
-    JPY: "ja-JP",
-    GBP: "en-GB",
-    AUD: "en-AU",
-  };
-
-  const locale = localeMap[currency] || "en-US";
-  const cacheKey = `${locale}:${currency}`;
-
-  let formatter = currencyFormatterCache.get(cacheKey);
-
-  if (!formatter) {
-    try {
-      formatter = new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency,
-        currencyDisplay: "symbol",
-        minimumFractionDigits: currency === "IDR" ? 0 : 2,
-        maximumFractionDigits: currency === "IDR" ? 0 : 2,
-      });
-    } catch {
-      // Hindari UI crash bila kode currency invalid.
-      return `${currency} ${Number(amount).toFixed(2)}`;
-    }
-
-    currencyFormatterCache.set(cacheKey, formatter);
-  }
-
-  const safeAmount = Number.isFinite(amount) ? amount : 0;
-
-  const formatted = formatter.format(safeAmount);
-
-  // Bedakan Singapore Dollar dari USD.
-  if (currency === "SGD") {
-    return formatted.replace(/^\$/, "S$");
-  }
-
-  return formatted;
 }
 
 // ==========================================

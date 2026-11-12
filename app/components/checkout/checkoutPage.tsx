@@ -10,6 +10,7 @@ import { cartToEcommerceItems } from "@/app/lib/tracking/ecommerce";
 import { getAttribution } from "@/app/lib/tracking/getAttribution";
 import { useCartStore } from "@/app/store/useCartStore";
 import { apiUrl } from "@/app/utils/ApiUrl";
+import { formatCurrency } from "@/app/utils/formatCurrency";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -147,21 +148,6 @@ function RegionCombobox({
       </Popover>
     </div>
   );
-}
-// PERBAIKAN 1: Gunakan formatCurrency dinamis, hapus formatRupiah
-function formatCurrency(amount: number, currencyCode: string = "IDR") {
-  // Tentukan locale berdasarkan mata uang agar format titik/komanya sesuai
-  let locale = "en-US";
-  if (currencyCode === "IDR") locale = "id-ID";
-  else if (currencyCode === "EUR") locale = "de-DE";
-  else if (currencyCode === "CNY" || currencyCode === "RMB") locale = "zh-CN";
-
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currencyCode === "RMB" ? "CNY" : currencyCode,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
 }
 
 interface CustomizationZone {

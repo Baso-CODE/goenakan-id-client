@@ -1,5 +1,7 @@
 "use client";
 
+import { formatCurrency } from "@/app/utils/formatCurrency";
+
 interface FlexiblePriceTier {
   title?: string;
   label?: string;
@@ -19,31 +21,6 @@ interface PriceTierSelectorProps {
   onSelect: (index: number) => void;
   currencyCode?: string;
   locale?: string;
-}
-
-/* =========================================================
-   FORMAT CURRENCY
-   ========================================================= */
-
-function formatCurrency(amount: number, currencyCode: string = "IDR"): string {
-  let numberLocale = "id-ID";
-
-  if (currencyCode === "USD") {
-    numberLocale = "en-US";
-  } else if (currencyCode === "EUR") {
-    numberLocale = "de-DE";
-  } else if (currencyCode === "JPY") {
-    numberLocale = "ja-JP";
-  } else if (currencyCode === "MYR") {
-    numberLocale = "ms-MY";
-  }
-
-  return new Intl.NumberFormat(numberLocale, {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-    maximumFractionDigits: currencyCode === "IDR" ? 0 : 2,
-  }).format(amount);
 }
 
 /* =========================================================

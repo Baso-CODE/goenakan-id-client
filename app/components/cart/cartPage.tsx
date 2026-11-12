@@ -1,6 +1,7 @@
 "use client";
 
 import { useCartStore } from "@/app/store/useCartStore";
+import { formatCurrency } from "@/app/utils/formatCurrency";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,16 +12,6 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useEffect } from "react";
 import { OrderTracking } from "./orderTracking";
-
-function formatCurrency(amount: number, currencyCode: string = "IDR") {
-  const locale = currencyCode === "IDR" ? "id-ID" : "en-US";
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currencyCode,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
 
 interface CustomizationZone {
   image: string;
