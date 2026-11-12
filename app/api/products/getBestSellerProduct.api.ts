@@ -5,9 +5,13 @@ export async function getBestSellerProductsAPI(
   country: string = "ID",
   locale: string = "id",
 ): Promise<BestSellerProduct[]> {
+  const params = new URLSearchParams({
+    country: country.trim().toUpperCase() || "ID",
+    lang: locale.trim().toLowerCase() || "id",
+  });
   try {
-    const res = await fetch(
-      `${apiUrl}/products/best-sellers?country=${country}&lang=${locale}`,
+    const response = await fetch(
+      `${apiUrl}/products/best-sellers?${params.toString()}`,
       {
         method: "GET",
         next: {
@@ -17,10 +21,17 @@ export async function getBestSellerProductsAPI(
       },
     );
 
-    if (!res.ok) throw new Error("Failed to fetch best seller products");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch best sellers: HTTP ${response.status}`);
+    }
 
-    const json = await res.json();
-    return json.data || [];
+    const result = await response.json();
+
+    if (!result.success || !Array.isArray(result.data)) {
+      throw new Error("Invalid best seller response");
+    }
+
+    return result.data as BestSellerProduct[];
   } catch (error) {
     console.error("Error fetching best sellers:", error);
     return [];
