@@ -1,22 +1,50 @@
 import { Product } from "@/app/types/product.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
-export async function getRelatedProductsAPI(slug: string): Promise<Product[]> {
+export type RelatedProduct = Pick<
+  Product,
+  "id" | "name" | "slug" | "image" | "bulkPrice" | "regularPrice"
+> & {
+  currencyCode: string;
+  minOrder: number;
+  isCustom: boolean;
+};
+
+export async function getRelatedProductsAPI(
+  slug: string,
+  country: string = "ID",
+  lang: string = "id",
+): Promise<RelatedProduct[]> {
   try {
-    const res = await fetch(`${apiUrl}/products/public/${slug}/related`, {
-      method: "GET",
-      next: {
-        revalidate: 300,
-        tags: ["related-products", `related-${slug}`],
-      },
+    const params = new URLSearchParams({
+      country: country.trim().toUpperCase() || "ID",
+      lang: lang.trim().toLowerCase() || "id",
     });
 
-    if (!res.ok) throw new Error("Failed to fetch related products");
+    const response = await fetch(
+      `${apiUrl}/products/public/${encodeURIComponent(slug)}/related?${params.toString()}`,
+      {
+        method: "GET",
+        cache: "no-store",
+      },
+    );
 
-    const json = await res.json();
-    return json.data;
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch related products: HTTP ${response.status}`,
+      );
+    }
+
+    const result = await response.json();
+
+    if (!result.success || !Array.isArray(result.data)) {
+      throw new Error("Invalid related products response");
+    }
+
+    return result.data as RelatedProduct[];
   } catch (error) {
-    console.error("Error fetching related products:", error);
+    console.error("[RelatedProducts] Fetch error:", error);
+
     return [];
   }
 }
