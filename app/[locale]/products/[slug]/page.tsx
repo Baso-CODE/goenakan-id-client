@@ -137,11 +137,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const language = locale === "en" ? "en" : "id";
 
   const cookieStore = await cookies();
-  const userCountry = cookieStore.get("USER_COUNTRY")?.value || "ID";
+  const userCountry =
+    cookieStore.get("USER_COUNTRY")?.value?.trim().toUpperCase() || "ID";
 
   const [product, relatedProducts] = await Promise.all([
     getProductBySlugAPI(slug, language, userCountry),
-    getRelatedProductsAPI(slug),
+    getRelatedProductsAPI(slug, userCountry, language),
   ]);
 
   if (!product) notFound();
