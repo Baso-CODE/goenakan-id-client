@@ -17,4 +17,6 @@ export interface AddToCartPayload {
   // TAMBAHAN BARU:
   selectedAttributes?: any;
   freightMode?: "SEA" | "AIR";
+
+  notes?: string | null;
 }
