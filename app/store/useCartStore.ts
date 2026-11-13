@@ -3,6 +3,7 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 import { getUserCountryFromCookie } from "@/lib/getUserCountryFromCookie";
 import { toast } from "sonner";
 import { create } from "zustand";
+import { isSameCartConfiguration } from "../lib/cart/cartItemIdentity";
 import { pushEcommerceEvent } from "../lib/tracking/dataLayer";
 import { cartItemToEcommerceItem } from "../lib/tracking/ecommerce";
 import { AddToCartPayload } from "../types/itemCart/addToCartPayload.type";
@@ -117,13 +118,15 @@ export const useCartStore = create<CartState>((set, get) => ({
           const payload = {
             items: parsedCart.map((i) => ({
               productId: i.productId,
-              variantId: i.variantId || null,
+              variantId: i.variantId ?? null,
               quantity: i.quantity,
-              customization: i.customization || null,
-              selectedAttributes: i.selectedAttributes || null,
+              customization: i.customization ?? null,
+              selectedAttributes: i.selectedAttributes ?? null,
+              notes: i.notes ?? null,
             })),
           };
-          await fetch(`${apiUrl}/cart/sync`, {
+
+          const syncResponse = await fetch(`${apiUrl}/cart/sync`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -132,6 +135,22 @@ export const useCartStore = create<CartState>((set, get) => ({
             },
             body: JSON.stringify(payload),
           });
+
+          if (!syncResponse.ok) {
+            throw new Error(
+              `Guest cart synchronization failed: ${syncResponse.status}`,
+            );
+          }
+
+          const syncResult = await syncResponse.json();
+
+          if (!syncResult.success) {
+            throw new Error(
+              syncResult.message || "Guest cart synchronization failed",
+            );
+          }
+
+          // Hapus hanya setelah backend mengonfirmasi berhasil.
           localStorage.removeItem("guest_cart");
         } catch (e) {
           console.error("Sync error", e);
@@ -216,8 +235,26 @@ export const useCartStore = create<CartState>((set, get) => ({
     }
 
     const variantId = product.variantId ?? null;
-    const matchesProduct = (item: CartItemUI) =>
-      item.productId === product.id && (item.variantId ?? null) === variantId;
+
+    const incomingConfiguration = {
+      productId: product.id,
+      variantId,
+      customization: product.customization ?? null,
+      selectedAttributes: product.selectedAttributes ?? null,
+      notes: product.notes ?? null,
+    };
+
+    const matchesProduct = (item: CartItemUI): boolean =>
+      isSameCartConfiguration(
+        {
+          productId: item.productId,
+          variantId: item.variantId,
+          customization: item.customization,
+          selectedAttributes: item.selectedAttributes,
+          notes: item.notes,
+        },
+        incomingConfiguration,
+      );
 
     if (token) {
       try {
@@ -236,8 +273,9 @@ export const useCartStore = create<CartState>((set, get) => ({
             variantId,
             quantity,
             price: product.price,
-            selectedAttributes: product.selectedAttributes || null,
-            customization: product.customization || null,
+            selectedAttributes: product.selectedAttributes ?? null,
+            customization: product.customization ?? null,
+            notes: product.notes ?? null,
           }),
         });
 
@@ -293,12 +331,13 @@ export const useCartStore = create<CartState>((set, get) => ({
         : [
             ...cartItems,
             {
-              id: Date.now(),
+              id: crypto.randomUUID(),
               productId: product.id,
               variantId,
               quantity,
               selectedAttributes: product.selectedAttributes || null,
               customization: product.customization || null,
+              notes: product.notes ?? null,
             },
           ];
 
@@ -456,10 +495,22 @@ export const useCartStore = create<CartState>((set, get) => ({
 
     // === GUEST CART ===
     try {
-      const cartItems = get().cartItems;
+      const cartItems = readGuestCart();
+
+      const targetItem = cartItems.find((item) => item.id === id);
+
+      if (!targetItem) {
+        toast.error("Produk tidak ditemukan di keranjang.");
+        return;
+      }
 
       const updatedCart = cartItems.map((item) =>
-        item.id === id ? { ...item, quantity: newQty } : item,
+        item.id === id
+          ? {
+              ...item,
+              quantity: newQty,
+            }
+          : item,
       );
 
       const res = await fetch(`${apiUrl}/cart/guest-calculate`, {
@@ -520,9 +571,12 @@ export const useCartStore = create<CartState>((set, get) => ({
         console.error(e);
       }
     } else {
-      const newCart = get().cartItems.filter((i) => i.id !== id);
+      const newCart = readGuestCart().filter((item) => item.id !== id);
+
       localStorage.setItem("guest_cart", JSON.stringify(newCart));
+
       await get().fetchCart();
+
       toast.success("Barang dihapus.");
     }
   },
@@ -594,6 +648,7 @@ function formatCartItems(items: any[]): CartItemUI[] {
       // Customization
       customization: item.customization ?? null,
       selectedAttributes: item.selectedAttributes ?? null,
+      notes: item.notes ?? null,
     };
   });
 }

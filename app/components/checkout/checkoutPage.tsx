@@ -472,6 +472,7 @@ export default function CheckoutPage() {
             price: item.price,
             customization: item.customization,
             selectedAttributes: item.selectedAttributes || null,
+            notes: item.notes ?? null,
           })),
           note,
           subtotal,
