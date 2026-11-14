@@ -1,5 +1,6 @@
 "use client";
 
+import { trackCustomizationEvent } from "@/app/lib/tracking/customizationEvents";
 import { pushEcommerceEvent } from "@/app/lib/tracking/dataLayer";
 import { productToViewItem } from "@/app/lib/tracking/viewItem";
 import { useCartStore } from "@/app/store/useCartStore";
@@ -174,6 +175,7 @@ export function ProductDetailPage({
       ) || [],
     );
   }, [product.variants]);
+  const trackedCustomizationStart = useRef<Set<string>>(new Set());
 
   // Keep the original variant-generator semantics: the first variant defines
   // which attribute groups participate in variant matching.
@@ -299,6 +301,16 @@ export function ProductDetailPage({
     // React batches these event updates into one render.
     setIsCustomizing(val);
     setSelections(nextSelections);
+
+    // Kirim satu kali per product/page lifecycle, hanya saat user memilih custom.
+    // Tidak dipicu oleh useEffect atau re-render.
+    if (val && !trackedCustomizationStart.current.has(product.id)) {
+      trackCustomizationEvent("customize_start", {
+        item_group_id: product.id,
+      });
+
+      trackedCustomizationStart.current.add(product.id);
+    }
   };
 
   const handleCustomColorChange = (hex: string) => {
@@ -1576,6 +1588,22 @@ export function ProductDetailPage({
     };
   }, [selectedVariant, product.attributeValues]);
 
+  const trackCustomError = (
+    errorCode:
+      | "missing_option"
+      | "missing_print_side"
+      | "missing_logo"
+      | "logo_storage_full"
+      | "other",
+  ) => {
+    if (!isCustomizing) return;
+
+    trackCustomizationEvent("customize_error", {
+      item_group_id: product.id,
+      error_code: errorCode,
+    });
+  };
+
   const handleAddToCart = async (): Promise<boolean> => {
     const visibleGroups = attributeGroups.filter((group) => {
       if (
@@ -1600,7 +1628,7 @@ export function ProductDetailPage({
             ? `Please select ${group.name} first!`
             : `Silakan pilih ${group.name} terlebih dahulu!`,
         );
-
+        trackCustomError("missing_option");
         return false;
       }
     }
@@ -1615,6 +1643,8 @@ export function ProductDetailPage({
           ? "Please select a print position / side first!"
           : "Silakan pilih posisi / sisi cetak terlebih dahulu!",
       );
+      trackCustomError("missing_print_side");
+
       return false;
     }
     const variantWeight = resolvedVariantDetails
@@ -1711,7 +1741,24 @@ export function ProductDetailPage({
       selectedAttributes: selections || null,
       freightMode: selectedFreightMode,
     };
-    const success = await addToCart(payload, quantity, token, locale);
+    // Callback khusus agar QuotaExceededError tidak tercampur dengan
+    // kegagalan dari request Add to Cart lain.
+    let failureReason: "logo_storage_full" | "other" = "other";
+
+    const success = await addToCart(
+      payload,
+      quantity,
+      token,
+      locale,
+      (reason) => {
+        failureReason = reason;
+      },
+    );
+
+    // Satu event kegagalan per klik. Order Now memakai handler yang sama.
+    if (!success) {
+      trackCustomError(failureReason);
+    }
 
     return success;
   };
@@ -2140,6 +2187,7 @@ export function ProductDetailPage({
         <div className="flex flex-col gap-4 md:sticky md:top-24 md:h-fit z-10">
           {product.isCustom && isCustomizing && hasMockupAreas ? (
             <MemoProductCustomizer
+              productId={product.id}
               media={customizerMedia}
               productName={product.name}
               isMultiFace={product.isMultiFace}
