@@ -21,6 +21,7 @@ interface CartState {
     quantity: number,
     token?: string,
     locale?: string,
+    onFailure?: (reason: "logo_storage_full") => void,
   ) => Promise<boolean>;
   hydrateGuestCart: () => void;
   updateQty: (
@@ -213,6 +214,7 @@ export const useCartStore = create<CartState>((set, get) => ({
     quantity,
     token,
     locale = "id",
+    onFailure,
   ): Promise<boolean> => {
     const userCountry = getUserCountryFromCookie();
 
@@ -436,6 +438,9 @@ export const useCartStore = create<CartState>((set, get) => ({
             : "Ukuran logo atau data custom terlalu besar. Silakan gunakan gambar yang lebih kecil.",
         );
 
+        // Beritahukan penyebab kegagalan hanya untuk aksi addToCart ini.
+        // Tidak mengubah return Promise<boolean> atau global state.
+        onFailure?.("logo_storage_full");
         return false;
       }
 

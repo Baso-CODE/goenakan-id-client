@@ -1,5 +1,6 @@
 "use client";
 
+import { trackCustomizationEvent } from "@/app/lib/tracking/customizationEvents";
 import { MediaItem, MockupArea } from "@/app/types/productDetail.type";
 import {
   getCloudinaryVideoPoster,
@@ -173,6 +174,7 @@ interface ProductCustomizerProps {
   productDimensions?: string;
   colorMockupTrigger?: string;
   colorMaskUrl?: string;
+  productId: string;
 }
 
 export function getAreaDisplayName(
@@ -292,6 +294,7 @@ export function ProductCustomizer({
   productDimensions,
   colorMockupTrigger,
   colorMaskUrl,
+  productId,
 }: ProductCustomizerProps) {
   const locale = useLocale();
   const isEn = locale === "en";
@@ -1102,6 +1105,13 @@ export function ProductCustomizer({
 
         setActiveLogoId(newLogo.id);
 
+        // Tracking dipicu oleh upload baru, bukan saat rehydration.
+        // File name dan isi gambar tidak pernah dikirim ke GTM.
+        trackCustomizationEvent("customize_logo_upload", {
+          item_group_id: productId,
+          file_type: file.type,
+        });
+
         toast.success(
           isEn
             ? `Logo for "${getAreaName(area)}" uploaded successfully!`
@@ -1496,6 +1506,10 @@ export function ProductCustomizer({
       link.download = `${productName.toLowerCase().replace(/\s+/g, "-")}-${sideName.toLowerCase().replace(/\s+/g, "-")}-spec-sheet.png`;
       link.href = finalDataUrl;
       link.click();
+
+      trackCustomizationEvent("customize_mockup_download", {
+        item_group_id: productId,
+      });
 
       toast.success(
         isEn
