@@ -17,11 +17,31 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // ===================================================
-  // SEO: LEGACY ARTICLE 301 REDIRECTS
-  // ===================================================
+  // ==========================================
+  // SEO PERMANENT REDIRECTS
+  // ==========================================
   async redirects() {
-    return [...legacyArticleRedirects];
+    return [
+      // Legacy Shop URLs
+      {
+        source: "/shop",
+        destination: "/id/products",
+        statusCode: 301,
+      },
+      {
+        source: "/id/shop",
+        destination: "/id/products",
+        statusCode: 301,
+      },
+      {
+        source: "/en/shop",
+        destination: "/en/products",
+        statusCode: 301,
+      },
+
+      // Existing legacy article redirects
+      ...legacyArticleRedirects,
+    ];
   },
 };
 

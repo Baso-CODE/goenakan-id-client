@@ -23,18 +23,39 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
 
+  const lang = locale === "en" ? "en" : "id";
+  const siteUrl = "https://goenakan.id";
+
   const t = await getTranslations({
-    locale,
+    locale: lang,
     namespace: "Metadata",
   });
 
+  const title = t("homeTitle");
+  const description = t("homeDescription");
+  const canonical = `${siteUrl}/${lang}`;
+
   return {
-    title: t("homeTitle"),
-    description: t("homeDescription"),
+    title,
+    description,
+    alternates: {
+      canonical,
+      languages: {
+        id: `${siteUrl}/id`,
+        en: `${siteUrl}/en`,
+      },
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
     openGraph: {
-      title: t("homeTitle"),
-      description: t("homeDescription"),
+      title,
+      description,
+      url: canonical,
       type: "website",
+      siteName: "Goenakan Indonesia",
+      locale: lang === "en" ? "en_US" : "id_ID",
     },
   };
 }
