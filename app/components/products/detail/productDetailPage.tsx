@@ -6,7 +6,7 @@ import { useCartStore } from "@/app/store/useCartStore";
 import { AddToCartPayload } from "@/app/types/itemCart/addToCartPayload.type";
 import { MediaItem, ProductDetail } from "@/app/types/productDetail.type";
 import { isMockupImage } from "@/app/utils/mediaFilter";
-import { MessageCircle, Sparkles, X, ZoomIn } from "lucide-react";
+import { MessageCircle, Sparkles } from "lucide-react";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -250,10 +250,7 @@ export function ProductDetailPage({
   const [selectedMockupPositions, setSelectedMockupPositions] = useState<
     string[]
   >([]);
-  const [previewImage, setPreviewImage] = useState<{
-    url: string;
-    name: string;
-  } | null>(null);
+
 
   const defaultFreightMode =
     product.availableFreightModes === "AIR" ? "AIR" : "SEA";
@@ -1289,75 +1286,76 @@ export function ProductDetailPage({
       }
     }
 
-    const hasConfiguredMockups = (product.media || []).some(
-      (img) => img.mockupAreas && img.mockupAreas.length > 0,
+    // Check if any product media has an attributeValueId attached
+    const hasTaggedMedia = (product.media || []).some(
+      (img) => !!img.attributeValueId,
     );
 
-    // console.log(
-    //   "DEBUG: hasConfiguredMockups =",
-    //   hasConfiguredMockups,
-    //   "attributeMockupMedia =",
-    //   attributeMockupMedia,
-    // );
+    // Check if any tagged media matches currently selected attributes
+    const hasMatchingTaggedMedia = (product.media || []).some(
+      (img) =>
+        img.attributeValueId &&
+        selectedAttributeValueIdSet.has(img.attributeValueId),
+    );
 
-    let productMedia: MediaItem[] = [];
+    // Check if any mockup matches currently selected attributes
+    const hasMatchingMockup = (product.media || []).some(
+      (img) =>
+        ((img.mockupAreas && img.mockupAreas.length > 0) ||
+          !!img.colorMaskUrl) &&
+        img.attributeValueId &&
+        selectedAttributeValueIdSet.has(img.attributeValueId),
+    );
 
-    if (hasConfiguredMockups) {
-      // Periksa apakah ada mockup yang cocok dengan varian/atribut yang dipilih saat ini
-      const hasMatchingMockup = (product.media || []).some(
-        (img) =>
-          ((img.mockupAreas && img.mockupAreas.length > 0) ||
-            !!img.colorMaskUrl) &&
-          img.attributeValueId &&
-          selectedAttributeValueIdSet.has(img.attributeValueId),
-      );
+    const productMedia: MediaItem[] = (product.media || [])
+      .filter((img) => {
+        const isMockup =
+          (img.mockupAreas && img.mockupAreas.length > 0) ||
+          !!img.colorMaskUrl;
 
-      productMedia = (product.media || [])
-        .filter((img) => {
-          const isMockup =
-            (img.mockupAreas && img.mockupAreas.length > 0) ||
-            !!img.colorMaskUrl;
-          if (isMockup) {
-            // Mockup tanpa attributeValueId berlaku untuk semua varian
-            if (!img.attributeValueId) return true;
-            // Jika ada mockup yang cocok dengan varian terpilih, tampilkan yang cocok saja
-            if (hasMatchingMockup) {
-              return selectedAttributeValueIdSet.has(img.attributeValueId);
-            }
-            // Fallback: jika belum ada varian yang dipilih, jangan hilangkan mockup
-            // agar customizer tetap dapat dibuka dan diakses oleh user
-            return true;
-          } else {
-            // Gambar produk biasa
-            if (!img.attributeValueId) return true;
+        if (isMockup) {
+          // Mockup tanpa attributeValueId berlaku untuk semua varian
+          if (!img.attributeValueId) return true;
+          // Jika ada mockup yang cocok dengan varian terpilih, tampilkan yang cocok saja
+          if (hasMatchingMockup) {
             return selectedAttributeValueIdSet.has(img.attributeValueId);
           }
-        })
-        .map((img) => {
-          const isMockup = isMockupImage(img);
-          const hasColorMask = !!img.colorMaskUrl;
-          const isColorCustomLink =
-            hasColorMask &&
-            (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE"
-              ? !!img.attributeValueId &&
-                selectedAttributeValueIdSet.has(img.attributeValueId)
-              : true);
-          return {
-            ...img,
-            isColorCustomizable: !!isColorCustomLink,
-          };
-        });
-    } else {
-      if (attributeMockupMedia) {
-        productMedia.push(attributeMockupMedia);
-      }
-      const genericPhotos = (product.media || [])
-        .filter((img) => !img.attributeValueId && !isMockupImage(img))
-        .map((img) => ({
+          // Fallback: jika belum ada varian yang dipilih, jangan hilangkan mockup
+          // agar customizer tetap dapat dibuka dan diakses oleh user
+          return true;
+        } else {
+          // Gambar produk biasa
+          // Foto tanpa attributeValueId adalah foto umum (shared) untuk semua opsi
+          if (!img.attributeValueId) return true;
+          // Jika ada foto yang cocok dengan atribut terpilih, tampilkan yang cocok saja
+          if (hasMatchingTaggedMedia) {
+            return selectedAttributeValueIdSet.has(img.attributeValueId);
+          }
+          // Fallback jika tidak ada yang cocok dengan seleksi saat ini:
+          // Jika ada foto umum, tampilkan foto umum saja. Jika tidak ada foto umum, tampilkan semua.
+          const hasGeneralPhotos = (product.media || []).some(
+            (m) => !m.attributeValueId && !isMockupImage(m),
+          );
+          return !hasGeneralPhotos;
+        }
+      })
+      .map((img) => {
+        const hasColorMask = !!img.colorMaskUrl;
+        const isColorCustomLink =
+          hasColorMask &&
+          (product.colorMockupTrigger && product.colorMockupTrigger !== "NONE"
+            ? !!img.attributeValueId &&
+              selectedAttributeValueIdSet.has(img.attributeValueId)
+            : true);
+        return {
           ...img,
-          isColorCustomizable: false,
-        }));
-      productMedia.push(...genericPhotos);
+          isColorCustomizable:
+            !!isColorCustomLink || isColorPickerActive || !!activeColorHex,
+        };
+      });
+
+    if (attributeMockupMedia) {
+      productMedia.push(attributeMockupMedia);
     }
 
     const mergedMedia = [...currentMedia, ...productMedia];
@@ -1379,6 +1377,8 @@ export function ProductDetailPage({
     selectedAttributeValueIdSet,
     product.colorMockupTrigger,
     attributeMockupMedia,
+    isColorPickerActive,
+    activeColorHex,
   ]);
 
   const hasMockupAreas = useMemo(() => {
@@ -1401,64 +1401,16 @@ export function ProductDetailPage({
         (img) => img.mockupAreas && img.mockupAreas.length > 0,
       );
     } else {
-      const useMockupFlow =
-        product.colorMockupTrigger && product.colorMockupTrigger !== "NONE";
-
-      if (useMockupFlow) {
-        // Tampilkan foto produk di galeri polosan (filter out mockup template untuk customizer)
-        const galleryPhotos = allGalleryMediaForSize.filter(
-          (img) => !isMockupImage(img),
-        );
-        result =
-          galleryPhotos.length > 0 ? galleryPhotos : allGalleryMediaForSize;
-      } else {
-        // Tampilkan semua gambar tanpa filter ukuran (polosan type)
-        const currentMedia =
-          selectedVariantId && product.variants
-            ? (variantById.get(selectedVariantId)?.images || []).map((img) => ({
-                ...img,
-                isColorCustomizable: isColorPickerActive || !!activeColorHex,
-              }))
-            : [];
-        const productMedia = (product.media || [])
-          .filter((img) => !img.attributeValueId && !isMockupImage(img))
-          .map((img) => ({
-            ...img,
-            isColorCustomizable: false,
-          }));
-        const mergedMedia = [...currentMedia, ...productMedia];
-        const galleryPhotos = mergedMedia.filter((img) => !isMockupImage(img));
-        result = sortMediaItems(
-          galleryPhotos.length > 0 ? galleryPhotos : mergedMedia,
-        );
-      }
+      // Tampilkan foto produk di galeri normal (filter out mockup canvas template)
+      const galleryPhotos = allGalleryMediaForSize.filter(
+        (img) => !isMockupImage(img),
+      );
+      result =
+        galleryPhotos.length > 0 ? galleryPhotos : allGalleryMediaForSize;
     }
 
-    // console.log(
-    //   "DEBUG: activeGalleryMedia content =",
-    //   result.map((m) => ({
-    //     id: m.id,
-    //     url: m.url,
-    //     altText: m.altText,
-    //     attributeValueId: m.attributeValueId,
-    //     isColorCustomizable: m.isColorCustomizable,
-    //     colorMaskUrl: m.colorMaskUrl,
-    //     hasMockupAreas: m.mockupAreas && m.mockupAreas.length > 0,
-    //   })),
-    // );
-
     return result;
-  }, [
-    allGalleryMediaForSize,
-    isCustomizing,
-    selectedVariantId,
-    variantById,
-    product.variants,
-    product.media,
-    product.colorMockupTrigger,
-    isColorPickerActive,
-    activeColorHex,
-  ]);
+  }, [allGalleryMediaForSize, isCustomizing]);
 
   const customizerMedia = useMemo(() => {
     if (!isCustomizing) return activeGalleryMedia;
@@ -2039,19 +1991,13 @@ export function ProductDetailPage({
               const mUrl = p[1] || "";
 
               return (
-                <div
+                <button
                   key={val}
-                  role="button"
-                  tabIndex={isDisabled ? -1 : 0}
+                  type="button"
+                  disabled={isDisabled}
                   onClick={() =>
                     !isDisabled && handleSelectOption(group.name, val)
                   }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      if (!isDisabled) handleSelectOption(group.name, val);
-                    }
-                  }}
                   className={`flex flex-col items-center justify-center p-2 border rounded-sm transition-all duration-200 min-w-[70px] ${
                     isSelected && !isDisabled
                       ? "border-stone-850 ring-1 ring-stone-900 bg-stone-50 scale-102 font-medium"
@@ -2060,27 +2006,15 @@ export function ProductDetailPage({
                         : "border-stone-200 text-stone-600 hover:border-stone-400 cursor-pointer bg-white"
                   }`}>
                   {mUrl ? (
-                    <div className="relative w-12 h-12 rounded-sm overflow-hidden bg-white mb-1 border border-stone-100 flex items-center justify-center group/thumb">
+                    <div className="relative w-12 h-12 rounded-sm overflow-hidden bg-white mb-1 border border-stone-100 flex items-center justify-center pointer-events-none">
                       <img
                         src={mUrl}
                         alt={mName}
                         className="w-full h-full object-cover"
                       />
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPreviewImage({ url: mUrl, name: mName });
-                        }}
-                        className="absolute inset-0 bg-black/40 opacity-0 group-hover/thumb:opacity-100 transition-opacity duration-150 flex items-center justify-center text-white"
-                        title={
-                          locale === "en" ? "Zoom Image" : "Perbesar gambar"
-                        }>
-                        <ZoomIn className="w-4 h-4" />
-                      </button>
                     </div>
                   ) : (
-                    <div className="w-12 h-12 rounded-sm bg-stone-100 mb-1 border border-stone-200 flex items-center justify-center text-stone-400 text-xs">
+                    <div className="w-12 h-12 rounded-sm bg-stone-100 mb-1 border border-stone-200 flex items-center justify-center text-stone-400 text-xs pointer-events-none">
                       No Img
                     </div>
                   )}
@@ -2092,7 +2026,7 @@ export function ProductDetailPage({
                     }`}>
                     {mName}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -2705,34 +2639,6 @@ export function ProductDetailPage({
         </div>
       </div>
 
-      {previewImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-fade-in"
-          onClick={() => setPreviewImage(null)}>
-          <div
-            className="relative bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-lg p-4 max-w-lg w-full flex flex-col items-center gap-3 shadow-2xl animate-scale-in"
-            onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => setPreviewImage(null)}
-              className="absolute top-3 right-3 p-1.5 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 dark:bg-stone-800 dark:hover:bg-stone-700 dark:text-stone-300 transition-colors">
-              <X className="w-4 h-4" />
-            </button>
-            <div className="relative w-full aspect-square rounded-md overflow-hidden bg-stone-50 flex items-center justify-center border border-stone-100 dark:border-stone-800">
-              <Image
-                src={previewImage.url}
-                alt={previewImage.name}
-                fill
-                sizes="(max-width: 640px) 90vw, 500px"
-                className="object-contain p-2"
-              />
-            </div>
-            <p className="text-sm font-bold text-stone-900 dark:text-white capitalize">
-              {previewImage.name}
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

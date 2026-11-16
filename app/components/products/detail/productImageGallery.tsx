@@ -32,8 +32,16 @@ export function ProductImageGallery({
   const mediaIdsKey =
     media?.map((item) => item.id || item.url).join(",") || "";
 
+  const [lastMediaKey, setLastMediaKey] = useState(mediaIdsKey);
+
   useEffect(() => {
     if (!media || media.length === 0) return;
+
+    const mediaListChanged = lastMediaKey !== mediaIdsKey;
+    if (mediaListChanged) {
+      setLastMediaKey(mediaIdsKey);
+    }
+
     // Only auto-select color customizable image if a custom color or color picker is actively selected
     if (customColor || isColorPickerActive) {
       const customIndex = media.findIndex((item) => item.isColorCustomizable);
@@ -42,8 +50,13 @@ export function ProductImageGallery({
         return;
       }
     }
-    setActiveIndex((prev) => (prev < media.length ? prev : 0));
-  }, [mediaIdsKey, customColor, isColorPickerActive]);
+
+    if (mediaListChanged) {
+      setActiveIndex(0);
+    } else {
+      setActiveIndex((prev) => (prev < media.length ? prev : 0));
+    }
+  }, [mediaIdsKey, customColor, isColorPickerActive, lastMediaKey]);
 
   // Jika tidak ada media, jangan render apa-apa
   if (!media || media.length === 0) return null;
