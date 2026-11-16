@@ -10,19 +10,44 @@ type Props = {
 };
 
 // 2. Fungsi untuk menghasilkan metadata secara dinamis
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
 
-  // Membaca json bagian "Metadata"
-  const t = await getTranslations({ locale, namespace: "Metadata" });
+  const lang = locale === "en" ? "en" : "id";
+  const siteUrl = "https://goenakan.id";
+
+  const t = await getTranslations({
+    locale: lang,
+    namespace: "Metadata",
+  });
+
+  const title = t("productsTitle");
+  const description = t("productsDescription");
+
+  const canonical = `${siteUrl}/${lang}/products`;
 
   return {
-    title: t("productsTitle"),
-    description: t("productsDescription"),
+    title,
+    description,
+    alternates: {
+      canonical,
+      languages: {
+        id: `${siteUrl}/id/products`,
+        en: `${siteUrl}/en/products`,
+      },
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
     openGraph: {
-      title: t("productsTitle"),
-      description: t("productsDescription"),
+      title,
+      description,
+      url: canonical,
+      siteName: "Goenakan Indonesia",
       type: "website",
+      locale: lang === "en" ? "en_US" : "id_ID",
     },
   };
 }

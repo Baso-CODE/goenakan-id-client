@@ -10,7 +10,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: "/",
         disallow: [
           "/api/",
-          "/_next/",
           "/*/cart",
           "/*/cart/",
           "/*/checkout",
@@ -21,6 +20,7 @@ export default function robots(): MetadataRoute.Robots {
           "/*/register",
           "/*/reset-password",
           "/*/verify-email",
+          "/*/order-status",
           "/*/order-status/",
           "/*?*q=",
           "/*?*search=",
