@@ -28,6 +28,40 @@ const DEFAULT_FILTERS: FilterState = {
   attributes: {},
 };
 
+const getFiltersFromUrl = (params: URLSearchParams): FilterState => {
+  let attributes: Record<string, string> = {};
+
+  try {
+    const raw = params.get("attributes");
+
+    if (raw) {
+      const parsed = JSON.parse(raw);
+
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        attributes = Object.fromEntries(
+          Object.entries(parsed).filter(
+            (entry): entry is [string, string] => typeof entry[1] === "string",
+          ),
+        );
+      }
+    }
+  } catch {
+    attributes = {};
+  }
+
+  return {
+    ...DEFAULT_FILTERS,
+    category: params.get("category") || "all",
+    itemCategory: params.get("itemCategory") || "all",
+    itemName: params.get("itemName") || "all",
+    minPrice: params.get("minPrice") || "",
+    maxPrice: params.get("maxPrice") || "",
+    availability: params.get("availability") || "all",
+    sort: params.get("sort") || "best_selling",
+    attributes,
+  };
+};
+
 const getUserCountryFromCookie = (): string => {
   if (typeof document === "undefined") return "ID";
 
@@ -43,14 +77,29 @@ export default function FilterProduct() {
 
   const isLoadMoreRef = useRef(false);
 
-  const categoryParam = searchParams.get("category");
-  const searchParam = searchParams.get("search") || "";
-  const pageParam = Number(searchParams.get("page")) || 1;
+  const queryString = searchParams.toString();
 
-  const [filters, setFilters] = useState<FilterState>(() => ({
-    ...DEFAULT_FILTERS,
-    category: categoryParam || "all",
-  }));
+  const searchParam = searchParams.get("search") || "";
+
+  const pageParam = Math.max(1, Number(searchParams.get("page")) || 1);
+
+  const [filters, setFilters] = useState<FilterState>(() =>
+    getFiltersFromUrl(new URLSearchParams(queryString)),
+  );
+
+  // Sinkronkan filter saat URL berubah,
+  // termasuk refresh, Back, Forward, dan link dari client.
+  useEffect(() => {
+    const updatedFilters = getFiltersFromUrl(new URLSearchParams(queryString));
+
+    setFilters((previous) => {
+      if (JSON.stringify(previous) === JSON.stringify(updatedFilters)) {
+        return previous;
+      }
+
+      return updatedFilters;
+    });
+  }, [queryString]);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [filterOptions, setFilterOptions] = useState<DynamicFilterOptions>({
@@ -114,11 +163,52 @@ export default function FilterProduct() {
 
   const updateUrlParams = (newPage: number, newFilters: FilterState) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("page", newPage.toString());
-    if (newFilters.category && newFilters.category !== "all") {
-      params.set("category", newFilters.category);
+
+    params.set("page", String(newPage));
+
+    const setFilterParam = (
+      key: string,
+      value?: string,
+      defaultValue = "all",
+    ) => {
+      if (value && value !== defaultValue) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    };
+
+    // Kategori utama
+    setFilterParam("category", newFilters.category);
+
+    // Item Category
+    setFilterParam("itemCategory", newFilters.itemCategory);
+
+    // Item Name
+    setFilterParam("itemName", newFilters.itemName);
+
+    // Harga
+    setFilterParam("minPrice", newFilters.minPrice, "");
+
+    setFilterParam("maxPrice", newFilters.maxPrice, "");
+
+    // Ketersediaan
+    setFilterParam("availability", newFilters.availability);
+
+    // Urutan produk
+    setFilterParam("sort", newFilters.sort, "best_selling");
+
+    // Atribut tambahan
+    const attributes = Object.fromEntries(
+      Object.entries(newFilters.attributes || {}).filter(
+        ([, value]) => value !== "" && value !== "all",
+      ),
+    );
+
+    if (Object.keys(attributes).length > 0) {
+      params.set("attributes", JSON.stringify(attributes));
     } else {
-      params.delete("category");
+      params.delete("attributes");
     }
 
     startTransition(() => {
