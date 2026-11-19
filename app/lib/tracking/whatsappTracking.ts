@@ -35,6 +35,41 @@ let attributionCache: WhatsappAttribution | null = null;
 
 let attributionPromise: Promise<WhatsappAttribution> | null = null;
 
+// Baca cookie persis ketika tombol WA diklik. Jangan cache GA ID.
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+
+  const entry = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`));
+
+  if (!entry) return null;
+  const raw = entry.slice(name.length + 1);
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function readGaIdsAtClick(): Pick<
+  WhatsappAttribution,
+  "ga_client_id" | "ga_session_id"
+> {
+  const gaCookie = readCookie("_ga");
+  const sessionCookie = readCookie("_ga_V764HW819M");
+
+  const clientMatch = gaCookie?.match(/^GA\d+\.\d+\.(\d+)\.(\d+)$/);
+  const modernSession = sessionCookie?.match(/^GS2\.\d+\.s(\d+)/);
+  const legacySession = sessionCookie?.match(/^GS1\.\d+\.(\d+)/);
+
+  return {
+    ga_client_id: clientMatch ? `${clientMatch[1]}.${clientMatch[2]}` : null,
+    ga_session_id: modernSession?.[1] ?? legacySession?.[1] ?? null,
+  };
+}
+
 // ==========================================
 // GENERATE WHATSAPP CODE
 // ==========================================
@@ -163,6 +198,8 @@ export async function trackWhatsappClick({
   }
 
   try {
+    // Ambil GA ID sebelum operasi async agar cocok dengan waktu klik.
+    const gaIdsAtClick = readGaIdsAtClick();
     const attribution = await getWhatsappAttribution();
 
     const response = await fetch(
@@ -176,7 +213,10 @@ export async function trackWhatsappClick({
           code,
           page_path: pagePath,
           cta_name: ctaName,
-          attribution,
+          attribution: {
+            ...attribution, // first dan last touch yang ada tetap dipakai.
+            ...gaIdsAtClick, // GA ID harus berasal dari cookie saat klik.
+          },
         }),
         keepalive: true,
         cache: "no-store",

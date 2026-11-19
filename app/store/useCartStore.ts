@@ -37,11 +37,8 @@ function trackAddToCart(
   item: CartItemUI | undefined,
   addedQuantity: number,
 ): void {
-  // Kontrak GTM v1.5:
-  // Jangan kirim add_to_cart jika currency bukan IDR.
-  if (useCartStore.getState().currencyCode !== "IDR") {
-    return;
-  }
+  // Nilai tracking selalu diambil dari trackingPriceIdr (IDR),
+  // bukan dari currencyCode yang hanya mengatur harga tampilan.
 
   if (!item || !Number.isSafeInteger(addedQuantity) || addedQuantity <= 0) {
     return;

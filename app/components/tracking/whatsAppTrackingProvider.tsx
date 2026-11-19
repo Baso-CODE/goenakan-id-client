@@ -55,7 +55,10 @@ const VALID_CTA_NAMES = [
 ] as const;
 
 function getCtaName(anchor: HTMLAnchorElement): string {
-  const ctaName = anchor.dataset.waCta;
+  // Link di HTML deskripsi produk memakai konteks parent.
+  const ctaName =
+    anchor.dataset.waCta ??
+    anchor.closest<HTMLElement>("[data-wa-cta]")?.dataset.waCta;
 
   if (ctaName && VALID_CTA_NAMES.some((name) => name === ctaName)) {
     return ctaName;

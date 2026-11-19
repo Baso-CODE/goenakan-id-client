@@ -212,9 +212,8 @@ export default function CheckoutPage() {
     // Jangan kirim jika keranjang kosong.
     if (!cartItems.length) return;
 
-    // Sesuai kontrak v1.3, nilai ecommerce wajib IDR.
-    // Jangan mengirim harga mata uang lain sebagai IDR.
-    if (currencyCode !== "IDR") return;
+    // Kontrak GA4 tetap IDR: cartToEcommerceItems memakai
+    // trackingPriceIdr yang disediakan backend untuk semua negara.
 
     const items = cartToEcommerceItems(cartItems);
 
