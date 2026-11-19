@@ -2,12 +2,14 @@ interface WhatsAppBannerProps {
   whatsappNumber: string;
   productName: string;
   locale?: string;
+  ctaName?: "product_request_quote" | "customize_request_whatsapp";
 }
 
 export function WhatsAppBanner({
   whatsappNumber,
   productName,
   locale = "id",
+  ctaName = "product_request_quote",
 }: WhatsAppBannerProps) {
   const isEn = locale === "en";
 
@@ -36,7 +38,7 @@ export function WhatsAppBanner({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        data-wa-cta="product_request_quote"
+        data-wa-cta={ctaName}
         className="shrink-0 bg-white text-[#3d342b] text-xs font-semibold px-4 py-2.5 rounded-sm hover:bg-stone-100 transition-colors whitespace-nowrap">
         {buttonText}
       </a>

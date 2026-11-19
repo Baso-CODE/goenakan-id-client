@@ -50,7 +50,7 @@ export function ProductDescription({
           {isEn ? "Description" : "Deskripsi"}
         </span>
 
-        <div className="relative">
+        <div className="relative" data-wa-cta="product_description_b2b">
           <div
             // DITAMBAHKAN KEMBALI: class prose-p dan prose-li untuk merapikan jarak yang mepet
             className={`text-sm text-stone-700 prose prose-sm max-w-none 
