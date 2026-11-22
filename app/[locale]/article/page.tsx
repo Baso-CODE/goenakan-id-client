@@ -6,6 +6,9 @@ import { getTranslations } from "next-intl/server";
 
 type Props = {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{
+    category?: string | string[];
+  }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -27,10 +30,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function AllArticle({ params }: Props) {
+export default async function AllArticle({ params, searchParams }: Props) {
   const { locale } = await params;
+  const query = await searchParams;
 
   const lang = locale === "en" ? "en" : "id";
+
+  const initialCategory =
+    typeof query.category === "string" ? query.category.trim() : "";
 
   const banners = await getActiveBanners(lang);
 
@@ -40,7 +47,7 @@ export default async function AllArticle({ params }: Props) {
         <ArticleBannerCarousel articles={banners} interval={5000} />
       )}
 
-      <ArticleList />
+      <ArticleList key={initialCategory} initialCategory={initialCategory} />
     </>
   );
 }

@@ -5,15 +5,22 @@ import { apiUrl } from "@/app/utils/ApiUrl";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import { useLocale } from "next-intl";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-
 interface ArticleListProps {
   categories?: string[];
   pageSize?: number;
+  initialCategory?: string;
 }
+
+type CategoryItem = {
+  id: string;
+  slug: string;
+  name_id: string;
+  name_en: string | null;
+};
 
 const PAGE_SIZE = 6;
 
@@ -21,7 +28,6 @@ const PAGE_SIZE = 6;
 const PAGINATION_ACCENT = "#b5956a";
 
 type SortOrder = "newest" | "older";
-type CategoryItem = { id: string; name_id: string; name_en: string | null };
 type PageItem = number | "ellipsis-left" | "ellipsis-right";
 
 const stripHtml = (html: string) => {
@@ -58,8 +64,14 @@ function getPageNumbers(current: number, total: number): PageItem[] {
   return result;
 }
 
-export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
+export function ArticleList({
+  pageSize = PAGE_SIZE,
+  initialCategory = "",
+}: ArticleListProps) {
   const locale = useLocale();
+  const router = useRouter();
+
+  const activeCategory = initialCategory;
   const isEnglish = locale === "en";
   const allPostsText = isEnglish ? "All posts" : "Semua Postingan";
   const newestText = isEnglish ? "newest" : "terbaru";
@@ -67,7 +79,6 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
 
   // Simpan ID nama kategori (Indonesia) sebagai parameter API; label boleh diterjemahkan.
   const [categoryList, setCategoryList] = useState<CategoryItem[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>("");
   const [sort, setSort] = useState<SortOrder>("newest");
   const [articles, setArticles] = useState<Article[]>([]);
   const [page, setPage] = useState(1);
@@ -112,8 +123,9 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
           take: String(pageSize),
           sort,
         });
-        if (activeCategory) params.set("categoryName", activeCategory);
-
+        if (activeCategory) {
+          params.set("category", activeCategory);
+        }
         const res = await fetch(
           `${apiUrl}/articles/list?${params.toString()}`,
           {
@@ -207,11 +219,16 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
     setPage(newPage);
   };
 
-  const changeCategory = (name: string) => {
-    if (name === activeCategory) return;
-    setArticles([]);
-    setPage(1);
-    setActiveCategory(name);
+  const changeCategory = (slug: string) => {
+    if (slug === activeCategory) return;
+
+    const targetUrl = slug
+      ? `/article?category=${encodeURIComponent(slug)}`
+      : "/article";
+
+    router.push(targetUrl, {
+      scroll: false,
+    });
   };
 
   const changeSort = (newSort: SortOrder) => {
@@ -248,14 +265,19 @@ export function ArticleList({ pageSize = PAGE_SIZE }: ArticleListProps) {
                     className={`cursor-pointer px-4 py-2 rounded-full text-xs font-medium transition-colors ${!activeCategory ? "bg-[#b5956a] text-white hover:bg-[#a07d55]" : "border-stone-300 text-stone-600 hover:bg-stone-100"}`}>
                     {allPostsText}
                   </Badge>
+
                   {categoryList.map((cat) => (
                     <Badge
                       key={cat.id}
-                      onClick={() => changeCategory(cat.name_id)}
+                      onClick={() => changeCategory(cat.slug)}
                       variant={
-                        activeCategory === cat.name_id ? "default" : "outline"
+                        activeCategory === cat.slug ? "default" : "outline"
                       }
-                      className={`cursor-pointer px-4 py-2 rounded-full text-xs font-medium transition-colors ${activeCategory === cat.name_id ? "bg-[#b5956a] text-white hover:bg-[#a07d55]" : "border-stone-300 text-stone-600 hover:bg-stone-100"}`}>
+                      className={`cursor-pointer px-4 py-2 rounded-full text-xs font-medium transition-colors ${
+                        activeCategory === cat.slug
+                          ? "bg-[#b5956a] text-white hover:bg-[#a07d55]"
+                          : "border-stone-300 text-stone-600 hover:bg-stone-100"
+                      }`}>
                       {isEnglish && cat.name_en ? cat.name_en : cat.name_id}
                     </Badge>
                   ))}
