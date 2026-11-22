@@ -13,6 +13,8 @@ export interface ArticleDetail {
   author: string;
   date: string;
   category: string;
+  categoryNameId?: string;
+  categorySlug?: string;
   slug?: string;
   coverImage: string;
   content: string; // Akan diisi content_id atau content_en dari server

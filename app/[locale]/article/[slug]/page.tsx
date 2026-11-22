@@ -125,7 +125,15 @@ export default async function ArticleSlugPage({ params }: ArticlePageProps) {
   const article = {
     id: rawArticle.id,
     title: getTranslatedValue(rawArticle, "title"),
-    category: rawArticle.category?.name || "Uncategorized",
+    category:
+      (locale === "en"
+        ? rawArticle.category?.name_en?.trim() ||
+          rawArticle.category?.name_id?.trim()
+        : rawArticle.category?.name_id?.trim() ||
+          rawArticle.category?.name_en?.trim()) ||
+      (locale === "en" ? "Uncategorized" : "Tanpa Kategori"),
+    categoryNameId: rawArticle.category?.name_id?.trim() || "",
+    categorySlug: rawArticle.category?.slug || "",
     author: rawArticle.author?.name || "Admin",
     date: new Date(
       rawArticle.publishedAt || rawArticle.createdAt,

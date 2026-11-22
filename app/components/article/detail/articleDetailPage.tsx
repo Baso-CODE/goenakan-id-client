@@ -34,11 +34,19 @@ export function ArticleDetailPage({ article }: ArticleDetailPageProps) {
             {dict.breadcrumbRoot}
           </Link>
           <span>›</span>
-          <Link
-            href="/article"
-            className="hover:text-stone-800 transition-colors">
-            {article.category}
-          </Link>
+
+          {article.categorySlug ? (
+            <Link
+              href={`/article?category=${encodeURIComponent(
+                article.categorySlug,
+              )}`}
+              className="font-medium text-stone-700 transition-colors hover:text-[#b5956a] hover:underline">
+              {article.category}
+            </Link>
+          ) : (
+            <span className="text-stone-500">{article.category}</span>
+          )}
+
           <span>›</span>
           <span className="text-stone-600 line-clamp-1">{article.title}</span>
         </nav>
