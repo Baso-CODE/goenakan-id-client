@@ -12,12 +12,17 @@ export type RelatedProduct = Pick<
 
 export async function getRelatedProductsAPI(
   slug: string,
-  country: string = "ID",
+  _country: string = "ID",
   lang: string = "id",
 ): Promise<RelatedProduct[]> {
   try {
+    // const params = new URLSearchParams({
+    //   country: country.trim().toUpperCase() || "ID",
+    //   lang: lang.trim().toLowerCase() || "id",
+    // });
+
     const params = new URLSearchParams({
-      country: country.trim().toUpperCase() || "ID",
+      country: "ID",
       lang: lang.trim().toLowerCase() || "id",
     });
 

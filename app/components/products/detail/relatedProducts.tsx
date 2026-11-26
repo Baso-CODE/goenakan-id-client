@@ -12,6 +12,7 @@ import { Link } from "@/i18n/routing";
 import { ImageOff } from "lucide-react";
 import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
+import EstimatedPrice from "../../currency/EstimatedPrice";
 
 interface RelatedProductsProps {
   products: RelatedProduct[];
@@ -133,10 +134,15 @@ function RelatedProductCard({ product }: { product: RelatedProduct }) {
           <p className="text-sm text-stone-800 font-medium leading-snug line-clamp-2 group-hover:text-stone-600 transition-colors">
             {product.name}
           </p>
-
           <p className="text-sm font-semibold text-stone-600">
-            {formatCurrency(product.bulkPrice, currency)}
+            {formatCurrency(product.bulkPrice, currency)}/pcs
           </p>
+          <EstimatedPrice
+            amountIdr={product.bulkPrice}
+            sourceCurrency={currency}
+            perPcs
+            className="mt-1"
+          />
         </div>
       </div>
     </Link>

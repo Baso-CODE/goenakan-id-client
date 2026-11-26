@@ -3,12 +3,15 @@ import { getRelatedProductsAPI } from "@/app/api/products/getRelatedProducts.api
 import { CustomCTA } from "@/app/components/products/customCTA";
 import { ProductDetailPage } from "@/app/components/products/detail/productDetailPage";
 import { RelatedProducts } from "@/app/components/products/detail/relatedProducts";
+import { buildProductJsonLd } from "@/app/lib/seo/productCatalog";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
-import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 const SITE_URL = "https://goenakan.id";
+
+// Semua harga transaksi Web Client menggunakan IDR.
+const PRICING_COUNTRY = "ID";
 
 interface ProductPageProps {
   params: Promise<{
@@ -52,37 +55,50 @@ function getCanonical(
 
   try {
     const parsed = new URL(value, SITE_URL);
-    if (parsed.origin !== SITE_URL) return fallback;
+
+    if (parsed.origin !== SITE_URL) {
+      return fallback;
+    }
+
     if (!["/id/", "/en/"].some((p) => parsed.pathname.startsWith(p))) {
       return fallback;
     }
+
     return `${parsed.origin}${parsed.pathname}`;
   } catch {
     return fallback;
   }
 }
 
+// ==========================================
+// 1. SEO METADATA
+// ==========================================
 export async function generateMetadata({
   params,
 }: ProductPageProps): Promise<Metadata> {
   const { slug, locale } = await params;
+
   const language = locale === "en" ? "en" : "id";
 
-  // Metadata tidak menggunakan cookie negara agar stabil untuk crawler.
   const product = (await getProductBySlugAPI(
     slug,
     language,
-    "ID",
+    PRICING_COUNTRY,
   )) as SeoProduct | null;
 
   if (!product) {
     return {
       title: language === "en" ? "Product Not Found" : "Produk Tidak Ditemukan",
-      robots: { index: false, follow: false },
+
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
-  const fallbackUrl = `${SITE_URL}/${language}/products/${encodeURIComponent(slug)}`;
+  const fallbackUrl =
+    `${SITE_URL}/${language}/products/` + encodeURIComponent(slug);
 
   const title =
     product.seo?.metaTitle?.trim() ||
@@ -106,9 +122,11 @@ export async function generateMetadata({
   return {
     title,
     description,
+
     alternates: {
       canonical,
     },
+
     openGraph: {
       type: "website",
       title: product.seo?.ogTitle || title,
@@ -118,12 +136,14 @@ export async function generateMetadata({
       locale: language === "en" ? "en_US" : "id_ID",
       images: image ? [{ url: image }] : undefined,
     },
+
     twitter: {
       card: "summary_large_image",
       title: product.seo?.ogTitle || title,
       description: product.seo?.ogDescription || description,
       images: image ? [image] : undefined,
     },
+
     robots: {
       index: true,
       follow: true,
@@ -131,25 +151,47 @@ export async function generateMetadata({
   };
 }
 
+// ==========================================
+// 2. SERVER-SIDE PRODUCT PAGE
+// ==========================================
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug, locale } = await params;
+
   setRequestLocale(locale);
+
   const language = locale === "en" ? "en" : "id";
 
-  const cookieStore = await cookies();
-  const userCountry =
-    cookieStore.get("USER_COUNTRY")?.value?.trim().toUpperCase() || "ID";
-
+  // Geolocation tidak lagi menentukan
+  // mata uang transaksi Product Detail.
   const [product, relatedProducts] = await Promise.all([
-    getProductBySlugAPI(slug, language, userCountry),
-    getRelatedProductsAPI(slug, userCountry, language),
+    getProductBySlugAPI(slug, language, PRICING_COUNTRY),
+    getRelatedProductsAPI(slug, PRICING_COUNTRY, language),
   ]);
 
-  if (!product) notFound();
+  if (!product) {
+    notFound();
+  }
+
+  // XML Feed dan JSON-LD menggunakan
+  // satu sumber perhitungan harga.
+  const productJsonLd = buildProductJsonLd(product, slug, language);
 
   return (
     <div className="min-h-screen bg-white">
+      {/* SERVER-SIDE PRODUCT JSON-LD */}
+      {productJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(productJsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      )}
+
+      {/* PRODUCT DETAIL */}
       <ProductDetailPage product={product} locale={language} />
+
+      {/* RELATED PRODUCTS */}
       <RelatedProducts
         products={relatedProducts}
         title={
@@ -158,6 +200,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
             : "Produk Lainnya untuk Anda"
         }
       />
+
+      {/* CUSTOM PRODUCT CTA */}
       <CustomCTA
         title={
           language === "en"

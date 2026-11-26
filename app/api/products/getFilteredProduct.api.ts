@@ -5,17 +5,24 @@ export async function getFilteredProductsAPI(
   filters: FilterState,
   page: number = 1,
   searchQuery: string = "",
-  country: string = "ID",
+  // country: string = "ID",
+  _country: string = "ID",
   lang: string = "id",
 ) {
   try {
+    // const params = new URLSearchParams({
+    //   page: page.toString(),
+    //   take: "6",
+    //   country: country,
+    //   lang: lang,
+    // });
+
     const params = new URLSearchParams({
       page: page.toString(),
       take: "6",
-      country: country,
+      country: "ID",
       lang: lang,
     });
-
     if (searchQuery) {
       params.append("search", searchQuery);
     }

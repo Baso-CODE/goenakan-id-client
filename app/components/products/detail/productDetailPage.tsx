@@ -1,5 +1,5 @@
 "use client";
-
+import EstimatedPrice from "@/app/components/currency/EstimatedPrice";
 import { trackCustomizationEvent } from "@/app/lib/tracking/customizationEvents";
 import { pushEcommerceEvent } from "@/app/lib/tracking/dataLayer";
 import { productToViewItem } from "@/app/lib/tracking/viewItem";
@@ -10,7 +10,6 @@ import { formatCurrency } from "@/app/utils/formatCurrency";
 import { isMockupImage } from "@/app/utils/mediaFilter";
 import { MessageCircle, Sparkles } from "lucide-react";
 import { useSession } from "next-auth/react";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -231,7 +230,6 @@ export function ProductDetailPage({
   const [selectedMockupPositions, setSelectedMockupPositions] = useState<
     string[]
   >([]);
-
 
   const defaultFreightMode =
     product.availableFreightModes === "AIR" ? "AIR" : "SEA";
@@ -1299,8 +1297,7 @@ export function ProductDetailPage({
     const productMedia: MediaItem[] = (product.media || [])
       .filter((img) => {
         const isMockup =
-          (img.mockupAreas && img.mockupAreas.length > 0) ||
-          !!img.colorMaskUrl;
+          (img.mockupAreas && img.mockupAreas.length > 0) || !!img.colorMaskUrl;
 
         if (isMockup) {
           // Mockup tanpa attributeValueId berlaku untuk semua varian
@@ -2566,11 +2563,20 @@ export function ProductDetailPage({
                 </div>
               )}
 
+              {/* OFFICIAL PRODUCT TOTAL */}
               <div className="py-2 border-t border-stone-100 mt-2">
                 <p className="text-lg font-bold text-stone-900">
                   Total: {formatCurrency(finalPrice * quantity, currencyCode)}
                 </p>
               </div>
+
+              {/* SEPARATE FOREIGN CURRENCY ESTIMATION */}
+              <EstimatedPrice
+                amountIdr={finalPrice * quantity}
+                sourceCurrency={currencyCode}
+                showPaymentNote
+                className="mb-2"
+              />
 
               <div className="flex gap-3 mt-2">
                 <button
@@ -2672,7 +2678,6 @@ export function ProductDetailPage({
           />
         </div>
       </div>
-
     </div>
   );
 }

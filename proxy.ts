@@ -94,6 +94,7 @@ export default async function proxy(request: NextRequest) {
   const handleI18nRouting = createMiddleware({
     ...routing,
     defaultLocale: dynamicDefaultLocale,
+    localeDetection: false,
   });
 
   const legacyDestination = getLegacyRedirect(request.nextUrl.pathname);
