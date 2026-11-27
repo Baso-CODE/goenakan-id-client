@@ -1,6 +1,5 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { routing } from "@/i18n/routing";
-import { CurrencyProvider } from "@/providers/CurrencyProvider";
 import { NextAuthProvider } from "@/providers/NextAuthProvider";
 import type { Metadata } from "next";
 import { NextIntlClientProvider } from "next-intl";
@@ -8,6 +7,7 @@ import { getMessages, setRequestLocale } from "next-intl/server";
 import { Gilda_Display } from "next/font/google";
 import { notFound } from "next/navigation";
 import { Toaster } from "sonner";
+
 import { getPublicAppSettings } from "../api/app-setting/getAppSettings.api";
 import GuestCartHydrator from "../components/cart/guestCartHydrator";
 import FloatingWhatsAppCTA from "../components/FloatingWhatsAppCTA";
@@ -65,22 +65,18 @@ export default async function RootLayout({
         className={`${gilda.variable} ${gilda.className} antialiased scroll-smooth`}>
         <NextAuthProvider>
           <NextIntlClientProvider messages={messages} locale={locale}>
-            <CurrencyProvider>
-              <Navbar />
+            <Navbar />
+            <WhatsAppTrackingProvider />
+            <TooltipProvider>
+              <GuestCartHydrator />
+              {children}
+            </TooltipProvider>
 
-              <WhatsAppTrackingProvider />
+            <Footer />
 
-              <TooltipProvider>
-                <GuestCartHydrator />
-                {children}
-              </TooltipProvider>
+            <FloatingWhatsAppCTA locale={locale} />
 
-              <Footer />
-
-              <FloatingWhatsAppCTA locale={locale} />
-
-              <Toaster position="top-center" richColors />
-            </CurrencyProvider>
+            <Toaster position="top-center" richColors />
           </NextIntlClientProvider>
         </NextAuthProvider>
 

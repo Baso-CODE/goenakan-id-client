@@ -12,7 +12,6 @@ import { getOptimizedImageUrl } from "@/app/utils/mediaOptimization";
 import { getBestSellerProductsAPI } from "../api/products/getBestSellerProduct.api";
 import { BestSellerProduct } from "../types/bestSellerProduct.type";
 import { formatCurrency } from "../utils/formatCurrency";
-import EstimatedPrice from "./currency/EstimatedPrice";
 
 //  3. Helper untuk membaca Cookie di Client Side (Browser)
 function getClientCookie(name: string): string | null {
@@ -129,21 +128,14 @@ export default function BestSeller() {
                           {t("pcs")}
                         </p>
 
-                        <div className="mb-6">
-                          <p className="text-sm font-semibold text-gray-900">
-                            {formatCurrency(product.bulkPrice, currency)}/
-                            {t("pcs")}
-                            <span className="font-normal text-gray-500 text-xs ml-1">
-                              {t("min")} {product.minOrder} {t("pcs")}
-                            </span>
-                          </p>
-                          <EstimatedPrice
-                            amountIdr={product.bulkPrice}
-                            sourceCurrency={currency}
-                            perPcs
-                            className="mt-1"
-                          />
-                        </div>
+                        <p className="text-sm font-semibold text-gray-900 mb-6">
+                          {/*  Gunakan formatCurrency di sini */}
+                          {formatCurrency(product.bulkPrice, currency)}/
+                          {t("pcs")}
+                          <span className="font-normal text-gray-500 text-xs ml-1">
+                            {t("min")} {product.minOrder} {t("pcs")}
+                          </span>
+                        </p>
 
                         {/* <div className="mt-auto pt-4">
                           <p className="text-xs text-[#C4A48E] font-bold uppercase tracking-wider">

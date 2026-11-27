@@ -2,16 +2,11 @@ import { BestSellerProduct } from "@/app/types/bestSellerProduct.type";
 import { apiUrl } from "@/app/utils/ApiUrl";
 
 export async function getBestSellerProductsAPI(
-  _country: string = "ID",
+  country: string = "ID",
   locale: string = "id",
 ): Promise<BestSellerProduct[]> {
-  // const params = new URLSearchParams({
-  //   country: country.trim().toUpperCase() || "ID",
-  //   lang: locale.trim().toLowerCase() || "id",
-  // });
-
   const params = new URLSearchParams({
-    country: "ID",
+    country: country.trim().toUpperCase() || "ID",
     lang: locale.trim().toLowerCase() || "id",
   });
   try {

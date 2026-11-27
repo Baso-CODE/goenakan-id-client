@@ -6,8 +6,8 @@ import { RelatedProducts } from "@/app/components/products/detail/relatedProduct
 import { buildProductJsonLd } from "@/app/lib/seo/productCatalog";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-
 const SITE_URL = "https://goenakan.id";
 
 // Semua harga transaksi Web Client menggunakan IDR.
@@ -163,11 +163,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   // Geolocation tidak lagi menentukan
   // mata uang transaksi Product Detail.
-  const [product, relatedProducts] = await Promise.all([
-    getProductBySlugAPI(slug, language, PRICING_COUNTRY),
-    getRelatedProductsAPI(slug, PRICING_COUNTRY, language),
-  ]);
+  const cookieStore = await cookies();
 
+  const userCountry =
+    cookieStore.get("USER_COUNTRY")?.value?.trim().toUpperCase() || "ID";
+
+  const [product, relatedProducts] = await Promise.all([
+    getProductBySlugAPI(slug, language, userCountry),
+    getRelatedProductsAPI(slug, userCountry, language),
+  ]);
   if (!product) {
     notFound();
   }
