@@ -11,7 +11,7 @@ export interface CatalogOffer {
   minQty: number;
   pricePerPcs: number;
   totalPrice: number;
-  currency: "IDR";
+  currency: string;
 }
 
 export interface CatalogItem {
@@ -29,11 +29,16 @@ export interface CatalogItem {
 // ==========================================
 // 1. MINIMUM ORDER PRICING
 // ==========================================
-export function getCatalogOffer(product: ProductDetail): CatalogOffer | null {
-  if (product.currencyCode !== "IDR") {
+export function getCatalogOffer(
+  product: ProductDetail,
+  expectedCurrency: string = "IDR",
+): CatalogOffer | null {
+  if (
+    !/^[A-Z]{3}$/.test(expectedCurrency) ||
+    product.currencyCode !== expectedCurrency
+  ) {
     return null;
   }
-
   const freightMode = product.availableFreightModes === "AIR" ? "AIR" : "SEA";
 
   const tiers =
@@ -72,7 +77,7 @@ export function getCatalogOffer(product: ProductDetail): CatalogOffer | null {
     minQty,
     pricePerPcs,
     totalPrice,
-    currency: "IDR",
+    currency: expectedCurrency,
   };
 }
 
@@ -191,8 +196,9 @@ export function buildCatalogItem(
   product: ProductDetail,
   slug: string,
   locale: CatalogLocale = "id",
+  expectedCurrency: string = "IDR",
 ): CatalogItem | null {
-  const offer = getCatalogOffer(product);
+  const offer = getCatalogOffer(product, expectedCurrency);
 
   if (!offer) return null;
 
@@ -278,8 +284,12 @@ export function buildProductJsonLd(
   slug: string,
   locale: CatalogLocale,
 ) {
-  const item = buildCatalogItem(product, slug, locale);
-
+  const item = buildCatalogItem(
+    product,
+    slug,
+    locale,
+    product.currencyCode || "IDR",
+  );
   if (!item) return null;
 
   return {

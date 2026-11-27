@@ -1,5 +1,5 @@
 "use client";
-import EstimatedPrice from "@/app/components/currency/EstimatedPrice";
+
 import { formatCurrency } from "@/app/utils/formatCurrency";
 
 interface FlexiblePriceTier {
@@ -190,7 +190,8 @@ export function PriceTierSelector({
               <div
                 className={`
                   flex
-min-h-51                  w-full
+                  h-51
+                  w-full
                   flex-col
                   px-5
                   pb-6
@@ -300,12 +301,6 @@ min-h-51                  w-full
                       : `${formatQuantity(min, locale)}+ pcs`}
                   </p>
                 </div>
-                <EstimatedPrice
-                  amountIdr={price}
-                  sourceCurrency={currencyCode}
-                  perPcs
-                  className="mt-2 text-center"
-                />
               </div>
             </button>
           );

@@ -15,7 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import EstimatedPrice from "../currency/EstimatedPrice";
 
 interface ProductCardProps {
   product: Product;
@@ -72,13 +71,6 @@ export function ProductCard({ product }: ProductCardProps) {
                 min. {product.minOrder} pcs
               </span>
             </p>
-
-            <EstimatedPrice
-              amountIdr={product.bulkPrice}
-              sourceCurrency={currency}
-              perPcs
-              className="mt-1"
-            />
           </div>
 
           {/* Bagian Badge Terjual */}
